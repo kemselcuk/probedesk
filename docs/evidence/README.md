@@ -12,6 +12,8 @@ gerçekten üretildiğinde eklenir.
   verdict'leri ve bulgular; B1 yüksek önemli cookie bulgusu dahil.
 - [Phase 1 çalışan uygulama demosu](phase-1-demo.md): gerçek Chrome'da
   klavye turu, login/yenileme/logout ve ekran görüntüsü.
+- [Phase 2 plan yaşam döngüsü demosu](phase-2-demo.md): API yaşam döngüsü,
+  gerçek Chrome'da salt okunur v1 ve yeni taslak editörü.
 
 ## Kayıt biçimi
 

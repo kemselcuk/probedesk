@@ -288,7 +288,7 @@ describe('plan publish API (e2e)', () => {
 
     const reloaded = await getAs(planner, `/api/plans/${plan.id}`).expect(200);
     const detail = reloaded.body as PlanBody;
-    expect(detail.draft).toBeUndefined();
+    expect(detail.draft).toBeNull();
     expect(detail.latestPublishedVersion).toMatchObject({
       id: published.id,
       versionNumber: 1,

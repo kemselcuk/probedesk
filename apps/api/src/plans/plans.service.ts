@@ -108,7 +108,7 @@ export class PlansService {
       return { plan: createdPlan, draft: createdDraft };
     });
 
-    return this.toPlanDetail(plan, draft, null);
+    return this.toPlanDetail(plan, draft, null, true);
   }
 
   /**
@@ -224,7 +224,7 @@ export class PlansService {
         })
       : null;
 
-    return this.toPlanDetail(plan, draft, published);
+    return this.toPlanDetail(plan, draft, published, isPlanner);
   }
 
   /**
@@ -612,6 +612,7 @@ export class PlansService {
     plan: PlanShape,
     draft: (RevisionShape & { steps: StepShape[] }) | null,
     published: (RevisionShape & { steps: StepShape[] }) | null,
+    includeDraft: boolean,
   ): PlanDetailDto {
     const name = draft?.name ?? published?.name;
 
@@ -627,7 +628,9 @@ export class PlansService {
       latestPublishedVersion: published
         ? toPublishedVersionSummary(published)
         : null,
-      ...(draft ? { draft: toDraftRevision(draft) } : {}),
+      ...(includeDraft
+        ? { draft: draft ? toDraftRevision(draft) : null }
+        : {}),
       published: published ? toPublishedRevision(published) : null,
     };
   }
