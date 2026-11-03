@@ -1,0 +1,39 @@
+:host {
+  display: block;
+  margin-bottom: 24px;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-heading {
+  min-width: 0;
+  max-width: 72ch;
+}
+
+h1 {
+  margin: 0;
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-headline-medium);
+}
+
+.page-subtitle {
+  margin: 8px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-large);
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-actions:empty {
+  display: none;
+}

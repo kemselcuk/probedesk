@@ -1,0 +1,119 @@
+<a class="skip-link" href="#main-content" (click)="onSkipLinkClick($event)">
+  Skip to main content
+</a>
+
+<header class="shell-header">
+  <mat-toolbar class="shell-toolbar">
+    @if (compactViewport()) {
+      <button
+        mat-icon-button
+        type="button"
+        class="nav-toggle"
+        [attr.aria-label]="sidenavOpened() ? 'Close navigation' : 'Open navigation'"
+        [attr.aria-expanded]="sidenavOpened()"
+        aria-controls="primary-navigation"
+        (click)="toggleNavigation()"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path
+            d="M4 6h16M4 12h16M4 18h16"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-width="2"
+          />
+        </svg>
+      </button>
+    }
+
+    <a class="product-name" routerLink="/plans">ProbeDesk</a>
+    <span class="toolbar-spacer" aria-hidden="true"></span>
+    <span class="role-chip" aria-live="polite">Role: {{ roleLabel() }}</span>
+  </mat-toolbar>
+</header>
+
+<mat-sidenav-container class="shell-body">
+  <mat-sidenav
+    class="shell-sidenav"
+    [mode]="navMode()"
+    [opened]="sidenavOpened()"
+    [disableClose]="navMode() === 'side'"
+    (openedChange)="onSidenavOpenedChange($event)"
+  >
+    <nav id="primary-navigation" class="shell-nav" aria-label="Primary navigation">
+      <h2 class="nav-heading">Workspace</h2>
+      <mat-list>
+        @for (item of navigationItems; track item.path) {
+          <a
+            mat-list-item
+            [routerLink]="item.path"
+            routerLinkActive="is-active"
+            #primaryLink="routerLinkActive"
+            [activated]="primaryLink.isActive"
+            ariaCurrentWhenActive="page"
+            (click)="closeNavigationOnNavigate()"
+          >
+            <span matListItemTitle>{{ item.label }}</span>
+            <span matListItemLine>{{ item.description }}</span>
+          </a>
+        }
+      </mat-list>
+    </nav>
+
+    <mat-divider />
+
+    <section class="planned-actions" aria-labelledby="planned-actions-heading">
+      <h2 id="planned-actions-heading" class="nav-heading">Actions</h2>
+      <p class="nav-note">These actions unlock as the remaining tasks land.</p>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="planned-action"
+        [disabled]="!canCreatePlan()"
+        aria-describedby="create-plan-requirement"
+      >
+        New plan
+      </button>
+      <p id="create-plan-requirement" class="action-requirement">
+        Planner role · P2-03
+      </p>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="planned-action"
+        [disabled]="!canStartRun()"
+        aria-describedby="start-run-requirement"
+      >
+        Start run
+      </button>
+      <p id="start-run-requirement" class="action-requirement">
+        Operator role · P3-09
+      </p>
+
+      <button
+        mat-stroked-button
+        type="button"
+        class="planned-action"
+        disabled
+        aria-describedby="sign-out-requirement"
+      >
+        Sign out
+      </button>
+      <p id="sign-out-requirement" class="action-requirement">
+        Signed-in session · P1-07
+      </p>
+    </section>
+
+    <div class="sidenav-footer">
+      <p>Sign-in and session loading arrive in P1-07.</p>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <main #mainContent id="main-content" class="shell-main" tabindex="-1">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>
