@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4 In Review; P5 In Progress; P6–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
+Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted/In Review; P6–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -68,13 +68,13 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P4-01 — Kalıcı olaylardan SSE yayını](P4-01.md) | Backend | In Review |
-| [P4-02 — Angular SSE taşıma servisi](P4-02.md) | Frontend | In Review |
-| [P4-03 — Snapshot ve canlı durum birleştirme](P4-03.md) | Frontend | In Review |
-| [P4-04 — Live Run ekranı](P4-04.md) | Frontend | In Review |
-| [P4-05 — Yeniden bağlantı ve oturum kaybı](P4-05.md) | Frontend | In Review |
-| [P4-06 — SSE entegrasyon testleri](P4-06.md) | Entegrasyon | In Review |
-| [P4-07 — Çok sekme ve ekran yaşam döngüsü](P4-07.md) | Entegrasyon | In Review |
+| [P4-01 — Kalıcı olaylardan SSE yayını](P4-01.md) | Backend | Accepted |
+| [P4-02 — Angular SSE taşıma servisi](P4-02.md) | Frontend | Accepted |
+| [P4-03 — Snapshot ve canlı durum birleştirme](P4-03.md) | Frontend | Accepted |
+| [P4-04 — Live Run ekranı](P4-04.md) | Frontend | Accepted |
+| [P4-05 — Yeniden bağlantı ve oturum kaybı](P4-05.md) | Frontend | Accepted |
+| [P4-06 — SSE entegrasyon testleri](P4-06.md) | Entegrasyon | Accepted |
+| [P4-07 — Çok sekme ve ekran yaşam döngüsü](P4-07.md) | Entegrasyon | Accepted |
 
 ## Aşama 5 — Geçmiş ve grafikler
 
