@@ -21,7 +21,7 @@
     "test:api:integration": "npm run test:e2e --workspace apps/api",
     "test:web": "npm run test --workspace apps/web",
     "test:e2e": "echo \"The Playwright end-to-end suite is introduced by P7-01.\" >&2 && exit 1",
-    "openapi:emit": "npm run openapi:emit --workspace apps/api",
+    "openapi:emit": "npm run db:generate --workspace apps/api && npm run openapi:emit --workspace apps/api",
     "openapi:check": "node scripts/openapi-check.mjs",
     "db:migrate": "npm run db:migrate --workspace apps/api",
     "demo:seed": "npm run demo:seed --workspace apps/api",

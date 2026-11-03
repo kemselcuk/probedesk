@@ -61,6 +61,41 @@ The API listens under `/api`. Health probes:
 
 Swagger UI is served at `/api/docs`; the JSON document is at `/api/docs-json`.
 
+## Authentication and demo accounts
+
+The API uses an opaque server-side session bound to an HttpOnly cookie named
+`probedesk_session`. The raw token is never stored: `sessions.tokenHash` holds a
+SHA-256 digest. A session lives for eight hours from login and is never extended
+by activity. The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure`
+when `SESSION_COOKIE_SECURE=true`.
+
+A readable `XSRF-TOKEN` cookie carries a session-bound CSRF token whose digest is
+stored in `sessions.csrfTokenHash`. Authenticated mutations must echo it in the
+`X-XSRF-TOKEN` header, which matches Angular's `HttpClientXsrfModule` defaults.
+Missing or wrong tokens receive `403 FORBIDDEN`; missing or expired sessions
+receive `401 UNAUTHENTICATED`. Login accepts `application/json` only, checks a
+browser `Origin` header against the request host, and throttles failed attempts
+in-process (10 failures per 15 minutes per client address and email). Unknown
+emails and wrong passwords share one generic response.
+
+Seed the three demo accounts (idempotent; existing accounts are never updated):
+
+```bash
+npm run db:migrate --workspace apps/api
+npm run demo:seed --workspace apps/api
+```
+
+| Role | Email | Demo password |
+|---|---|---|
+| Planner | `planner@probedesk.local` | `PlannerDemo!2026` |
+| Operator | `operator@probedesk.local` | `OperatorDemo!2026` |
+| Viewer | `viewer@probedesk.local` | `ViewerDemo!2026` |
+
+These credentials are for local demonstration only. Passwords are hashed with
+Argon2id (19 MiB, 2 iterations, 1 lane) and the seed refuses to run when
+`NODE_ENV=production`. OpenAPI documents the `session` cookie scheme and the
+`csrfToken` header scheme.
+
 ## Tests
 
 ```bash

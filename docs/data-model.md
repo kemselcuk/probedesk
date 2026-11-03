@@ -15,7 +15,7 @@ Görevler: [P0-03](tasks/P0-03.md), [P2-01](tasks/P2-01.md), [P3-03](tasks/P3-03
 | Model | Temel alanlar | İlişkiler / kısıtlar |
 |---|---|---|
 | User | id, email, passwordHash, role, createdAt | email unique; tek rol |
-| Session | id, tokenHash, userId, csrfTokenHash, expiresAt, revokedAt | tokenHash unique; kullanıcıya bağlı |
+| Session | id, tokenHash, userId, csrfTokenHash (nullable), expiresAt, revokedAt | tokenHash unique; kullanıcıya bağlı |
 | DeviceProfile | id, code, name, description | tek seed profil; code unique |
 | TestPlan | id, deviceProfileId, createdById, createdAt | kalıcı plan kimliği |
 | PlanRevision | id, planId, state, name, versionNumber, editRevision, baseVersionId, publishedById, publishedAt | DRAFT/PUBLISHED; sürüm unique; tek açık taslak |
@@ -25,6 +25,8 @@ Görevler: [P0-03](tasks/P0-03.md), [P2-01](tasks/P2-01.md), [P3-03](tasks/P3-03
 | RunStep | id, runId, logicalStepId, position, name, unit, minimum, maximum, sampleCount, intervalMs, status, outcome, recordedCount, outOfToleranceCount, firstFailureSampleIndex, startedAt, finishedAt, statistics | run+position ve run+logicalStepId unique |
 | Measurement | id, runId, runStepId, sampleIndex, value, isWithinTolerance, recordedAt, elapsedMs | runStep+sampleIndex unique |
 | RunEvent | runId, sequence, type, schemaVersion, occurredAt, payload | run+sequence unique ve artan |
+
+`csrfTokenHash` yalnızca CSRF öncesi kalıtılan oturumları ifade edebilmek için nullable'dır; login her zaman bir değer yazar ve `GET /auth/me` değeri olmayan canlı oturuma yeni okunabilir token üretir. Değer yokken kimlikli mutasyonlar 403 ile reddedilir.
 
 StepIdentity teknik bir kimlik kaydıdır; ayrı ürün ekranı değildir. Silinmiş adım adıyla yeni adım eklenirse yeni kimlik oluşturulur. Bir plandaki kimlik başka planın revision'ına bağlanamaz.
 

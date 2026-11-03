@@ -32,7 +32,7 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | [P1-03 — Ortak API davranışları](P1-03.md) | Backend | In Review |
 | [P1-04 — Angular uygulama kabuğu](P1-04.md) | Frontend | In Review |
 | [P1-05 — OpenAPI istemci tipleri](P1-05.md) | Entegrasyon | In Review |
-| [P1-06 — Backend oturum ve yetkilendirme](P1-06.md) | Backend | Planned |
+| [P1-06 — Backend oturum ve yetkilendirme](P1-06.md) | Backend | In Review |
 | [P1-07 — Angular giriş ve oturum akışı](P1-07.md) | Frontend | In Review |
 | [P1-08 — İlk CI kontrolü](P1-08.md) | Entegrasyon | In Progress |
 

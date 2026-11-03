@@ -1,0 +1,114 @@
+import * as argon2 from 'argon2';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '../src/prisma/generated/client.js';
+import { DEMO_USERS, DEMO_USER_EMAILS } from '../prisma/seed-data.js';
+import { seedDemoUsers } from '../prisma/seed-users.js';
+
+describe('demo user seed (e2e)', () => {
+  const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+  let prisma: PrismaClient;
+
+  beforeAll(async () => {
+    if (!testDatabaseUrl) {
+      throw new Error(
+        'TEST_DATABASE_URL must be set for the demo seed integration test.',
+      );
+    }
+
+    prisma = new PrismaClient({
+      adapter: new PrismaPg({
+        connectionString: testDatabaseUrl,
+        application_name: 'probedesk-demo-seed-e2e',
+        connectionTimeoutMillis: 2000,
+      }),
+    });
+
+    await cleanupDemoUsers();
+  });
+
+  afterAll(async () => {
+    if (!prisma) {
+      return;
+    }
+
+    await cleanupDemoUsers();
+    await prisma.$disconnect();
+  });
+
+  async function cleanupDemoUsers(): Promise<void> {
+    await prisma.session.deleteMany({
+      where: { user: { email: { in: [...DEMO_USER_EMAILS] } } },
+    });
+    await prisma.user.deleteMany({
+      where: { email: { in: [...DEMO_USER_EMAILS] } },
+    });
+  }
+
+  it('creates exactly three Argon2id accounts without storing plaintext', async () => {
+    const summary = await seedDemoUsers(prisma);
+
+    expect(summary).toEqual({ created: 3, existing: 0, total: 3 });
+
+    const users = await prisma.user.findMany({
+      where: { email: { in: [...DEMO_USER_EMAILS] } },
+      orderBy: { email: 'asc' },
+    });
+    expect(users).toHaveLength(3);
+
+    for (const demoUser of DEMO_USERS) {
+      const user = users.find(
+        (candidate) => candidate.email === demoUser.email,
+      );
+      expect(user).toBeDefined();
+      expect(user?.role).toBe(demoUser.role);
+      expect(user?.passwordHash).toMatch(
+        /^\$argon2id\$v=19\$m=19456,t=2,p=1\$/,
+      );
+      expect(user?.passwordHash).not.toContain(demoUser.password);
+      expect(await argon2.verify(user!.passwordHash, demoUser.password)).toBe(
+        true,
+      );
+      expect(JSON.stringify(user)).not.toContain(demoUser.password);
+    }
+
+    expect(
+      await prisma.session.count({
+        where: { user: { email: { in: [...DEMO_USER_EMAILS] } } },
+      }),
+    ).toBe(0);
+  });
+
+  it('is idempotent and never updates an existing account', async () => {
+    const before = await prisma.user.findMany({
+      where: { email: { in: [...DEMO_USER_EMAILS] } },
+      orderBy: { email: 'asc' },
+    });
+    expect(before).toHaveLength(3);
+
+    const secondRun = await seedDemoUsers(prisma);
+    expect(secondRun).toEqual({ created: 0, existing: 3, total: 3 });
+
+    const after = await prisma.user.findMany({
+      where: { email: { in: [...DEMO_USER_EMAILS] } },
+      orderBy: { email: 'asc' },
+    });
+    expect(after).toEqual(before);
+
+    const plannerEmail = 'planner@probedesk.local';
+    const original = after.find((user) => user.email === plannerEmail)!;
+    await prisma.user.update({
+      where: { email: plannerEmail },
+      data: { role: 'VIEWER', passwordHash: 'existing-operator-value' },
+    });
+
+    const thirdRun = await seedDemoUsers(prisma);
+    expect(thirdRun).toEqual({ created: 0, existing: 3, total: 3 });
+
+    const untouched = await prisma.user.findUniqueOrThrow({
+      where: { email: plannerEmail },
+    });
+    expect(untouched.id).toBe(original.id);
+    expect(untouched.role).toBe('VIEWER');
+    expect(untouched.passwordHash).toBe('existing-operator-value');
+  });
+});

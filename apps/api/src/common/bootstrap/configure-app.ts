@@ -1,4 +1,5 @@
 import { ValidationPipe, type INestApplication } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 import { ApiExceptionFilter } from '../errors/api-exception.filter.js';
 import { validationExceptionFactory } from '../errors/validation.exception.js';
 import { requestIdMiddleware } from '../http/request-id.js';
@@ -12,6 +13,7 @@ export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api');
 
   app.use(requestIdMiddleware);
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({

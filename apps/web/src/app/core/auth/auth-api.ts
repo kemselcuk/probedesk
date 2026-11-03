@@ -1,8 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import type { LoginRequestDto, AuthUserDto } from './auth-api.types';
+import type { components } from '@probedesk/api-client';
 import type { AuthenticatedUser, LoginCredentials } from './auth.types';
+
+type AuthUserDto = components['schemas']['AuthUserDto'];
+type LoginRequestDto = components['schemas']['LoginDto'];
 
 /**
  * Typed boundary for the auth endpoints.

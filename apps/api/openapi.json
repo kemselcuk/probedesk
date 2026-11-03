@@ -1,6 +1,146 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session established. The response contains only the user summary; the raw tokens live in HttpOnly and XSRF cookies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown email or wrong password. The message is generic.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request is not JSON or its Origin is not same-origin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many failed attempts for this address and email.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Start a session with a demo account.",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Return the signed-in user and renew a missing CSRF token.",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [
+          {
+            "name": "X-XSRF-TOKEN",
+            "in": "header",
+            "description": "Read the XSRF-TOKEN cookie and echo its value. Required when a session exists.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The session is revoked (or was already absent) and both cookies are cleared."
+          },
+          "403": {
+            "description": "The session exists but its CSRF header is missing or wrong.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Revoke the server session and clear both cookies.",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/health/live": {
       "get": {
         "operationId": "HealthController_live",
@@ -94,10 +234,28 @@
     {
       "name": "health",
       "description": "Liveness and readiness probes."
+    },
+    {
+      "name": "auth",
+      "description": "Session login, logout, current user and CSRF protection."
     }
   ],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "session": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "probedesk_session",
+        "description": "HttpOnly session cookie. The raw value is never returned in a response body."
+      },
+      "csrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-XSRF-TOKEN",
+        "description": "Session-bound double-submit token. Echo the readable XSRF-TOKEN cookie value on every authenticated mutation."
+      }
+    },
     "schemas": {
       "ApiFieldErrorDto": {
         "type": "object",
@@ -155,6 +313,57 @@
           "code",
           "message",
           "requestId"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "example": "planner@probedesk.local"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 1,
+            "maxLength": 256,
+            "example": "********"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "AuthUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0f8d4d1e-2d1a-4c58-a8cf-0b5f5c0d3f11"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "planner@probedesk.local"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PLANNER",
+              "OPERATOR",
+              "VIEWER"
+            ],
+            "example": "PLANNER"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
         ]
       }
     }

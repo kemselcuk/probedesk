@@ -34,7 +34,7 @@ model Session {
   id            String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
   tokenHash     String    @unique
   userId        String    @db.Uuid
-  csrfTokenHash String
+  csrfTokenHash String?
   expiresAt     DateTime  @db.Timestamptz(6)
   revokedAt     DateTime? @db.Timestamptz(6)
   user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
