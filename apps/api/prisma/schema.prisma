@@ -27,6 +27,8 @@ model User {
   sessions           Session[]
   createdPlans       TestPlan[]
   publishedRevisions PlanRevision[]
+  requestedRuns      TestRun[]      @relation("RequestedRuns")
+  cancelledRuns      TestRun[]      @relation("CancelledRuns")
 
   @@map("users")
 }
@@ -68,6 +70,7 @@ model TestPlan {
   createdBy       User           @relation(fields: [createdById], references: [id], onDelete: Restrict)
   revisions       PlanRevision[]
   stepIdentities  StepIdentity[]
+  runs            TestRun[]
 
   @@index([deviceProfileId])
   @@index([createdById])
@@ -99,6 +102,7 @@ model PlanRevision {
   derivedVersions PlanRevision[]    @relation("RevisionLineage")
   publishedBy     User?             @relation(fields: [publishedById], references: [id], onDelete: Restrict)
   steps           PlanStep[]
+  runs            TestRun[]
 
   // Composite targets used by the revision/step ownership foreign keys.
   @@unique([id, planId])
@@ -145,4 +149,161 @@ model PlanStep {
   @@index([planId])
   @@index([logicalStepId, planId])
   @@map("plan_steps")
+}
+
+/// Run lifecycle. Only RUNNING is active; every other value is terminal.
+enum RunStatus {
+  RUNNING
+  COMPLETED
+  CANCELLED
+  INTERRUPTED
+  ERROR
+}
+
+/// Overall and per-step verdict. Null while the result is not final.
+enum RunOutcome {
+  PASSED
+  FAILED
+}
+
+/// Deterministic simulator scenario selected when the run starts.
+enum RunScenario {
+  NORMAL
+  FORCED_FAILURE
+  RANDOM
+}
+
+/// Per-step execution state. NOT_RUN means the step was skipped by cancel or
+/// recovery before it ever started.
+enum RunStepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  CANCELLED
+  INTERRUPTED
+  ERROR
+  NOT_RUN
+}
+
+/// SSE/domain event names. The wire value keeps the documented dotted form.
+enum RunEventType {
+  RUN_STARTED          @map("run.started")
+  STEP_STARTED         @map("step.started")
+  MEASUREMENT_RECORDED @map("measurement.recorded")
+  STEP_COMPLETED       @map("step.completed")
+  RUN_COMPLETED        @map("run.completed")
+  RUN_CANCELLED        @map("run.cancelled")
+  RUN_INTERRUPTED      @map("run.interrupted")
+  RUN_ERRORED          @map("run.errored")
+}
+
+/// One execution of a published plan revision. Rule fields are immutable
+/// snapshots copied at start so later plan edits cannot change history.
+/// At most one row may be RUNNING; that rule is a partial unique index added by
+/// the migration because the Prisma schema cannot express it.
+model TestRun {
+  id                    String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  planId                String     @db.Uuid
+  planRevisionId        String     @db.Uuid
+  planNameSnapshot      String
+  versionNumberSnapshot Int
+  profileSnapshot       Json
+  status                RunStatus  @default(RUNNING)
+  outcome               RunOutcome?
+  requestedById         String     @db.Uuid
+  scenario              RunScenario
+  seed                  BigInt
+  errorProbability      Decimal?   @db.Decimal(8, 6)
+  failureStepId         String?    @db.Uuid
+  simulatorVersion      String
+  evaluationVersion     String
+  idempotencyKey        String
+  requestHash           String
+  eventSequence         Int        @default(0)
+  expectedSampleCount   Int
+  recordedSampleCount   Int        @default(0)
+  startedAt             DateTime   @db.Timestamptz(6)
+  finishedAt            DateTime?  @db.Timestamptz(6)
+  cancelledById         String?    @db.Uuid
+  reasonCode            String?
+
+  plan         TestPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  planRevision PlanRevision @relation(fields: [planRevisionId], references: [id], onDelete: Restrict)
+  requestedBy  User         @relation("RequestedRuns", fields: [requestedById], references: [id], onDelete: Restrict)
+  cancelledBy  User?        @relation("CancelledRuns", fields: [cancelledById], references: [id], onDelete: Restrict)
+  steps        RunStep[]
+  events       RunEvent[]
+
+  @@unique([requestedById, idempotencyKey])
+  @@index([planId, startedAt, id])
+  @@index([status])
+  @@index([planRevisionId])
+  @@map("test_runs")
+}
+
+/// Rule copy of one published plan step plus its execution counters and
+/// summary. The run/position and run/logicalStepId pairs are unique.
+model RunStep {
+  id                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  runId                   String        @db.Uuid
+  logicalStepId           String        @db.Uuid
+  position                Int
+  name                    String
+  unit                    String
+  minimum                 Decimal       @db.Decimal(18, 6)
+  maximum                 Decimal       @db.Decimal(18, 6)
+  sampleCount             Int
+  intervalMs              Int
+  status                  RunStepStatus @default(PENDING)
+  outcome                 RunOutcome?
+  recordedCount           Int           @default(0)
+  outOfToleranceCount     Int           @default(0)
+  firstFailureSampleIndex Int?
+  startedAt               DateTime?     @db.Timestamptz(6)
+  finishedAt              DateTime?     @db.Timestamptz(6)
+  statistics              Json?
+
+  run          TestRun       @relation(fields: [runId], references: [id], onDelete: Restrict)
+  measurements Measurement[]
+
+  // (id, runId) lets Measurement prove that its runId matches the owning step.
+  @@unique([runId, position])
+  @@unique([runId, logicalStepId])
+  @@unique([id, runId])
+  @@map("run_steps")
+}
+
+/// One recorded sample. The composite foreign key to RunStep is the database
+/// guarantee that a measurement cannot name another run than its step.
+model Measurement {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  runId             String   @db.Uuid
+  runStepId         String   @db.Uuid
+  sampleIndex       Int
+  value             Decimal  @db.Decimal(18, 6)
+  isWithinTolerance Boolean
+  recordedAt        DateTime @db.Timestamptz(6)
+  elapsedMs         Int
+
+  runStep RunStep @relation(fields: [runStepId, runId], references: [id, runId], onDelete: Restrict)
+
+  @@unique([runStepId, sampleIndex])
+  @@map("measurements")
+}
+
+/// Append-only run event source for SSE replay. Sequence is assigned per run
+/// and unique inside that run.
+model RunEvent {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  runId         String       @db.Uuid
+  sequence      Int
+  type          RunEventType
+  schemaVersion Int          @default(1)
+  occurredAt    DateTime     @db.Timestamptz(6)
+  payload       Json
+
+  run TestRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+
+  @@unique([runId, sequence])
+  @@map("run_events")
 }

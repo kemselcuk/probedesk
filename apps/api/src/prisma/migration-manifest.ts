@@ -12,4 +12,5 @@ export const EXPECTED_MIGRATIONS: readonly string[] = [
   '20261103160000_plans',
   '20261103170000_published_immutability',
   '20261103180000_plan_revision_integrity',
+  '20261103190000_runs',
 ];

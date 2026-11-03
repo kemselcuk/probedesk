@@ -55,7 +55,7 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 |---|---|---|
 | [P3-01 — Deterministik normal simülatör](P3-01.md) | Backend | In Review |
 | [P3-02 — Kesin hata ve rastgele senaryolar](P3-02.md) | Backend | In Review |
-| [P3-03 — Çalıştırma kayıtları ve snapshot](P3-03.md) | Backend | Planned |
+| [P3-03 — Çalıştırma kayıtları ve snapshot](P3-03.md) | Backend | In Review |
 | [P3-04 — Test başlatma ve tek çalışma garantisi](P3-04.md) | Backend | Planned |
 | [P3-05 — Sıralı yürütme ve sonuç hesaplama](P3-05.md) | Backend | Planned |
 | [P3-06 — Çalıştırma snapshot API'si](P3-06.md) | Backend | Planned |
