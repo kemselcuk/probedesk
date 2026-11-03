@@ -28,7 +28,12 @@
 
     <a class="product-name" routerLink="/plans">ProbeDesk</a>
     <span class="toolbar-spacer" aria-hidden="true"></span>
-    <span class="role-chip" aria-live="polite">Role: {{ roleLabel() }}</span>
+    <span class="user-session" aria-live="polite">
+      @if (userEmail(); as email) {
+        <span class="user-email" [title]="email">{{ email }}</span>
+      }
+      <span class="role-chip">Role: {{ roleLabel() }}</span>
+    </span>
   </mat-toolbar>
 </header>
 
@@ -64,51 +69,54 @@
 
     <section class="planned-actions" aria-labelledby="planned-actions-heading">
       <h2 id="planned-actions-heading" class="nav-heading">Actions</h2>
-      <p class="nav-note">These actions unlock as the remaining tasks land.</p>
+
+      @if (canCreatePlan()) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="planned-action"
+          disabled
+          aria-describedby="create-plan-requirement"
+        >
+          New plan
+        </button>
+        <p id="create-plan-requirement" class="action-requirement">
+          Planner action · available with P2-03
+        </p>
+      }
+
+      @if (canStartRun()) {
+        <button
+          mat-stroked-button
+          type="button"
+          class="planned-action"
+          disabled
+          aria-describedby="start-run-requirement"
+        >
+          Start run
+        </button>
+        <p id="start-run-requirement" class="action-requirement">
+          Operator action · available with P3-09
+        </p>
+      }
+
+      @if (!canCreatePlan() && !canStartRun()) {
+        <p class="action-requirement">
+          Your role has read-only access to plans and runs.
+        </p>
+      }
 
       <button
         mat-stroked-button
         type="button"
-        class="planned-action"
-        [disabled]="!canCreatePlan()"
-        aria-describedby="create-plan-requirement"
+        class="sign-out-action"
+        [disabled]="auth.pending()"
+        [attr.aria-busy]="auth.pending()"
+        (click)="signOut()"
       >
-        New plan
+        {{ auth.pending() ? 'Signing out…' : 'Sign out' }}
       </button>
-      <p id="create-plan-requirement" class="action-requirement">
-        Planner role · P2-03
-      </p>
-
-      <button
-        mat-stroked-button
-        type="button"
-        class="planned-action"
-        [disabled]="!canStartRun()"
-        aria-describedby="start-run-requirement"
-      >
-        Start run
-      </button>
-      <p id="start-run-requirement" class="action-requirement">
-        Operator role · P3-09
-      </p>
-
-      <button
-        mat-stroked-button
-        type="button"
-        class="planned-action"
-        disabled
-        aria-describedby="sign-out-requirement"
-      >
-        Sign out
-      </button>
-      <p id="sign-out-requirement" class="action-requirement">
-        Signed-in session · P1-07
-      </p>
     </section>
-
-    <div class="sidenav-footer">
-      <p>Sign-in and session loading arrive in P1-07.</p>
-    </div>
   </mat-sidenav>
 
   <mat-sidenav-content class="shell-content">

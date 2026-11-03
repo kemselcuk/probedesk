@@ -1,0 +1,121 @@
+<main class="login-page">
+  <mat-card class="login-card" appearance="outlined">
+    <div class="brand" aria-hidden="true">ProbeDesk</div>
+    <h1>Sign in</h1>
+    <p class="intro">
+      Sign in with a seeded demo account. Each account has one role with its
+      own permissions.
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <mat-form-field appearance="outline">
+        <mat-label>Email</mat-label>
+        <input
+          id="email"
+          matInput
+          type="email"
+          formControlName="email"
+          autocomplete="username"
+          autocapitalize="none"
+          spellcheck="false"
+          [attr.aria-describedby]="
+            form.controls.email.invalid && form.controls.email.touched
+              ? 'email-error'
+              : null
+          "
+        />
+        <mat-error id="email-error">
+          @if (form.controls.email.hasError('required')) {
+            Email is required.
+          } @else if (form.controls.email.hasError('email')) {
+            Enter a valid email address.
+          } @else if (emailServerError(); as message) {
+            {{ message }}
+          }
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Password</mat-label>
+        <input
+          id="password"
+          matInput
+          [type]="passwordVisible() ? 'text' : 'password'"
+          formControlName="password"
+          autocomplete="current-password"
+          [attr.aria-describedby]="
+            form.controls.password.invalid && form.controls.password.touched
+              ? 'password-error'
+              : null
+          "
+        />
+        <button
+          mat-button
+          matSuffix
+          type="button"
+          class="password-toggle"
+          [attr.aria-label]="
+            passwordVisible() ? 'Hide password' : 'Show password'
+          "
+          [attr.aria-pressed]="passwordVisible()"
+          aria-controls="password"
+          (click)="togglePassword()"
+        >
+          {{ passwordVisible() ? 'Hide' : 'Show' }}
+        </button>
+        <mat-error id="password-error">
+          @if (form.controls.password.hasError('required')) {
+            Password is required.
+          } @else if (passwordServerError(); as message) {
+            {{ message }}
+          }
+        </mat-error>
+      </mat-form-field>
+
+      @if (formError(); as message) {
+        <p class="form-error" role="alert">{{ message }}</p>
+      }
+      @if (auth.error()?.requestId; as requestId) {
+        <p class="request-id">Request ID: <code>{{ requestId }}</code></p>
+      }
+
+      <button
+        mat-flat-button
+        type="submit"
+        class="submit-button"
+        [disabled]="auth.pending()"
+        [attr.aria-busy]="auth.pending()"
+      >
+        @if (auth.pending()) {
+          <mat-spinner
+            class="submit-spinner"
+            diameter="18"
+            aria-hidden="true"
+          />
+        }
+        {{ auth.pending() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+
+    <section class="demo-accounts" aria-labelledby="demo-accounts-heading">
+      <h2 id="demo-accounts-heading">Demo accounts</h2>
+      <p>
+        The local API setup seeds these accounts for local demonstration only.
+      </p>
+      <ul>
+        <li>
+          <code>planner@probedesk.local</code> · Planner ·
+          <code>PlannerDemo!2026</code>
+        </li>
+        <li>
+          <code>operator@probedesk.local</code> · Operator ·
+          <code>OperatorDemo!2026</code>
+        </li>
+        <li>
+          <code>viewer@probedesk.local</code> · Viewer ·
+          <code>ViewerDemo!2026</code>
+        </li>
+      </ul>
+    </section>
+  </mat-card>
+</main>

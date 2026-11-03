@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  EnvironmentInjector,
   Injector,
   afterNextRender,
   computed,
@@ -24,19 +25,14 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter } from 'rxjs';
-import { AuthFacade, Role } from '../../core/auth/auth.facade';
+import { AuthFacade } from '../../core/auth/auth.facade';
+import { roleLabel } from '../../core/auth/auth.types';
 
 interface NavigationItem {
   readonly path: string;
   readonly label: string;
   readonly description: string;
 }
-
-const ROLE_LABELS: Readonly<Record<Role, string>> = {
-  PLANNER: 'Planner',
-  OPERATOR: 'Operator',
-  VIEWER: 'Viewer',
-};
 
 const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   {
@@ -75,8 +71,9 @@ const NAVIGATION_ITEMS: readonly NavigationItem[] = [
 export class AppShell {
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
+  private readonly environmentInjector = inject(EnvironmentInjector);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly auth = inject(AuthFacade);
+  protected readonly auth = inject(AuthFacade);
 
   private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
   private readonly contentScroller = viewChild(MatSidenavContent);
@@ -93,10 +90,9 @@ export class AppShell {
     this.compactViewport() ? this.mobileNavigationOpen() : true,
   );
 
-  protected readonly roleLabel = computed(() => {
-    const role = this.auth.role();
-    return role === null ? 'Not signed in' : ROLE_LABELS[role];
-  });
+  protected readonly roleLabel = computed(() => roleLabel(this.auth.role()));
+
+  protected readonly userEmail = computed(() => this.auth.user()?.email ?? null);
 
   protected readonly canCreatePlan = computed(
     () => this.auth.role() === 'PLANNER',
@@ -141,6 +137,45 @@ export class AppShell {
     if (this.compactViewport()) {
       this.mobileNavigationOpen.set(false);
     }
+  }
+
+  protected signOut(): void {
+    if (this.auth.pending()) {
+      return;
+    }
+
+    this.auth
+      .logout()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.notify('success', 'You have signed out.');
+          void this.router.navigateByUrl('/login');
+        },
+        error: () => {
+          this.notify(
+            'error',
+            this.auth.error()?.message ?? 'Sign out failed. Please try again.',
+          );
+        },
+      });
+  }
+
+  /**
+   * The snackbar implementation is loaded on demand so the signed-out shell
+   * does not put the Material overlay package in the initial bundle.
+   */
+  private notify(kind: 'success' | 'error', message: string): void {
+    void import('../../shared/notifications/notification.service')
+      .then(({ NotificationService }) => {
+        const notifications = this.environmentInjector.get(NotificationService);
+        if (kind === 'success') {
+          notifications.success(message);
+        } else {
+          notifications.error(message);
+        }
+      })
+      .catch(() => undefined);
   }
 
   protected onSkipLinkClick(event: MouseEvent): void {

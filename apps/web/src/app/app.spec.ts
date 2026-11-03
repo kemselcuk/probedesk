@@ -1,3 +1,8 @@
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   Router,
@@ -5,7 +10,7 @@ import {
   provideRouter,
   withDisabledInitialNavigation,
 } from '@angular/router';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { App } from './app';
 import { routes } from './app.routes';
 import { AppTitleStrategy } from './core/title/app-title.strategy';
@@ -15,24 +20,43 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter(routes, withDisabledInitialNavigation()),
         { provide: TitleStrategy, useClass: AppTitleStrategy },
       ],
     }).compileComponents();
   });
 
-  it('renders the routed application shell, navigation, and main landmark', async () => {
+  afterEach(() => {
+    TestBed.inject(HttpTestingController).verify();
+  });
+
+  it('loads the session on refresh and renders the signed-in shell', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
+    const http = TestBed.inject(HttpTestingController);
 
     fixture.detectChanges();
-    await router.navigateByUrl('/plans');
+    const navigation = router.navigateByUrl('/plans');
+    http.expectOne('/api/auth/me').flush({
+      id: '11111111-1111-4111-8111-111111111111',
+      email: 'planner@probedesk.local',
+      role: 'PLANNER',
+    });
+    await navigation;
     await fixture.whenStable();
     fixture.detectChanges();
 
     const root = fixture.nativeElement as HTMLElement;
 
     expect(root.querySelector('header')?.textContent).toContain('ProbeDesk');
+    expect(root.querySelector('.user-email')?.textContent).toContain(
+      'planner@probedesk.local',
+    );
+    expect(root.querySelector('.role-chip')?.textContent).toContain(
+      'Role: Planner',
+    );
     expect(
       root.querySelector('nav[aria-label="Primary navigation"]'),
     ).not.toBeNull();
@@ -44,9 +68,16 @@ describe('App', () => {
   it('renders the not-found page for an unknown deep link', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
+    const http = TestBed.inject(HttpTestingController);
 
     fixture.detectChanges();
-    await router.navigateByUrl('/this-screen-does-not-exist');
+    const navigation = router.navigateByUrl('/this-screen-does-not-exist');
+    http.expectOne('/api/auth/me').flush({
+      id: '22222222-2222-4222-8222-222222222222',
+      email: 'viewer@probedesk.local',
+      role: 'VIEWER',
+    });
+    await navigation;
     await fixture.whenStable();
     fixture.detectChanges();
 

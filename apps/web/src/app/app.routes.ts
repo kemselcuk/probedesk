@@ -1,9 +1,10 @@
 import { Routes } from '@angular/router';
-import { AppShell } from './layout/app-shell/app-shell';
+import { authGuard, roleGuard } from './core/auth/auth.guards';
 
 /**
  * Feature routes are lazy so each screen is loaded only when it is visited.
  * Static paths are declared before parameterized paths that could shadow them.
+ * The API repeats every role check; guards only avoid unusable screens.
  */
 export const routes: Routes = [
   {
@@ -14,7 +15,9 @@ export const routes: Routes = [
   },
   {
     path: '',
-    component: AppShell,
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./layout/app-shell/app-shell').then((module) => module.AppShell),
     children: [
       {
         path: '',
@@ -32,6 +35,7 @@ export const routes: Routes = [
       {
         path: 'plans/:planId/edit',
         title: 'Plan Editor',
+        canActivate: [roleGuard(['PLANNER'])],
         loadComponent: () =>
           import('./features/plans/plan-editor-page').then(
             (module) => module.PlanEditorPage,
@@ -56,6 +60,7 @@ export const routes: Routes = [
       {
         path: 'runs/new',
         title: 'Start Run',
+        canActivate: [roleGuard(['OPERATOR'])],
         loadComponent: () =>
           import('./features/runs/start-run-page').then(
             (module) => module.StartRunPage,
@@ -83,6 +88,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/comparisons/compare-runs-page').then(
             (module) => module.CompareRunsPage,
+          ),
+      },
+      {
+        path: 'not-authorized',
+        title: 'Not available',
+        loadComponent: () =>
+          import('./features/auth/not-authorized-page').then(
+            (module) => module.NotAuthorizedPage,
           ),
       },
       {

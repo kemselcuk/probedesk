@@ -2,11 +2,124 @@
   display: block;
   min-height: 100dvh;
   padding: 48px 24px;
-  background: var(--mat-sys-surface-container-lowest);
+  background:
+    radial-gradient(
+      circle at top,
+      var(--mat-sys-secondary-container),
+      transparent 55%
+    ),
+    var(--mat-sys-surface-container-lowest);
 }
 
-@media (max-width: 959px) {
+.login-page {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.login-card {
+  width: min(100%, 480px);
+  padding: 32px;
+  border-color: var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
+}
+
+.brand {
+  margin-bottom: 20px;
+  color: var(--mat-sys-primary);
+  font: var(--mat-sys-title-large);
+  letter-spacing: 0.01em;
+}
+
+h1 {
+  margin: 0;
+  font: var(--mat-sys-headline-medium);
+}
+
+.intro {
+  margin: 8px 0 24px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-medium);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.password-toggle {
+  min-width: 56px;
+  margin-inline-end: 4px;
+  font: var(--mat-sys-label-medium);
+}
+
+.form-error {
+  margin: 4px 0 12px;
+  padding: 12px 14px;
+  border-inline-start: 4px solid var(--mat-sys-error);
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font: var(--mat-sys-body-medium);
+}
+
+.request-id {
+  margin: 0 0 12px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.submit-button {
+  min-height: 48px;
+  margin-top: 4px;
+}
+
+.submit-spinner {
+  display: inline-block;
+  margin-inline-end: 8px;
+  vertical-align: middle;
+}
+
+.demo-accounts {
+  margin-top: 28px;
+  padding: 16px;
+  border-radius: var(--mat-sys-corner-medium);
+  background: var(--mat-sys-surface-container);
+}
+
+.demo-accounts h2 {
+  margin: 0 0 8px;
+  font: var(--mat-sys-title-small);
+}
+
+.demo-accounts p,
+.demo-accounts ul {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.demo-accounts ul {
+  margin-top: 8px;
+  padding-inline-start: 18px;
+}
+
+.demo-accounts code {
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-small);
+}
+
+@media (max-width: 599px) {
   :host {
-    padding: 32px 16px;
+    padding: 24px 16px;
+  }
+
+  .login-card {
+    padding: 24px 20px;
   }
 }
