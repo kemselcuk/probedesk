@@ -77,6 +77,24 @@ Araştırma tarihi 2026-11-03. Bu tablo proje içinde başarılı kurulum kanıt
 
 Workspace için npm workspaces ve tek lockfile kullanılacak. Derleyici/runtime modül ayarları NestJS ve Prisma adapter'ıyla birlikte P1-01'de doğrulanacak. Preview/RC sürüm kendiliğinden seçilmeyecek. Prisma'nın sürümsüz belgeleri farklı ana sürüme yönlenebildiği için v7 belgeleri kullanılacak.
 
+### P1-01 ile doğrulanan sürümler (2026-11-03)
+
+Kurulum, derleme ve testler bu makinede gerçekten çalıştırıldı; kesin sürümler `package-lock.json` içinde sabitlendi.
+
+| Bileşen | Doğrulanan sürüm | Not |
+|---|---|---|
+| Node.js | 22.23.2 | Planlanan 24 LTS yerine kurulu LTS; Angular 22.2.4 `engines` aralığı `^22.22.3 || ^24.15.0` ile uyumlu. `.nvmrc` ve `engines` bunu kaydeder. |
+| npm | 11.6.2 | npm 10.9.8 workspace peer çözümlemesinde `edgesOut` hatası verdi; `packageManager` alanı npm 11'i sabitler. |
+| TypeScript | 6.0.3 | Angular compiler-cli `>=6.0 <6.1` aralığı. |
+| Angular | 22.2.4 (CLI/build 22.2.5) | Standalone, zoneless, SCSS, Vitest unit-test builder. |
+| Material / CDK | 22.2.5 | Core 22.2.4 ile peer uyumlu. |
+| RxJS | 7.8.2 | |
+| NestJS | 12.3.2 | ESM (`type: module`, `module: nodenext`), Vitest 4.1.12. |
+| Prisma CLI / client | 7.10.1 | P1-02'de adapter/migration ile bağlanacak; `latest` etiketi 8 RC olduğu için sabit `prev` sürümü kullanılır. |
+| PostgreSQL | 18 | Compose imajı P1-02'de sabitlenecek. |
+| Vitest | 5.1.0 (web) / 4.1.12 (api) | Angular builder sürümü ile Nest şablonunun sürümü ayrı; her ikisi de kilitli. |
+
+
 Kaynaklar: [Node LTS](https://nodejs.org/en/about/previous-releases), [Angular uyumluluğu](https://angular.dev/reference/versions), [Angular compiler paket bilgisi](https://registry.npmjs.org/@angular%2fcompiler-cli/22.2.4), [Prisma CLI 7.10.1](https://registry.npmjs.org/prisma/7.10.1), [Prisma client 7.10.1](https://registry.npmjs.org/@prisma%2fclient/7.10.1).
 
 ## Kimlik doğrulama ve güvenlik

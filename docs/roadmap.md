@@ -1,6 +1,6 @@
 # Ayrıntılı uygulama yol haritası
 
-Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başlamadı.** P0 belge çıktıları hazır ve In Review; P1–P8 Planned. Gerçek uygulama testi veya demo henüz yoktur.
+Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belge çıktıları In Review; P1-01 In Review; diğer görevler Planned. Ürün akışı, demo ve video henüz yoktur.
 
 ## Sıra ve sahiplik
 

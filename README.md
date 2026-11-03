@@ -4,7 +4,10 @@
 
 ProbeDesk is a planned application for creating versioned test plans for electronic devices, running a deterministic software simulator, inspecting measurements against tolerances, and comparing test runs.
 
-**Status: specification and implementation plan prepared; application implementation has not started.** There is no runnable UI/API, dependency installation, test result, or demo video yet. The documents describe the intended product and its acceptance criteria, not completed features.
+**Status: implementation started.** P1-01 has created the npm workspace, Angular and NestJS
+skeletons, and a verified version lock (see [architecture](docs/architecture.md#p1-01-ile-doğrulanan-sürümler-2026-11-03)).
+There is no runnable product flow yet; the documents describe the intended product and its
+acceptance criteria, not completed features.
 
 ## Start here
 

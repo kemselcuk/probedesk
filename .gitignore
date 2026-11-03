@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out-tsc/
+coverage/
+.angular/
+tmp/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+test-results/
+playwright-report/
+blob-report/
+*.trace.zip
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

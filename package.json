@@ -1,0 +1,36 @@
+{
+  "name": "probedesk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ProbeDesk — versioned measurement plans, deterministic simulator, run comparison",
+  "license": "UNLICENSED",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=22.22.3"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm run start:dev --workspace apps/api\" \"npm run start --workspace apps/web\"",
+    "build": "npm run build --workspace apps/api && npm run build --workspace apps/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test:api:unit": "npm run test --workspace apps/api",
+    "test:api:integration": "npm run test:e2e --workspace apps/api",
+    "test:web": "npm run test --workspace apps/web",
+    "test:e2e": "echo \"The Playwright end-to-end suite is introduced by P7-01.\" >&2 && exit 1",
+    "openapi:emit": "npm run openapi:emit --workspace apps/api",
+    "openapi:check": "echo \"The OpenAPI drift check is introduced by P1-05.\" >&2 && exit 1",
+    "db:migrate": "npm run db:migrate --workspace apps/api",
+    "demo:seed": "npm run demo:seed --workspace apps/api",
+    "verify": "npm run lint && npm run typecheck && npm run test:api:unit && npm run test:web && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "9.2.1",
+    "openapi-typescript": "7.13.0",
+    "oxlint": "1.58.0",
+    "prettier": "3.8.1"
+  }
+}
