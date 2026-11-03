@@ -272,3 +272,49 @@ Ek olarak:
 - **Açık tek Medium: R1 (B2 kısmi migration).** P1-03/B2 tam kapanışı için kapatılmalıdır.
 - B3, B4, B5, B7, B8 kapandı. Kalanlar Low: R2, B6 global cap, B12, B9/B10/B11/B14.
 - P1-06'nın eski **FAIL** gerekçesi olan B1 ortadan kalktı; ancak P1-06 hâlâ `In Review`'dur ve bu inceleme hiçbir görevi `Accepted` yapmaz.
+
+---
+
+## R1/R2 re-check — 2026-11-03
+
+- İncelenen ürün kodu: `b342fe3` (`fix(api): compare readiness migrations by manifest and harden test db guard`). Working tree bu bölüm yazılmadan önce temizdi.
+- Kapsam yalnızca R1 ve R2; diğer bulgular yeniden değerlendirilmedi. Task kartları `Accepted` yapılmadı.
+
+| Bulgu | Durum | Bağımsız kanıt |
+|---|---|---|
+| **R1** — kısmi migration readiness | **Kapandı** | `apps/api/src/prisma/prisma.service.ts:52-83` artık `_prisma_migrations` satırlarını `migration-manifest.ts:9-12` içindeki `EXPECTED_MIGRATIONS` ile **ada göre** karşılaştırıyor; eksik veya `finished_at=null`/`rolled_back_at!=null` satır 503 üretiyor. `migration-manifest.spec.ts:7-20` manifesti `prisma/migrations` klasörüyle karşılaştırıyor. |
+| **R2** — test DB adı `_test` ile bitmeli | **Kapandı; Low residual** | `apps/api/src/common/database/test-database-guard.ts:109-117` `TEST_DATABASE_URL` veritabanı adını `/_test$/i` ile doğruluyor. Yerel `.env` ve CI değerleri `probedesk_test` olduğu için normal akış etkilenmiyor; e2e setup geçti. `setup-env.ts:8` ve `migrate-test-database.ts:15` hâlâ `NODE_ENV=test`'i kendisi atıyor; bu, ayrı bir Low sertleştirme konusu olarak kalıyor. |
+
+### Gerçek R1 reprodüksiyonu
+
+Geçici `pd_r1_manifest_*` veritabanı test konteynerinde oluşturuldu; `prisma migrate deploy` iki migration'ı da uyguladı (`migrations applied: 2`).
+
+```text
+fully migrated: 200
+{"status":"ok","checks":{"database":"ok","migrations":"ok"}}
+
+DELETE FROM "_prisma_migrations" WHERE migration_name='20261103130000_session_csrf_token_optional';
+
+one migration row deleted: 503
+{"code":"SERVICE_UNAVAILABLE","message":"The service is not ready.","requestId":"…","details":{"checks":{"database":"ok","migrations":"pending"}}}
+```
+
+Geçici DB `DROP DATABASE … WITH (FORCE)` ile silindi; API süreci durduruldu. `pd_r1_*`/`pd_rereview_*` veritabanı kalmadı.
+
+### Komutlar ve sonuçlar
+
+| Komut | Gerçek sonuç |
+|---|---|
+| `npm run build --workspace apps/api` | `nest build` başarılı. |
+| `npm run verify` | Çıkış **0**; lint, typecheck, API unit, web unit, build ve `openapi:check` dahil. |
+| `npm run test:api:unit` | 8 dosya, **40 test** geçti. |
+| `npm run test:web` | 11 dosya, **58 test** geçti. |
+| `npm run test:e2e --workspace apps/api` | 7 dosya, **42 test** geçti (6.87s). |
+| `npm run openapi:check` | `OpenAPI contract is current…`; çıkış 0. |
+
+### Sonuç
+
+- **R1 kapandı.** Eksik veya unfinished kayıtlı migration readiness'i 503 yapıyor; tam migrate DB 200.
+- **R2 kapandı.** `_test` suffix kuralı guard'da ve unit testte; yerel/CI `probedesk_test` değerleri geçiyor. Kalan risk **Low**: test script'lerinin `NODE_ENV=test`'i kendisi ataması; Medium veya üzeri değil.
+- **Phase 1'de açık Critical/High/Medium bulgu yoktur.** Yalnızca Low residual (R2) ve önceki kapsam dışı Low'lar (B6 global cap, B12, B9/B10/B11/B14) kalır.
+- Hiçbir görev `Accepted` yapılmadı.

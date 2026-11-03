@@ -38,8 +38,8 @@ Bir sözleşme değiştiğinde bu tablodaki birincil belge önce güncellenir; i
 
 - Ürün yaklaşımı kullanıcı tarafından onaylandı.
 - Teknik varsayılanlar ayrıntılı plandan aktarılmıştır; kurulumla doğrulanmış değildir.
-- P0 belgeleri incelemeye hazırdır; görev kartlarında `In Review` durumundadır. Bu, ürün kabulü verildiği anlamına gelmez.
-- P1–P8 uygulama görevleri `Planned` durumundadır.
+- P0 belgeleri incelemeye hazırdır; görev kartlarında `In Review` durumundadır. P1 görevlerinin `Accepted` olması ürün kabulü anlamına gelmez.
+- P1-01–P1-08 teknik kabulden geçmiştir (`Accepted`, 2026-11-03). P2–P8 `Planned` durumundadır.
 - Phase 1 testleri ve GitHub Actions CI koşuları gerçek çıktılarla kaydedilmiştir; ürün demosu ve video henüz yoktur.
 - Nihai kapsam, aşama ve ürün kabulü kullanıcıya aittir.
 

@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 ve P1 görevleri In Review (P1-08 In Progress); P2–P8 Planned. Hiçbir görev Accepted değildir.
+Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -27,14 +27,14 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P1-01 — Repository ve sürüm kilidi](P1-01.md) | Entegrasyon | In Review |
-| [P1-02 — PostgreSQL ve migration temeli](P1-02.md) | Backend | In Review |
-| [P1-03 — Ortak API davranışları](P1-03.md) | Backend | In Review |
-| [P1-04 — Angular uygulama kabuğu](P1-04.md) | Frontend | In Review |
-| [P1-05 — OpenAPI istemci tipleri](P1-05.md) | Entegrasyon | In Review |
-| [P1-06 — Backend oturum ve yetkilendirme](P1-06.md) | Backend | In Review |
-| [P1-07 — Angular giriş ve oturum akışı](P1-07.md) | Frontend | In Review |
-| [P1-08 — İlk CI kontrolü](P1-08.md) | Entegrasyon | In Review |
+| [P1-01 — Repository ve sürüm kilidi](P1-01.md) | Entegrasyon | Accepted |
+| [P1-02 — PostgreSQL ve migration temeli](P1-02.md) | Backend | Accepted |
+| [P1-03 — Ortak API davranışları](P1-03.md) | Backend | Accepted |
+| [P1-04 — Angular uygulama kabuğu](P1-04.md) | Frontend | Accepted |
+| [P1-05 — OpenAPI istemci tipleri](P1-05.md) | Entegrasyon | Accepted |
+| [P1-06 — Backend oturum ve yetkilendirme](P1-06.md) | Backend | Accepted |
+| [P1-07 — Angular giriş ve oturum akışı](P1-07.md) | Frontend | Accepted |
+| [P1-08 — İlk CI kontrolü](P1-08.md) | Entegrasyon | Accepted |
 
 ## Aşama 2 — Plan editörü ve sürümler
 
