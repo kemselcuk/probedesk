@@ -18,6 +18,8 @@ gerçekten üretildiğinde eklenir.
   [web düzeltmeleri](phase-2-review-fixes-web.md).
 - [Phase 3 simülasyon ve yürütme demosu](phase-3-demo.md): NORMAL/FORCED_FAILURE,
   iptal, Run Again, süreç kesintisi recovery ve gerçek Chrome kontrolleri.
+- [Phase 4 SSE canlı akış demosu](phase-4-demo.md): replay/cursor protokolü,
+  iki sekmeli canlı akış, kesinti ve yeniden bağlanma.
 
 ## Kayıt biçimi
 

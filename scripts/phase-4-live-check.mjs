@@ -262,7 +262,6 @@ async function main() {
     recorded: (document.body.innerText.match(/(\d+) of (\d+) samples recorded/) ?? [])[1] ?? null,
     warning: document.querySelector('#live-stream-warning')?.textContent?.trim() ?? null,
     terminal: document.body.innerText.includes('Run finished'),
-    body: document.body.innerText.slice(0, 1500),
   })`);
   const probe = await evaluate(tabA, `(async () => {
     const snapshot = await fetch('/api/runs/${runId}').then((response) => response.json());
@@ -357,7 +356,8 @@ async function main() {
         finalA,
         finalB,
         exceptions,
-        failedResponses,
+        failedResponseCount: failedResponses.length,
+        failedResponses: failedResponses.slice(-5),
       },
       null,
       2,
