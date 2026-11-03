@@ -89,6 +89,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/device-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the available simulated device profiles. */
+        get: operations["DeviceProfilesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List plans using the role-appropriate revision names. */
+        get: operations["PlansController_list"];
+        put?: never;
+        /** Create a plan with an empty draft revision. */
+        post: operations["PlansController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one plan with role-appropriate revision content. */
+        get: operations["PlansController_getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the open draft atomically using optimistic concurrency. */
+        put: operations["PlansController_saveDraft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -153,6 +222,161 @@ export interface components {
              * @enum {string}
              */
             role: "PLANNER" | "OPERATOR" | "VIEWER";
+        };
+        DeviceProfileDto: {
+            /**
+             * Format: uuid
+             * @example b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59
+             */
+            id: string;
+            /** @example DC_POWER_MODULE */
+            code: string;
+            /** @example DC Power Module */
+            name: string;
+            /** @example Deterministic simulated DC power module used for local demonstrations. */
+            description?: string | null;
+        };
+        CreatePlanDto: {
+            /** @example Power rail verification */
+            name: string;
+            /**
+             * Format: uuid
+             * @description Id returned by GET /api/device-profiles.
+             * @example b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59
+             */
+            profileId: string;
+        };
+        PublishedVersionSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example 1 */
+            versionNumber: number;
+            /** Format: date-time */
+            publishedAt: string;
+        };
+        PlanStepDto: {
+            /**
+             * Format: uuid
+             * @description Permanent logical identity shared by every revision of this plan.
+             */
+            logicalStepId: string;
+            /** @description Server-assigned 1-based order inside the revision. */
+            position: number;
+            /** @example Output voltage */
+            name: string;
+            /** @example V */
+            unit: string;
+            /** @example 4.750000 */
+            minimum: string;
+            /** @example 5.250000 */
+            maximum: string;
+            /** @example 100 */
+            sampleCount: number;
+            /** @example 250 */
+            intervalMs: number;
+        };
+        DraftRevisionDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example 3 */
+            editRevision: number;
+            /** Format: uuid */
+            planId: string;
+            /**
+             * @example DRAFT
+             * @enum {string}
+             */
+            state: "DRAFT";
+            /** @example Power rail verification */
+            name: string;
+            /** @example null */
+            versionNumber: number | null;
+            /**
+             * Format: uuid
+             * @description Published revision this draft was copied from, if any.
+             */
+            baseVersionId?: string | null;
+            steps: components["schemas"]["PlanStepDto"][];
+        };
+        PublishedRevisionDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            planId: string;
+            /**
+             * @example PUBLISHED
+             * @enum {string}
+             */
+            state: "PUBLISHED";
+            /** @example Power rail verification */
+            name: string;
+            /** @example 1 */
+            versionNumber: number;
+            /** Format: uuid */
+            baseVersionId?: string | null;
+            /** Format: date-time */
+            publishedAt: string;
+            steps: components["schemas"]["PlanStepDto"][];
+        };
+        PlanDetailDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description Draft name for a Planner when a draft exists; latest published name otherwise. */
+            name: string;
+            profile: components["schemas"]["DeviceProfileDto"];
+            /** Format: date-time */
+            createdAt: string;
+            latestPublishedVersion: components["schemas"]["PublishedVersionSummaryDto"] | null;
+            /** @description Open draft with steps. Present only in a Planner response. */
+            draft?: components["schemas"]["DraftRevisionDto"] | null;
+            /** @description Latest published revision with steps, if one exists. */
+            published: components["schemas"]["PublishedRevisionDto"] | null;
+        };
+        DraftSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example 3 */
+            editRevision: number;
+        };
+        PlanListItemDto: {
+            /** Format: uuid */
+            id: string;
+            /** @description Draft name for a Planner; latest published name for Operator and Viewer. */
+            name: string;
+            profile: components["schemas"]["DeviceProfileDto"];
+            /** @description Highest published version summary, or null before publish. */
+            latestPublishedVersion: components["schemas"]["PublishedVersionSummaryDto"] | null;
+            /** @description Present only in a Planner response. Operator and Viewer responses omit the key. */
+            draft?: components["schemas"]["DraftSummaryDto"] | null;
+        };
+        DraftStepDto: {
+            /**
+             * Format: uuid
+             * @description Existing logical step identity. Omit, send null or send an empty string for a new step; the server creates and returns a new identity.
+             */
+            logicalStepId?: string | null;
+            /** @example Output voltage */
+            name: string;
+            /** @example V */
+            unit: string;
+            /** @example 4.750000 */
+            minimum: string;
+            /** @example 5.250000 */
+            maximum: string;
+            /** @example 100 */
+            sampleCount: number;
+            /** @example 250 */
+            intervalMs: number;
+        };
+        SaveDraftDto: {
+            /** @example Power rail verification */
+            name: string;
+            /**
+             * @description Current editRevision from the draft. A mismatch is rejected with DRAFT_CONFLICT and no writes.
+             * @example 1
+             */
+            expectedRevision: number;
+            steps: components["schemas"]["DraftStepDto"][];
         };
     };
     responses: never;
@@ -362,6 +586,228 @@ export interface operations {
             };
             /** @description The database is unavailable or its migrations are unfinished; retry after it recovers. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DeviceProfilesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every available profile. The initial product seeds one DC Power Module profile. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceProfileDto"][];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlansController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Planner responses include the open draft summary. Operator and Viewer responses contain only plans with a published revision and never include a draft key. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanListItemDto"][];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlansController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePlanDto"];
+            };
+        };
+        responses: {
+            /** @description The plan identity, its profile and the new empty draft revision. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanDetailDto"];
+                };
+            };
+            /** @description The name or profileId is invalid, or the body contains unknown fields. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlansController_getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Plan id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Planner responses include the open draft with steps. Operator and Viewer responses include only the latest published revision; a plan without published content is a 404 for them. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanDetailDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The plan does not exist or is not readable by this role. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlansController_saveDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Plan id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveDraftDto"];
+            };
+        };
+        responses: {
+            /** @description The saved draft, including the identities created for new steps. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftRevisionDto"];
+                };
+            };
+            /** @description A field, limit or logicalStepId is invalid. The request may have unknown fields. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The plan does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description expectedRevision is stale or the plan has no open draft. No rows were changed. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

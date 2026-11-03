@@ -279,6 +279,309 @@
           "health"
         ]
       }
+    },
+    "/api/device-profiles": {
+      "get": {
+        "operationId": "DeviceProfilesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Every available profile. The initial product seeds one DC Power Module profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceProfileDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List the available simulated device profiles.",
+        "tags": [
+          "device-profiles"
+        ]
+      }
+    },
+    "/api/plans": {
+      "post": {
+        "operationId": "PlansController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The plan identity, its profile and the new empty draft revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The name or profileId is invalid, or the body contains unknown fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Create a plan with an empty draft revision.",
+        "tags": [
+          "plans"
+        ]
+      },
+      "get": {
+        "operationId": "PlansController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Planner responses include the open draft summary. Operator and Viewer responses contain only plans with a published revision and never include a draft key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanListItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List plans using the role-appropriate revision names.",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}": {
+      "get": {
+        "operationId": "PlansController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Planner responses include the open draft with steps. Operator and Viewer responses include only the latest published revision; a plan without published content is a 404 for them.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The plan does not exist or is not readable by this role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read one plan with role-appropriate revision content.",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}/draft": {
+      "put": {
+        "operationId": "PlansController_saveDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved draft, including the identities created for new steps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftRevisionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A field, limit or logicalStepId is invalid. The request may have unknown fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The plan does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "expectedRevision is stale or the plan has no open draft. No rows were changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Replace the open draft atomically using optimistic concurrency.",
+        "tags": [
+          "plans"
+        ]
+      }
     }
   },
   "info": {
@@ -436,6 +739,438 @@
           "id",
           "email",
           "role"
+        ]
+      },
+      "DeviceProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59"
+          },
+          "code": {
+            "type": "string",
+            "example": "DC_POWER_MODULE"
+          },
+          "name": {
+            "type": "string",
+            "example": "DC Power Module"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Deterministic simulated DC power module used for local demonstrations."
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
+        ]
+      },
+      "CreatePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Power rail verification"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Id returned by GET /api/device-profiles.",
+            "example": "b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59"
+          }
+        },
+        "required": [
+          "name",
+          "profileId"
+        ]
+      },
+      "PublishedVersionSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "versionNumber",
+          "publishedAt"
+        ]
+      },
+      "PlanStepDto": {
+        "type": "object",
+        "properties": {
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Permanent logical identity shared by every revision of this plan."
+          },
+          "position": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Server-assigned 1-based order inside the revision."
+          },
+          "name": {
+            "type": "string",
+            "example": "Output voltage"
+          },
+          "unit": {
+            "type": "string",
+            "example": "V"
+          },
+          "minimum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "4.750000"
+          },
+          "maximum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.250000"
+          },
+          "sampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "example": 100
+          },
+          "intervalMs": {
+            "type": "number",
+            "minimum": 100,
+            "maximum": 5000,
+            "example": 250
+          }
+        },
+        "required": [
+          "logicalStepId",
+          "position",
+          "name",
+          "unit",
+          "minimum",
+          "maximum",
+          "sampleCount",
+          "intervalMs"
+        ]
+      },
+      "DraftRevisionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editRevision": {
+            "type": "number",
+            "minimum": 1,
+            "example": 3
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "DRAFT"
+            ],
+            "example": "DRAFT"
+          },
+          "name": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "nullable": true,
+            "example": null
+          },
+          "baseVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Published revision this draft was copied from, if any."
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanStepDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "editRevision",
+          "planId",
+          "state",
+          "name",
+          "versionNumber",
+          "steps"
+        ]
+      },
+      "PublishedRevisionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PUBLISHED"
+            ],
+            "example": "PUBLISHED"
+          },
+          "name": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "baseVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanStepDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "planId",
+          "state",
+          "name",
+          "versionNumber",
+          "publishedAt",
+          "steps"
+        ]
+      },
+      "PlanDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Draft name for a Planner when a draft exists; latest published name otherwise."
+          },
+          "profile": {
+            "$ref": "#/components/schemas/DeviceProfileDto"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latestPublishedVersion": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishedVersionSummaryDto"
+              }
+            ]
+          },
+          "draft": {
+            "nullable": true,
+            "description": "Open draft with steps. Present only in a Planner response.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DraftRevisionDto"
+              }
+            ]
+          },
+          "published": {
+            "nullable": true,
+            "description": "Latest published revision with steps, if one exists.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishedRevisionDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "profile",
+          "createdAt",
+          "latestPublishedVersion",
+          "published"
+        ]
+      },
+      "DraftSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "editRevision": {
+            "type": "number",
+            "minimum": 1,
+            "example": 3
+          }
+        },
+        "required": [
+          "id",
+          "editRevision"
+        ]
+      },
+      "PlanListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "Draft name for a Planner; latest published name for Operator and Viewer."
+          },
+          "profile": {
+            "$ref": "#/components/schemas/DeviceProfileDto"
+          },
+          "latestPublishedVersion": {
+            "nullable": true,
+            "description": "Highest published version summary, or null before publish.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublishedVersionSummaryDto"
+              }
+            ]
+          },
+          "draft": {
+            "nullable": true,
+            "description": "Present only in a Planner response. Operator and Viewer responses omit the key.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DraftSummaryDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "profile",
+          "latestPublishedVersion"
+        ]
+      },
+      "DraftStepDto": {
+        "type": "object",
+        "properties": {
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Existing logical step identity. Omit, send null or send an empty string for a new step; the server creates and returns a new identity."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Output voltage"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "example": "V"
+          },
+          "minimum": {
+            "type": "string",
+            "example": "4.750000"
+          },
+          "maximum": {
+            "type": "string",
+            "example": "5.250000"
+          },
+          "sampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "example": 100
+          },
+          "intervalMs": {
+            "type": "number",
+            "minimum": 100,
+            "maximum": 5000,
+            "example": 250
+          }
+        },
+        "required": [
+          "name",
+          "unit",
+          "minimum",
+          "maximum",
+          "sampleCount",
+          "intervalMs"
+        ]
+      },
+      "SaveDraftDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Power rail verification"
+          },
+          "expectedRevision": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Current editRevision from the draft. A mismatch is rejected with DRAFT_CONFLICT and no writes.",
+            "example": 1
+          },
+          "steps": {
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftStepDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "expectedRevision",
+          "steps"
         ]
       }
     }

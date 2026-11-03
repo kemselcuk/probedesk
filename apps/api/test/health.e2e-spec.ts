@@ -242,12 +242,14 @@ describe('health endpoints (e2e)', () => {
           },
         });
 
-        // The remaining migration exists but has not finished: still not ready.
-        await client.query(
-          `INSERT INTO "_prisma_migrations" ("migration_name", "finished_at", "rolled_back_at")
-           VALUES ($1, NULL, NULL)`,
-          [EXPECTED_MIGRATIONS[1]],
-        );
+        // The remaining migrations exist but have not finished: still not ready.
+        for (const migrationName of EXPECTED_MIGRATIONS.slice(1)) {
+          await client.query(
+            `INSERT INTO "_prisma_migrations" ("migration_name", "finished_at", "rolled_back_at")
+             VALUES ($1, NULL, NULL)`,
+            [migrationName],
+          );
+        }
 
         const unfinished = await request(app!.getHttpServer())
           .get('/api/health/ready')

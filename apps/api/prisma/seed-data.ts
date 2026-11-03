@@ -32,3 +32,22 @@ export const DEMO_USERS = [
 export const DEMO_USER_EMAILS: readonly string[] = DEMO_USERS.map(
   (user) => user.email,
 );
+
+export interface DemoDeviceProfileSeed {
+  code: string;
+  name: string;
+  description: string;
+}
+
+/**
+ * The single simulated device profile. `code` is the stable natural key used by
+ * the idempotent seed; plans keep the generated profile id.
+ */
+export const DEMO_DEVICE_PROFILES = [
+  {
+    code: 'DC_POWER_MODULE',
+    name: 'DC Power Module',
+    description:
+      'Deterministic simulated DC power module used for local demonstrations.',
+  },
+] as const satisfies readonly DemoDeviceProfileSeed[];

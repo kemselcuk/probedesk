@@ -31,8 +31,12 @@ describe('OpenAPI document (e2e)', () => {
       '/api/auth/login',
       '/api/auth/logout',
       '/api/auth/me',
+      '/api/device-profiles',
       '/api/health/live',
       '/api/health/ready',
+      '/api/plans',
+      '/api/plans/{id}',
+      '/api/plans/{id}/draft',
     ]);
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
@@ -81,7 +85,32 @@ describe('OpenAPI document (e2e)', () => {
       '204',
     );
     expect(document.paths['/api/auth/logout']?.post?.responses).toHaveProperty(
-      '403',
+       '403',
+    );
+
+    expect(document.paths['/api/device-profiles']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(document.paths['/api/plans']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(document.paths['/api/plans']?.post?.security).toEqual([
+      { session: [], csrfToken: [] },
+    ]);
+    expect(document.paths['/api/plans/{id}']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(
+      document.paths['/api/plans/{id}/draft']?.put?.security,
+    ).toEqual([{ session: [], csrfToken: [] }]);
+    expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('201');
+    expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('400');
+    expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('403');
+    expect(
+      document.paths['/api/plans/{id}/draft']?.put?.responses,
+    ).toHaveProperty('409');
+    expect(document.paths['/api/plans/{id}']?.get?.responses).toHaveProperty(
+      '404',
     );
 
     expect(document.components?.securitySchemes).toMatchObject({
@@ -100,6 +129,15 @@ describe('OpenAPI document (e2e)', () => {
     expect(document.components?.schemas).toHaveProperty('AuthUserDto');
     expect(document.components?.schemas).toHaveProperty('LoginDto');
     expect(document.components?.schemas).toHaveProperty('ApiErrorDto');
+    expect(document.components?.schemas).toHaveProperty('PlanDetailDto');
+    expect(document.components?.schemas).toHaveProperty('PlanListItemDto');
+    expect(document.components?.schemas).toHaveProperty(
+      'PublishedVersionSummaryDto',
+    );
+    expect(document.components?.schemas).toHaveProperty('DraftRevisionDto');
+    expect(document.components?.schemas).toHaveProperty('PublishedRevisionDto');
+    expect(document.components?.schemas).toHaveProperty('PlanStepDto');
+    expect(document.components?.schemas).toHaveProperty('DeviceProfileDto');
     expect(document.components?.schemas?.AuthUserDto).toMatchObject({
       required: ['id', 'email', 'role'],
     });

@@ -19,19 +19,21 @@ enum Role {
 /// One of the three pre-provisioned accounts. Email comparison is exact and
 /// case-sensitive at the database level; authentication normalises input later.
 model User {
-  id           String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  email        String    @unique
-  passwordHash String
-  role         Role
-  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
-  sessions     Session[]
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email              String         @unique
+  passwordHash       String
+  role               Role
+  createdAt          DateTime       @default(now()) @db.Timestamptz(6)
+  sessions           Session[]
+  createdPlans       TestPlan[]
+  publishedRevisions PlanRevision[]
 
   @@map("users")
 }
 
 /// Server-side session record. Only token hashes are stored, never raw tokens.
 model Session {
-  id            String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tokenHash     String    @unique
   userId        String    @db.Uuid
   csrfTokenHash String?
@@ -46,10 +48,99 @@ model Session {
 
 /// Single simulated device profile; seeded data uses code as its stable key.
 model DeviceProfile {
-  id          String  @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
-  code        String  @unique
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String     @unique
   name        String
   description String?
+  plans       TestPlan[]
 
   @@map("device_profiles")
+}
+
+/// Immutable plan identity. Names and step rules live in revisions; the plan
+/// row only ties a profile to its creator and revisions.
+model TestPlan {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deviceProfileId String         @db.Uuid
+  createdById     String         @db.Uuid
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  deviceProfile   DeviceProfile  @relation(fields: [deviceProfileId], references: [id], onDelete: Restrict)
+  createdBy       User           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  revisions       PlanRevision[]
+  stepIdentities  StepIdentity[]
+
+  @@index([deviceProfileId])
+  @@index([createdById])
+  @@map("test_plans")
+}
+
+enum PlanRevisionState {
+  DRAFT
+  PUBLISHED
+}
+
+/// A draft or a published version. `versionNumber` is assigned only on publish;
+/// at most one DRAFT may exist per plan (enforced by a partial unique index in
+/// the migration) and published version numbers are unique per plan there too.
+model PlanRevision {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  planId          String            @db.Uuid
+  state           PlanRevisionState
+  name            String
+  versionNumber   Int?
+  editRevision    Int               @default(1)
+  baseVersionId   String?           @db.Uuid
+  publishedById   String?           @db.Uuid
+  publishedAt     DateTime?         @db.Timestamptz(6)
+  plan            TestPlan          @relation(fields: [planId], references: [id], onDelete: Restrict)
+  baseVersion     PlanRevision?     @relation("RevisionLineage", fields: [baseVersionId], references: [id], onDelete: Restrict)
+  derivedVersions PlanRevision[]    @relation("RevisionLineage")
+  publishedBy     User?             @relation(fields: [publishedById], references: [id], onDelete: Restrict)
+  steps           PlanStep[]
+
+  // Composite targets used by the revision/step ownership foreign keys.
+  @@unique([id, planId])
+  @@index([planId])
+  @@index([baseVersionId])
+  @@index([publishedById])
+  @@map("plan_revisions")
+}
+
+/// Permanent logical identity of a plan step. It belongs to exactly one plan and
+/// survives step removal from a draft, so historical runs keep their linkage.
+model StepIdentity {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  planId    String     @db.Uuid
+  createdAt DateTime   @default(now()) @db.Timestamptz(6)
+  plan      TestPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  planSteps PlanStep[]
+
+  @@unique([id, planId])
+  @@index([planId])
+  @@map("step_identities")
+}
+
+/// One step row of a specific revision. `planId` is duplicated deliberately so
+/// composite foreign keys prove that the revision and the logical identity
+/// belong to the same plan.
+model PlanStep {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  revisionId    String       @db.Uuid
+  planId        String       @db.Uuid
+  logicalStepId String       @db.Uuid
+  position      Int
+  name          String
+  unit          String
+  minimum       Decimal      @db.Decimal(18, 6)
+  maximum       Decimal      @db.Decimal(18, 6)
+  sampleCount   Int
+  intervalMs    Int
+  revision      PlanRevision @relation(fields: [revisionId, planId], references: [id, planId], onDelete: Restrict)
+  logicalStep   StepIdentity @relation(fields: [logicalStepId, planId], references: [id, planId], onDelete: Restrict)
+
+  @@unique([revisionId, position])
+  @@unique([revisionId, logicalStepId])
+  @@index([planId])
+  @@index([logicalStepId, planId])
+  @@map("plan_steps")
 }

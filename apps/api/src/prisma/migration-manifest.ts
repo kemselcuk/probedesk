@@ -9,4 +9,5 @@
 export const EXPECTED_MIGRATIONS: readonly string[] = [
   '20261103120000_init',
   '20261103130000_session_csrf_token_optional',
+  '20261103160000_plans',
 ];

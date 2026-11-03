@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { loadDotEnv, loadEnv } from '../src/config/env.js';
 import { PrismaClient } from '../src/prisma/generated/client.js';
 import { seedDemoUsers } from './seed-users.js';
+import { seedDemoDeviceProfiles } from './seed-device-profiles.js';
 
 /**
  * Demo account seed. Run from apps/api with `npm run demo:seed`. It is additive
@@ -29,6 +30,11 @@ if (config.nodeEnv === 'production') {
     const summary = await seedDemoUsers(prisma);
     console.log(
       `Demo users ready: ${summary.total} accounts (${summary.created} created, ${summary.existing} already present).`,
+    );
+
+    const profiles = await seedDemoDeviceProfiles(prisma);
+    console.log(
+      `Demo device profiles ready: ${profiles.total} profiles (${profiles.created} created, ${profiles.existing} already present).`,
     );
   } catch {
     // Never print driver errors: they can contain the connection string.

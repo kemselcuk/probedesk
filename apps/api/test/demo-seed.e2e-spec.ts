@@ -1,7 +1,12 @@
 import * as argon2 from 'argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/prisma/generated/client.js';
-import { DEMO_USERS, DEMO_USER_EMAILS } from '../prisma/seed-data.js';
+import {
+  DEMO_DEVICE_PROFILES,
+  DEMO_USERS,
+  DEMO_USER_EMAILS,
+} from '../prisma/seed-data.js';
+import { seedDemoDeviceProfiles } from '../prisma/seed-device-profiles.js';
 import { seedDemoUsers } from '../prisma/seed-users.js';
 
 describe('demo user seed (e2e)', () => {
@@ -24,6 +29,7 @@ describe('demo user seed (e2e)', () => {
     });
 
     await cleanupDemoUsers();
+    await cleanupDemoProfiles();
   });
 
   afterAll(async () => {
@@ -32,6 +38,7 @@ describe('demo user seed (e2e)', () => {
     }
 
     await cleanupDemoUsers();
+    await cleanupDemoProfiles();
     await prisma.$disconnect();
   });
 
@@ -41,6 +48,14 @@ describe('demo user seed (e2e)', () => {
     });
     await prisma.user.deleteMany({
       where: { email: { in: [...DEMO_USER_EMAILS] } },
+    });
+  }
+
+  async function cleanupDemoProfiles(): Promise<void> {
+    await prisma.deviceProfile.deleteMany({
+      where: {
+        code: { in: DEMO_DEVICE_PROFILES.map((profile) => profile.code) },
+      },
     });
   }
 
@@ -110,5 +125,35 @@ describe('demo user seed (e2e)', () => {
     expect(untouched.id).toBe(original.id);
     expect(untouched.role).toBe('VIEWER');
     expect(untouched.passwordHash).toBe('existing-operator-value');
+  });
+
+  it('seeds the DC Power Module profile once and never overwrites it', async () => {
+    const first = await seedDemoDeviceProfiles(prisma);
+    expect(first).toEqual({ created: 1, existing: 0, total: 1 });
+
+    const profile = await prisma.deviceProfile.findUniqueOrThrow({
+      where: { code: 'DC_POWER_MODULE' },
+    });
+    expect(profile).toMatchObject({
+      code: 'DC_POWER_MODULE',
+      name: 'DC Power Module',
+    });
+
+    const second = await seedDemoDeviceProfiles(prisma);
+    expect(second).toEqual({ created: 0, existing: 1, total: 1 });
+
+    await prisma.deviceProfile.update({
+      where: { code: 'DC_POWER_MODULE' },
+      data: { name: 'Operator edited profile', description: null },
+    });
+
+    const third = await seedDemoDeviceProfiles(prisma);
+    expect(third).toEqual({ created: 0, existing: 1, total: 1 });
+
+    const untouched = await prisma.deviceProfile.findUniqueOrThrow({
+      where: { code: 'DC_POWER_MODULE' },
+    });
+    expect(untouched.name).toBe('Operator edited profile');
+    expect(untouched.description).toBeNull();
   });
 });

@@ -87,7 +87,8 @@ failures per 15 minutes for one client address across different emails. A 429
 response carries `Retry-After` in seconds. Unknown emails and wrong passwords
 share one generic response.
 
-Seed the three demo accounts (idempotent; existing accounts are never updated):
+Seed the three demo accounts and the single `DC Power Module` device profile
+(idempotent; existing rows are never updated):
 
 ```bash
 npm run db:migrate --workspace apps/api
