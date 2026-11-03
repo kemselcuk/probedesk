@@ -51,7 +51,6 @@ const routeCases: readonly RouteCase[] = [
     title: 'Run History',
     heading: 'Run History',
     role: 'VIEWER',
-    task: 'P5-02',
   },
   {
     url: '/runs/new',
@@ -110,9 +109,14 @@ describe('application routes', () => {
     });
   }
 
-  /** Answers the data requests started by the real plan and version screens. */
+  /** Answers the data requests started by the real plan, history, and detail screens. */
   function flushPlanRequests(): void {
     const http = TestBed.inject(HttpTestingController);
+
+    for (const request of http.match((candidate) => candidate.url === '/api/runs')) {
+      request.flush({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 });
+    }
+
     for (const request of http.match((candidate) => candidate.url.startsWith('/api/plan'))) {
       if (request.request.url.startsWith('/api/plan-versions/')) {
         request.flush({

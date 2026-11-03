@@ -33,8 +33,17 @@ import {
   stepOutcomeLabel,
   stepStatusLabel,
 } from './run-status';
+import { RunStatusBadge } from './run-status-badge';
 import type { StartRunRequest } from './runs-api.types';
 import { RunsFacade } from './runs.facade';
+
+interface FirstFailureView {
+  readonly stepPosition: number;
+  readonly stepName: string;
+  readonly unit: string;
+  readonly sampleIndex: number;
+  readonly value: string | null;
+}
 
 /**
  * One recorded run, read from the server snapshot.
@@ -57,6 +66,7 @@ import { RunsFacade } from './runs.facade';
     MatCardModule,
     PageHeader,
     RouterLink,
+    RunStatusBadge,
   ],
   templateUrl: './run-details-page.html',
   styleUrl: './run-details-page.scss',
@@ -110,6 +120,63 @@ export class RunDetailsPage {
     }
 
     return Math.min(100, Math.round((run.recordedSampleCount / run.expectedSampleCount) * 100));
+  });
+
+  /** Sum of the stored per-step violation counters; never recomputed from samples. */
+  protected readonly totalOutOfTolerance = computed(() => {
+    const run = this.snapshot();
+    return run === null
+      ? 0
+      : run.steps.reduce((total, step) => total + step.outOfToleranceCount, 0);
+  });
+
+  /**
+   * The earliest stored first-failure index in step order, with the recorded
+   * value when that sample is present in the snapshot. A missing measurement is
+   * reported as unavailable rather than shown as a zero.
+   */
+  protected readonly firstFailure = computed<FirstFailureView | null>(() => {
+    const run = this.snapshot();
+    if (run === null) {
+      return null;
+    }
+
+    for (const step of run.steps) {
+      if (step.firstFailureSampleIndex === null) {
+        continue;
+      }
+
+      const sampleIndex = step.firstFailureSampleIndex;
+      const measurement = step.measurements.find((entry) => entry.sampleIndex === sampleIndex);
+
+      return {
+        stepPosition: step.position,
+        stepName: step.name,
+        unit: step.unit,
+        sampleIndex,
+        value: measurement?.value ?? null,
+      };
+    }
+
+    return null;
+  });
+
+  protected readonly missingSampleCount = computed(() => {
+    const run = this.snapshot();
+    if (run === null) {
+      return 0;
+    }
+
+    return Math.max(0, run.expectedSampleCount - run.recordedSampleCount);
+  });
+
+  protected readonly missingSamplePercent = computed(() => {
+    const run = this.snapshot();
+    if (run === null || run.expectedSampleCount === 0) {
+      return null;
+    }
+
+    return Math.round((this.missingSampleCount() / run.expectedSampleCount) * 100);
   });
 
   protected readonly headerSubtitle = computed(() => {

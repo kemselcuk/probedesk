@@ -140,6 +140,14 @@ describe('LoginPage', () => {
 
     expect(TestBed.inject(Router).url).toBe('/runs');
     expect(root.textContent).toContain('Run History');
+
+    // The real Run History screen loads its plan filter options and first page.
+    http.expectOne('/api/plans').flush([]);
+    http
+      .expectOne((candidate) => candidate.url === '/api/runs')
+      .flush({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 });
+    await harness.fixture.whenStable();
+    harness.detectChanges();
   });
 
   it('shows a failed sign-in message, keeps the input, and re-enables the button', async () => {

@@ -1052,4 +1052,89 @@ describe('RunDetailsPage', () => {
     expect(root.textContent).toContain('7');
     expect(root.textContent).not.toContain('Stale plan');
   });
+
+  it('shows the total out-of-tolerance count and the first failure step, sample index, and value', async () => {
+    const harness = await openLoaded(FAILED_SNAPSHOT);
+    const root = rootOf(harness);
+
+    expect(root.querySelector('#total-out-of-tolerance')?.textContent?.trim()).toBe('1');
+
+    const firstFailure = root.querySelector('#first-failure-summary')?.textContent ?? '';
+    expect(firstFailure).toContain('Step 2: Current draw');
+    expect(firstFailure).toContain('Sample index 1');
+    expect(firstFailure).toContain('0.600000 A');
+
+    expect(root.querySelector('#partial-sample-summary')?.textContent).toContain(
+      'None — every expected sample was recorded',
+    );
+  });
+
+  it('uses only the stored run snapshot, never the current plan draft', async () => {
+    const harness = await openLoaded(PASSED_SNAPSHOT);
+    const root = rootOf(harness);
+
+    expect(root.textContent).toContain('Power rail verification');
+    expect(root.textContent).toContain('Version 3');
+    expect(root.textContent).toContain('4.750000 V');
+    expect(
+      TestBed.inject(HttpTestingController).match((request) =>
+        request.url.startsWith('/api/plans'),
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('renders a single-sample step without inventing extra rows', async () => {
+    const singleSampleStep = {
+      ...VOLTAGE_STEP,
+      sampleCount: 1,
+      recordedCount: 1,
+      measurements: [VOLTAGE_STEP.measurements[0]],
+      statistics: {
+        minimum: '4.980000',
+        maximum: '4.980000',
+        average: '4.980000',
+        sampleCount: 1,
+      },
+    };
+    const harness = await openLoaded({
+      ...PASSED_SNAPSHOT,
+      expectedSampleCount: 1,
+      recordedSampleCount: 1,
+      steps: [singleSampleStep],
+    });
+    const root = rootOf(harness);
+
+    expect(root.textContent).toContain('1 of 1 samples recorded (100%)');
+    expect(root.querySelectorAll('.step-card')).toHaveLength(1);
+    expect(root.querySelectorAll('.step-card table tbody tr')).toHaveLength(1);
+    expect(root.textContent).toContain('4.980000 V');
+    expect(root.querySelector('#partial-sample-summary')?.textContent).toContain(
+      'None — every expected sample was recorded',
+    );
+  });
+
+  it('reports the partial sample count and percentage with the recorded value missing', async () => {
+    const harness = await openLoaded(CANCELLED_SNAPSHOT);
+    const root = rootOf(harness);
+
+    expect(root.querySelector('#total-out-of-tolerance')?.textContent?.trim()).toBe('0');
+    expect(root.querySelector('#partial-sample-summary')?.textContent).toContain('3 of 4');
+    expect(root.querySelector('#partial-sample-summary')?.textContent).toContain('(75%)');
+    expect(root.textContent).toContain('not recorded');
+    expect(root.querySelector('#first-failure-summary')?.textContent).toContain('None recorded');
+    expect(root.textContent).toContain('This is not a Passed or Failed result');
+  });
+
+  it('never presents a stopped run as Passed or Failed even when an outcome is present', async () => {
+    const harness = await openLoaded({
+      ...ERROR_SNAPSHOT,
+      outcome: 'PASSED',
+    });
+    const root = rootOf(harness);
+
+    expect(root.querySelector('.status-badge')?.textContent).toContain('Error');
+    expect(root.querySelector('.status-badge')?.textContent).not.toContain('Passed');
+    expect(root.querySelector('.status-badge')?.textContent).not.toContain('Failed');
+    expect(root.textContent).toContain('not a Passed or Failed result');
+  });
 });

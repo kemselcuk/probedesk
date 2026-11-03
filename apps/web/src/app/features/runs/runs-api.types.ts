@@ -1,4 +1,4 @@
-import type { components } from '@probedesk/api-client';
+import type { components, operations } from '@probedesk/api-client';
 
 /**
  * Run screen types.
@@ -40,3 +40,23 @@ export type RunStepStatus = RunSnapshotStep['status'];
 
 /** Step verdict, null unless the step is COMPLETED. */
 export type RunStepOutcome = RunSnapshotStep['outcome'];
+
+/** One history row from GET /api/runs. It never includes step arrays. */
+export type RunHistoryItem = components['schemas']['RunHistoryItemDto'];
+
+/** Earliest out-of-tolerance sample summary on a history row. */
+export type RunHistoryFirstFailure = components['schemas']['RunFirstFailureDto'];
+
+/** One page of GET /api/runs. */
+export type RunHistoryPage = components['schemas']['RunHistoryPageDto'];
+
+/**
+ * Filters accepted by GET /api/runs. `page` and `limit` are required because
+ * every request states its pagination explicitly.
+ */
+export type RunHistoryQuery = NonNullable<
+  operations['RunsController_list']['parameters']['query']
+> & {
+  readonly page: number;
+  readonly limit: number;
+};

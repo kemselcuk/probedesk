@@ -80,7 +80,7 @@ export function runStatusView(
       return {
         label: 'Cancelled',
         detail:
-          'The run was stopped by an operator. Recorded samples and completed step results are preserved.',
+          'The run was stopped by an operator. This is not a Passed or Failed result; recorded samples and completed step results are preserved.',
         tone: 'cancelled',
         icon: 'stop',
       };
@@ -88,7 +88,7 @@ export function runStatusView(
       return {
         label: 'Interrupted',
         detail:
-          'The server interrupted the run before it finished. Recorded samples and completed step results are preserved.',
+          'The server interrupted the run before it finished. This is not a Passed or Failed result; recorded samples and completed step results are preserved.',
         tone: 'interrupted',
         icon: 'pause',
       };
@@ -96,7 +96,7 @@ export function runStatusView(
       return {
         label: 'Error',
         detail:
-          'The run stopped because of a technical error. This is not a tolerance result.',
+          'The run stopped because of a technical error. This is not a Passed or Failed result and not a tolerance verdict.',
         tone: 'error',
         icon: 'warning',
       };

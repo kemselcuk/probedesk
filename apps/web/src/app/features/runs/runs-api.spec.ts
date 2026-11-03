@@ -316,4 +316,124 @@ describe('RunsApi', () => {
 
     await expect(responsePromise).rejects.toThrow(/isWithinTolerance/);
   });
+
+  it('builds the history query and parses summary rows without measurements', async () => {
+    const api = TestBed.inject(RunsApi);
+    const http = TestBed.inject(HttpTestingController);
+    const historyItem = {
+      id: RUN_ID,
+      planId: PLAN_ID,
+      planVersionId: VERSION_ID,
+      planName: 'Power rail verification',
+      versionNumber: 3,
+      status: 'COMPLETED',
+      outcome: 'FAILED',
+      scenario: 'FORCED_FAILURE',
+      seed: 42,
+      startedAt: '2026-11-03T10:00:00.000Z',
+      finishedAt: '2026-11-03T10:00:06.000Z',
+      expectedSampleCount: 2,
+      recordedSampleCount: 2,
+      outOfToleranceCount: 1,
+      firstFailure: {
+        stepPosition: 1,
+        stepName: 'Output voltage',
+        logicalStepId: STEP_ID,
+        sampleIndex: 1,
+      },
+      partial: false,
+      requestedBy: {
+        id: USER_ID,
+        email: 'operator@probedesk.local',
+        role: 'OPERATOR',
+      },
+    };
+
+    const responsePromise = firstValueFrom(
+      api.listRuns({
+        planId: PLAN_ID,
+        status: 'COMPLETED',
+        outcome: 'FAILED',
+        from: '2026-11-01T00:00:00.000Z',
+        to: '2026-11-04T00:00:00.000Z',
+        page: 2,
+        limit: 20,
+      }),
+    );
+
+    const request = http.expectOne((candidate) => candidate.url === '/api/runs');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('planId')).toBe(PLAN_ID);
+    expect(request.request.params.get('status')).toBe('COMPLETED');
+    expect(request.request.params.get('outcome')).toBe('FAILED');
+    expect(request.request.params.get('from')).toBe('2026-11-01T00:00:00.000Z');
+    expect(request.request.params.get('to')).toBe('2026-11-04T00:00:00.000Z');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('limit')).toBe('20');
+
+    request.flush({
+      items: [historyItem],
+      page: 2,
+      limit: 20,
+      total: 21,
+      totalPages: 2,
+    });
+
+    const page = await responsePromise;
+    expect(page).toMatchObject({ page: 2, limit: 20, total: 21, totalPages: 2 });
+    expect(page.items[0]).toMatchObject({
+      id: RUN_ID,
+      planName: 'Power rail verification',
+      versionNumber: 3,
+      status: 'COMPLETED',
+      outcome: 'FAILED',
+      seed: 42,
+      outOfToleranceCount: 1,
+      partial: false,
+      firstFailure: {
+        stepPosition: 1,
+        stepName: 'Output voltage',
+        logicalStepId: STEP_ID,
+        sampleIndex: 1,
+      },
+    });
+    expect(page.items[0]).not.toHaveProperty('steps');
+    expect(page.items[0]).not.toHaveProperty('measurements');
+  });
+
+  it('omits unset history filters from the request', async () => {
+    const api = TestBed.inject(RunsApi);
+    const http = TestBed.inject(HttpTestingController);
+    const responsePromise = firstValueFrom(api.listRuns({ page: 1, limit: 20 }));
+
+    const request = http.expectOne((candidate) => candidate.url === '/api/runs');
+    expect(request.request.params.keys()).toEqual(['page', 'limit']);
+    expect(request.request.params.get('page')).toBe('1');
+    expect(request.request.params.get('limit')).toBe('20');
+    request.flush({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 });
+
+    await expect(responsePromise).resolves.toEqual({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    });
+  });
+
+  it('rejects a malformed history row instead of inventing summary values', async () => {
+    const api = TestBed.inject(RunsApi);
+    const http = TestBed.inject(HttpTestingController);
+    const responsePromise = firstValueFrom(api.listRuns({ page: 1, limit: 20 }));
+
+    http.expectOne((candidate) => candidate.url === '/api/runs').flush({
+      items: [{ id: RUN_ID }],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    });
+
+    await expect(responsePromise).rejects.toBeInstanceOf(MalformedApiResponseError);
+  });
 });

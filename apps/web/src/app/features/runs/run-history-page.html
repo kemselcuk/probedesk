@@ -1,0 +1,282 @@
+<app-page-header
+  title="Run History"
+  subtitle="Filter recorded runs by plan, status, outcome, and UTC date. Counters come from the history summary; measurement arrays stay on the details screen."
+/>
+
+<mat-card class="filters-card" appearance="outlined">
+  <form
+    [formGroup]="filters"
+    class="filters"
+    (ngSubmit)="applyFilters()"
+    novalidate
+    aria-describedby="history-filter-hint"
+  >
+    <div class="filters-heading">
+      <h2>Filters</h2>
+      <p id="history-filter-hint" class="filter-hint">
+        Filters and the page number are stored in the address bar, so refreshing or opening a run
+        and coming back restores the same view. A filter change returns to page 1.
+      </p>
+    </div>
+
+    <div class="filter-grid">
+      <mat-form-field appearance="outline" class="plan-field">
+        <mat-label>Plan</mat-label>
+        <select matNativeControl id="history-plan" formControlName="planId">
+          <option value="">All plans</option>
+          @for (plan of plans.plans(); track plan.id) {
+            <option [value]="plan.id">{{ planOptionLabel(plan) }}</option>
+          }
+          @if (selectedPlanMissing() && currentQuery().planId) {
+            <option [value]="currentQuery().planId ?? ''">
+              Selected plan ({{ currentQuery().planId }})
+            </option>
+          }
+        </select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <select matNativeControl id="history-status" formControlName="status">
+          <option value="">Any status</option>
+          <option value="RUNNING">Running</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="CANCELLED">Cancelled</option>
+          <option value="INTERRUPTED">Interrupted</option>
+          <option value="ERROR">Error</option>
+        </select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Outcome</mat-label>
+        <select matNativeControl id="history-outcome" formControlName="outcome">
+          <option value="">Any outcome</option>
+          <option value="PASSED">Passed</option>
+          <option value="FAILED">Failed</option>
+        </select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>From date (UTC)</mat-label>
+        <input matInput type="date" id="history-from" formControlName="from" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>To date (UTC, exclusive)</mat-label>
+        <input matInput type="date" id="history-to" formControlName="to" />
+      </mat-form-field>
+    </div>
+
+    <div class="filter-actions">
+      @if (hasActiveFilters()) {
+        <button
+          mat-stroked-button
+          type="button"
+          id="clear-history-filters"
+          (click)="clearFilters()"
+        >
+          Clear filters
+        </button>
+      }
+      <span class="filter-note">The To date is exclusive; the range is [From, To) in UTC.</span>
+    </div>
+  </form>
+
+  @if (plans.plansStatus() === 'error') {
+    <p class="filter-warning" role="status">
+      Plan names could not be loaded. The current plan filter still applies.
+      <button mat-stroked-button type="button" (click)="retryPlanOptions()">
+        Retry plan names
+      </button>
+    </p>
+  }
+</mat-card>
+
+<p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
+
+@if (isUnauthenticated()) {
+  <section class="state-panel" role="alert" aria-labelledby="history-auth-heading">
+    <h2 id="history-auth-heading">Your session has expired</h2>
+    <p>
+      The run history was not loaded because the server did not accept your session. Sign in again
+      to continue.
+    </p>
+    @if (history.error()?.requestId; as requestId) {
+      <p class="request-id">Request ID: <code>{{ requestId }}</code></p>
+    }
+    <a mat-flat-button routerLink="/login">Sign in again</a>
+  </section>
+} @else {
+  @switch (history.status()) {
+    @case ('loaded') {
+      @if (history.items().length === 0) {
+        <app-empty-state
+          [heading]="hasActiveFilters() ? 'No runs match these filters' : 'No runs recorded yet'"
+          [message]="
+            hasActiveFilters()
+              ? 'No run matches the selected plan, status, outcome, and date range. Clear the filters to see the full history.'
+              : 'No runs have been recorded yet. Start a run from a published plan version to create the first history entry.'
+          "
+        >
+          @if (hasActiveFilters()) {
+            <button mat-stroked-button type="button" (click)="clearFilters()">
+              Clear filters
+            </button>
+          }
+        </app-empty-state>
+      } @else {
+        <section class="history-section" aria-labelledby="history-results-heading">
+          <div class="results-heading">
+            <h2 id="history-results-heading">Recorded runs</h2>
+            <p class="result-range" aria-live="polite">{{ resultRange() }}</p>
+          </div>
+
+          <p class="compare-hint" id="compare-hint">
+            Comparison is not available yet. Selecting up to two runs prepares the future compare
+            screen.
+          </p>
+
+          <div class="table-scroll" id="run-history-table" tabindex="-1">
+            <table>
+              <caption class="visually-hidden">
+                Recorded runs, newest first. Each row shows summary counters only; open Run Details
+                for the recorded rules and measurement table.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Compare</th>
+                  <th scope="col">Result</th>
+                  <th scope="col">Plan</th>
+                  <th scope="col">Scenario / seed</th>
+                  <th scope="col">Started (UTC)</th>
+                  <th scope="col">Finished (UTC)</th>
+                  <th scope="col">Samples</th>
+                  <th scope="col">Out of tolerance</th>
+                  <th scope="col">First failure</th>
+                  <th scope="col">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (run of history.items(); track run.id) {
+                  <tr>
+                    <td class="compare-cell">
+                      <input
+                        type="checkbox"
+                        [id]="'compare-' + run.id"
+                        [checked]="isSelectedForComparison(run.id)"
+                        [disabled]="!isSelectedForComparison(run.id) && isCompareSelectionFull()"
+                        aria-describedby="compare-hint"
+                        [attr.aria-label]="
+                          'Select ' +
+                          run.planName +
+                          ' version ' +
+                          run.versionNumber +
+                          ' for a future comparison'
+                        "
+                        (change)="toggleCompare(run.id, $event)"
+                      />
+                    </td>
+                    <td>
+                      <app-run-status-badge [status]="run.status" [outcome]="run.outcome" />
+                    </td>
+                    <td>
+                      <span class="plan-name">{{ run.planName }}</span>
+                      <span class="cell-detail">Version {{ run.versionNumber }}</span>
+                    </td>
+                    <td>
+                      <span>{{ scenario(run.scenario) }}</span>
+                      <span class="cell-detail">Seed {{ run.seed }}</span>
+                    </td>
+                    <td>
+                      <time [attr.datetime]="run.startedAt">
+                        {{ run.startedAt | date: 'medium' : 'UTC' }} UTC
+                      </time>
+                    </td>
+                    <td>
+                      @if (run.finishedAt !== null) {
+                        <time [attr.datetime]="run.finishedAt">
+                          {{ run.finishedAt | date: 'medium' : 'UTC' }} UTC
+                        </time>
+                      } @else if (run.status === 'RUNNING') {
+                        Still running
+                      } @else {
+                        Not recorded
+                      }
+                    </td>
+                    <td>
+                      <span>{{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}</span>
+                      @if (run.partial) {
+                        <span class="partial-chip">Partial</span>
+                      }
+                    </td>
+                    <td>
+                      <span [class.violation-count]="run.outOfToleranceCount > 0">
+                        {{ run.outOfToleranceCount }}
+                      </span>
+                    </td>
+                    <td>
+                      @if (run.firstFailure; as failure) {
+                        <span class="failure-step">
+                          Step {{ failure.stepPosition }}: {{ failure.stepName }}
+                        </span>
+                        <span class="cell-detail">Sample index {{ failure.sampleIndex }}</span>
+                      } @else {
+                        <span class="cell-detail">None</span>
+                      }
+                    </td>
+                    <td>
+                      <a
+                        mat-stroked-button
+                        [routerLink]="['/runs', run.id]"
+                        [attr.aria-label]="detailsLabel(run)"
+                      >
+                        View details
+                      </a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          @if (history.totalPages() > 1) {
+            <nav class="pagination" aria-label="Run history pages">
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="!canGoPrevious()"
+                (click)="goToPage(history.page() - 1)"
+              >
+                Previous page
+              </button>
+              <span class="page-position">
+                Page {{ history.page() }} of {{ displayTotalPages() }}
+              </span>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="!canGoNext()"
+                (click)="goToPage(history.page() + 1)"
+              >
+                Next page
+              </button>
+            </nav>
+          }
+        </section>
+      }
+    }
+    @case ('error') {
+      <app-error-state
+        heading="The run history could not be loaded"
+        [message]="errorMessage()"
+        [requestId]="history.error()?.requestId ?? null"
+        [retryable]="true"
+        retryLabel="Try again"
+        (retry)="retry()"
+      />
+    }
+    @default {
+      <app-loading-state message="Loading run history…" />
+    }
+  }
+}

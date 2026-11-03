@@ -81,8 +81,8 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | Görev | Sahiplik | Durum |
 |---|---|---|
 | [P5-01 — Geçmiş listeleme ve ölçüm özetleri](P5-01.md) | Backend | In Review |
-| [P5-02 — Run History ekranı](P5-02.md) | Frontend | Planned |
-| [P5-03 — Run Details ekranı](P5-03.md) | Frontend | Planned |
+| [P5-02 — Run History ekranı](P5-02.md) | Frontend | In Review |
+| [P5-03 — Run Details ekranı](P5-03.md) | Frontend | In Review |
 | [P5-04 — Ortak ölçüm grafiği](P5-04.md) | Frontend | Planned |
 | [P5-05 — Grafik etkileşimleri](P5-05.md) | Frontend | Planned |
 | [P5-06 — Canlı grafik ve tarayıcı doğrulaması](P5-06.md) | Entegrasyon | Planned |

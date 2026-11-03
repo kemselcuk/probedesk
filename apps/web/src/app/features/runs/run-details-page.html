@@ -117,78 +117,7 @@
               </p>
             </div>
 
-            @if (statusView(); as status) {
-              <span [class]="'status-badge status-badge--' + status.tone">
-                @switch (status.icon) {
-                  @case ('play') {
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <path d="M8 5v14l11-7z" fill="currentColor" />
-                    </svg>
-                  }
-                  @case ('check') {
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <path
-                        d="m5 12 4 4L19 6"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                      />
-                    </svg>
-                  }
-                  @case ('cross') {
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <path
-                        d="M6 6l12 12M18 6 6 18"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-width="2"
-                      />
-                    </svg>
-                  }
-                  @case ('stop') {
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <rect
-                        x="6"
-                        y="6"
-                        width="12"
-                        height="12"
-                        rx="2"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                      />
-                    </svg>
-                  }
-                  @case ('pause') {
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <path
-                        d="M9 5v14M15 5v14"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-width="2"
-                      />
-                    </svg>
-                  }
-                  @case ('warning') {
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                      <path
-                        d="M12 8v5m0 3.5v.01M10.3 3.8 2.6 18a1.6 1.6 0 0 0 1.4 2.4h16a1.6 1.6 0 0 0 1.4-2.4L13.7 3.8a1.9 1.9 0 0 0-3.4 0Z"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.8"
-                      />
-                    </svg>
-                  }
-                }
-                <span class="status-label">{{ status.label }}</span>
-              </span>
-            }
+            <app-run-status-badge [status]="run.status" [outcome]="run.outcome" />
           </div>
 
           @if (statusView(); as status) {
@@ -241,6 +170,67 @@
               </div>
             }
           </div>
+
+          <section class="result-summary" aria-labelledby="result-summary-heading">
+            <h3 id="result-summary-heading">Result summary</h3>
+            <dl class="result-grid">
+              <div>
+                <dt>Total out-of-tolerance samples</dt>
+                <dd id="total-out-of-tolerance">{{ totalOutOfTolerance() }}</dd>
+              </div>
+              <div>
+                <dt>Recorded samples</dt>
+                <dd>
+                  {{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}
+                  @if (progressPercent() !== null) {
+                    ({{ progressPercent() }}%)
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Partial samples</dt>
+                <dd id="partial-sample-summary">
+                  @if (run.expectedSampleCount === 0) {
+                    No samples were expected
+                  } @else if (missingSampleCount() === 0) {
+                    None — every expected sample was recorded
+                  } @else {
+                    {{ missingSampleCount() }} of {{ run.expectedSampleCount }}
+                    @if (missingSamplePercent() !== null) {
+                      ({{ missingSamplePercent() }}%)
+                    }
+                    @if (run.status === 'RUNNING') {
+                      not recorded yet
+                    } @else {
+                      not recorded
+                    }
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>First failure</dt>
+                <dd id="first-failure-summary">
+                  @if (firstFailure(); as failure) {
+                    <strong>Step {{ failure.stepPosition }}: {{ failure.stepName }}</strong>
+                    <span class="first-failure-detail">
+                      Sample index {{ failure.sampleIndex }}
+                      @if (failure.value !== null) {
+                        · value {{ failure.value }} {{ failure.unit }}
+                      } @else {
+                        · value not available
+                      }
+                    </span>
+                  } @else if (totalOutOfTolerance() > 0) {
+                    Out-of-tolerance samples were counted, but no first failure index is stored.
+                  } @else if (isRunning()) {
+                    No out-of-tolerance sample has been recorded so far.
+                  } @else {
+                    None recorded
+                  }
+                </dd>
+              </div>
+            </dl>
+          </section>
 
           <dl class="run-metadata">
             <div>

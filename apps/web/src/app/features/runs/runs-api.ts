@@ -1,8 +1,12 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { MalformedApiResponseError } from '../../core/http/malformed-api-response.error';
 import type {
+  RunHistoryFirstFailure,
+  RunHistoryItem,
+  RunHistoryPage,
+  RunHistoryQuery,
   RunMeasurement,
   RunOutcome,
   RunSnapshot,
@@ -82,6 +86,17 @@ export class RunsApi {
   }
 
   /**
+   * Reads one page of run history. Only summary counters are requested and
+   * parsed; the response is never completed with measurements or defaults.
+   */
+  listRuns(query: RunHistoryQuery): Observable<RunHistoryPage> {
+    const endpoint = 'GET /api/runs';
+    return this.http
+      .get<unknown>('/api/runs', { params: buildHistoryParams(query) })
+      .pipe(map((value) => parseRunHistoryPage(value, endpoint)));
+  }
+
+  /**
    * Cancels a running run. The API answers 200 with the stored snapshot for a
    * running run and with the existing terminal snapshot for an already
    * terminal one, so the screen always adopts the server state.
@@ -110,8 +125,122 @@ function parseRunStartResponse(value: unknown, endpoint: string): RunStartRespon
   };
 }
 
+function buildHistoryParams(query: RunHistoryQuery): HttpParams {
+  let params = new HttpParams();
+
+  if (query.planId !== undefined && query.planId.length > 0) {
+    params = params.set('planId', query.planId);
+  }
+
+  if (query.status !== undefined) {
+    params = params.set('status', query.status);
+  }
+
+  if (query.outcome !== undefined) {
+    params = params.set('outcome', query.outcome);
+  }
+
+  if (query.from !== undefined && query.from.length > 0) {
+    params = params.set('from', query.from);
+  }
+
+  if (query.to !== undefined && query.to.length > 0) {
+    params = params.set('to', query.to);
+  }
+
+  return params.set('page', String(query.page)).set('limit', String(query.limit));
+}
+
+function parseRunHistoryPage(value: unknown, endpoint: string): RunHistoryPage {
+  const record = requireRecord(value, endpoint, 'history page');
+  const items = requireArray(record, 'items', endpoint, 'history page').map((entry, index) =>
+    parseRunHistoryItem(entry, endpoint, `history page.items[${index}]`),
+  );
+
+  return {
+    items,
+    page: requireInteger(record, 'page', endpoint, 'history page', 1),
+    limit: requireInteger(record, 'limit', endpoint, 'history page', 1),
+    total: requireInteger(record, 'total', endpoint, 'history page', 0),
+    totalPages: requireInteger(record, 'totalPages', endpoint, 'history page', 0),
+  };
+}
+
+function parseRunHistoryItem(
+  value: unknown,
+  endpoint: string,
+  label: string,
+): RunHistoryItem {
+  const record = requireRecord(value, endpoint, label);
+
+  return {
+    id: requireUuid(record, 'id', endpoint, label),
+    planId: requireUuid(record, 'planId', endpoint, label),
+    planVersionId: requireUuid(record, 'planVersionId', endpoint, label),
+    planName: requireString(record, 'planName', endpoint, label),
+    versionNumber: requireInteger(record, 'versionNumber', endpoint, label, 1),
+    status: parseStatus(record['status'], endpoint),
+    outcome: parseOutcome(record['outcome'], endpoint),
+    scenario: requireEnum(record['scenario'], RUN_SCENARIOS, endpoint, `${label}.scenario`),
+    seed: requireInteger(record, 'seed', endpoint, label, 0, MAX_SEED),
+    startedAt: requireDate(record, 'startedAt', endpoint, label),
+    finishedAt: requireNullableDate(record, 'finishedAt', endpoint, label),
+    expectedSampleCount: requireInteger(
+      record,
+      'expectedSampleCount',
+      endpoint,
+      label,
+      1,
+      10_000,
+    ),
+    recordedSampleCount: requireInteger(
+      record,
+      'recordedSampleCount',
+      endpoint,
+      label,
+      0,
+      10_000,
+    ),
+    outOfToleranceCount: requireInteger(
+      record,
+      'outOfToleranceCount',
+      endpoint,
+      label,
+      0,
+      10_000,
+    ),
+    firstFailure: parseRunHistoryFirstFailure(
+      record['firstFailure'],
+      endpoint,
+      `${label}.firstFailure`,
+    ),
+    partial: requireBoolean(record, 'partial', endpoint, label),
+    requestedBy: parseRequestedBy(record['requestedBy'], endpoint),
+  };
+}
+
+function parseRunHistoryFirstFailure(
+  value: unknown,
+  endpoint: string,
+  label: string,
+): RunHistoryFirstFailure | null {
+  if (value === null) {
+    return null;
+  }
+
+  const record = requireRecord(value, endpoint, label);
+
+  return {
+    stepPosition: requireInteger(record, 'stepPosition', endpoint, label, 1),
+    stepName: requireString(record, 'stepName', endpoint, label),
+    logicalStepId: requireUuid(record, 'logicalStepId', endpoint, label),
+    sampleIndex: requireInteger(record, 'sampleIndex', endpoint, label, 0),
+  };
+}
+
 function parseRunSnapshot(value: unknown, endpoint: string): RunSnapshot {
   const record = requireRecord(value, endpoint, 'run');
+
   const steps = requireArray(record, 'steps', endpoint, 'run').map((entry, index) =>
     parseRunSnapshotStep(entry, endpoint, index),
   );

@@ -1,0 +1,237 @@
+:host {
+  display: block;
+}
+
+.filters-card,
+.history-section,
+.state-panel {
+  max-width: 1280px;
+}
+
+.filters-card {
+  display: block;
+  margin-bottom: 24px;
+  padding: 20px 24px 8px;
+}
+
+.filters-heading h2 {
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+.filter-hint {
+  max-width: 92ch;
+  margin: 4px 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px 16px;
+}
+
+.plan-field {
+  grid-column: span 2;
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: 0 0 12px;
+}
+
+.filter-note {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.filter-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--mat-sys-error);
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font: var(--mat-sys-body-small);
+}
+
+.state-panel {
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  border-left: 4px solid var(--mat-sys-error);
+  border-radius: 4px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.state-panel h2 {
+  margin: 0 0 8px;
+  font: var(--mat-sys-title-medium);
+}
+
+.state-panel p {
+  margin: 0 0 16px;
+}
+
+.results-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 20px;
+  margin-bottom: 8px;
+}
+
+.results-heading h2 {
+  margin: 0;
+  font: var(--mat-sys-title-large);
+}
+
+.result-range {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.compare-hint {
+  margin: 0 0 12px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.table-scroll:focus-visible {
+  outline: 2px solid var(--mat-sys-primary);
+  outline-offset: 2px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+caption {
+  text-align: left;
+}
+
+th,
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--mat-sys-surface-container);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-large);
+  white-space: nowrap;
+}
+
+td {
+  font: var(--mat-sys-body-medium);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.compare-cell {
+  width: 72px;
+}
+
+.compare-cell input {
+  width: 18px;
+  height: 18px;
+}
+
+.plan-name,
+.cell-detail,
+.failure-step {
+  display: block;
+}
+
+.plan-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cell-detail {
+  margin-top: 2px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.partial-chip {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-label-small);
+  white-space: nowrap;
+}
+
+.violation-count {
+  font-weight: 700;
+}
+
+.failure-step {
+  font-weight: 600;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.page-position {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.request-id {
+  margin: 8px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+@media (max-width: 960px) {
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plan-field {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan-field {
+    grid-column: span 1;
+  }
+}
