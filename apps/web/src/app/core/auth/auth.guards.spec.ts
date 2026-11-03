@@ -1,8 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   Router,
@@ -59,6 +56,18 @@ describe('auth guards', () => {
     });
   }
 
+  /** Completes the data requests the real plan screens start on entry. */
+  function flushPlanLoads(): void {
+    const http = TestBed.inject(HttpTestingController);
+    for (const request of http.match((candidate) => candidate.url.startsWith('/api/plans'))) {
+      if (request.request.url === '/api/plans') {
+        request.flush([]);
+      } else {
+        request.flush({ id: PLAN_ID, name: 'Guard plan', draft: null });
+      }
+    }
+  }
+
   it('redirects an anonymous deep link to login with the return URL', async () => {
     resolveSession(null);
 
@@ -68,9 +77,7 @@ describe('auth guards', () => {
 
     expect(router.url).toBe('/login?returnUrl=%2Fplans');
     expect(
-      (harness.fixture.nativeElement as HTMLElement)
-        .querySelector('h1')
-        ?.textContent?.trim(),
+      (harness.fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent?.trim(),
     ).toBe('Sign in');
   });
 
@@ -89,12 +96,11 @@ describe('auth guards', () => {
     const harness = await RouterTestingHarness.create('/plans');
     const router = TestBed.inject(Router);
     harness.detectChanges();
+    flushPlanLoads();
 
     expect(router.url).toBe('/plans');
     expect(
-      (harness.fixture.nativeElement as HTMLElement)
-        .querySelector('h1')
-        ?.textContent?.trim(),
+      (harness.fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent?.trim(),
     ).toBe('Test Plans');
   });
 
@@ -103,6 +109,7 @@ describe('auth guards', () => {
 
     const harness = await RouterTestingHarness.create('/plans');
     const router = TestBed.inject(Router);
+    flushPlanLoads();
 
     await harness.navigateByUrl(`/plans/${PLAN_ID}/edit`);
     await harness.fixture.whenStable();
@@ -110,26 +117,21 @@ describe('auth guards', () => {
 
     expect(router.url).toBe('/not-authorized');
     expect(
-      (harness.fixture.nativeElement as HTMLElement)
-        .querySelector('h1')
-        ?.textContent?.trim(),
+      (harness.fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent?.trim(),
     ).toBe('Not available for your role');
   });
 
   it('lets a Planner open the plan editor', async () => {
     resolveSession('PLANNER');
 
-    const harness = await RouterTestingHarness.create(
-      `/plans/${PLAN_ID}/edit`,
-    );
+    const harness = await RouterTestingHarness.create(`/plans/${PLAN_ID}/edit`);
     const router = TestBed.inject(Router);
     harness.detectChanges();
+    flushPlanLoads();
 
     expect(router.url).toBe(`/plans/${PLAN_ID}/edit`);
     expect(
-      (harness.fixture.nativeElement as HTMLElement)
-        .querySelector('h1')
-        ?.textContent?.trim(),
+      (harness.fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent?.trim(),
     ).toBe('Plan Editor');
   });
 
@@ -138,6 +140,7 @@ describe('auth guards', () => {
 
     const harness = await RouterTestingHarness.create('/plans');
     const router = TestBed.inject(Router);
+    flushPlanLoads();
 
     await harness.navigateByUrl('/runs/new');
     await harness.fixture.whenStable();
@@ -145,9 +148,7 @@ describe('auth guards', () => {
 
     expect(router.url).toBe('/runs/new');
     expect(
-      (harness.fixture.nativeElement as HTMLElement)
-        .querySelector('h1')
-        ?.textContent?.trim(),
+      (harness.fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent?.trim(),
     ).toBe('Start Run');
   });
 
@@ -156,6 +157,7 @@ describe('auth guards', () => {
 
     const harness = await RouterTestingHarness.create('/plans');
     const router = TestBed.inject(Router);
+    flushPlanLoads();
 
     await harness.navigateByUrl('/runs/new');
     await harness.fixture.whenStable();

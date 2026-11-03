@@ -1,8 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   Router,
@@ -47,19 +44,16 @@ describe('App', () => {
     await navigation;
     await fixture.whenStable();
     fixture.detectChanges();
+    http.expectOne('/api/plans').flush([]);
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     const root = fixture.nativeElement as HTMLElement;
 
     expect(root.querySelector('header')?.textContent).toContain('ProbeDesk');
-    expect(root.querySelector('.user-email')?.textContent).toContain(
-      'planner@probedesk.local',
-    );
-    expect(root.querySelector('.role-chip')?.textContent).toContain(
-      'Role: Planner',
-    );
-    expect(
-      root.querySelector('nav[aria-label="Primary navigation"]'),
-    ).not.toBeNull();
+    expect(root.querySelector('.user-email')?.textContent).toContain('planner@probedesk.local');
+    expect(root.querySelector('.role-chip')?.textContent).toContain('Role: Planner');
+    expect(root.querySelector('nav[aria-label="Primary navigation"]')).not.toBeNull();
     expect(root.querySelector('main#main-content')).not.toBeNull();
     expect(root.querySelector('h1')?.textContent?.trim()).toBe('Test Plans');
     expect(document.title).toBe('Test Plans · ProbeDesk');

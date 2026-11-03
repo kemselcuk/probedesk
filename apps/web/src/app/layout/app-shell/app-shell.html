@@ -71,17 +71,17 @@
       <h2 id="planned-actions-heading" class="nav-heading">Actions</h2>
 
       @if (canCreatePlan()) {
-        <button
+        <a
           mat-stroked-button
-          type="button"
+          routerLink="/plans"
+          [queryParams]="{ create: 1 }"
           class="planned-action"
-          disabled
           aria-describedby="create-plan-requirement"
         >
           New plan
-        </button>
+        </a>
         <p id="create-plan-requirement" class="action-requirement">
-          Planner action · available with P2-03
+          Planner action · create and edit a plan draft on Test Plans.
         </p>
       }
 
@@ -101,9 +101,7 @@
       }
 
       @if (!canCreatePlan() && !canStartRun()) {
-        <p class="action-requirement">
-          Your role has read-only access to plans and runs.
-        </p>
+        <p class="action-requirement">Your role has read-only access to plans and runs.</p>
       }
 
       <button

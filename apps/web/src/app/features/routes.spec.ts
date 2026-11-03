@@ -1,8 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   Router,
@@ -36,21 +33,19 @@ const routeCases: readonly RouteCase[] = [
     title: 'Test Plans',
     heading: 'Test Plans',
     role: 'VIEWER',
-    task: 'P2-03',
   },
   {
     url: `/plans/${PLAN_ID}/edit`,
     title: 'Plan Editor',
     heading: 'Plan Editor',
     role: 'PLANNER',
-    task: 'P2-03',
   },
   {
     url: `/plans/${PLAN_ID}/versions/${VERSION_ID}`,
     title: 'Published Plan',
     heading: 'Published Plan',
     role: 'VIEWER',
-    task: 'P2-03',
+    task: 'P2-07',
   },
   {
     url: '/runs',
@@ -119,14 +114,28 @@ describe('application routes', () => {
     });
   }
 
+  /** Answers the data requests started by the real plan screens. */
+  function flushPlanRequests(): void {
+    const http = TestBed.inject(HttpTestingController);
+    for (const request of http.match((candidate) => candidate.url.startsWith('/api/plans'))) {
+      request.flush(
+        request.request.url === '/api/plans'
+          ? []
+          : { id: PLAN_ID, name: 'Deep link plan', draft: null },
+      );
+    }
+  }
+
   it('resolves every deep link to the intended screen', async () => {
     actAs('VIEWER');
     const harness = await RouterTestingHarness.create('/plans');
     const router = TestBed.inject(Router);
+    flushPlanRequests();
 
     for (const routeCase of routeCases) {
       actAs(routeCase.role);
       await harness.navigateByUrl(routeCase.url);
+      flushPlanRequests();
       await harness.fixture.whenStable();
       harness.detectChanges();
 
@@ -134,9 +143,7 @@ describe('application routes', () => {
       const page = root.querySelector('main') ?? root;
 
       expect(router.url).toBe(routeCase.url);
-      expect(root.querySelector('h1')?.textContent?.trim()).toBe(
-        routeCase.heading,
-      );
+      expect(root.querySelector('h1')?.textContent?.trim()).toBe(routeCase.heading);
       if (routeCase.task !== undefined) {
         expect(page.textContent).toContain(routeCase.task);
       }
@@ -147,6 +154,9 @@ describe('application routes', () => {
   it('falls back to the not-found route without leaving the shell', async () => {
     actAs('VIEWER');
     const harness = await RouterTestingHarness.create('/plans');
+    flushPlanRequests();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
 
     await harness.navigateByUrl('/plans/not-a-valid-path/extra');
     await harness.fixture.whenStable();

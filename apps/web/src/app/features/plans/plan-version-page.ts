@@ -8,8 +8,8 @@ import { PlaceholderPage } from '../../shared/ui/placeholder-page/placeholder-pa
     <app-placeholder-page
       title="Published Plan"
       subtitle="Read-only view of an immutable published plan version."
-      message="Published version details arrive with the P2-03 plan flow and its follow-up version tasks. No version data is loaded yet."
-      task="P2-03"
+      message="The published version contents, version list, and new-draft action are delivered with P2-07. No version data is loaded on this screen yet."
+      task="P2-07"
     />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

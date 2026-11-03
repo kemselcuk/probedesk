@@ -1,8 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   Router,
@@ -47,9 +44,7 @@ describe('AppShell', () => {
 
   function resolveSession(role: Role): void {
     const http = TestBed.inject(HttpTestingController);
-    TestBed.inject(AuthFacade)
-      .loadSession()
-      .subscribe();
+    TestBed.inject(AuthFacade).loadSession().subscribe();
     http.expectOne('/api/auth/me').flush({
       id: '11111111-1111-4111-8111-111111111111',
       email: `${role.toLowerCase()}@probedesk.local`,
@@ -61,41 +56,40 @@ describe('AppShell', () => {
     return harness.fixture.nativeElement as HTMLElement;
   }
 
-  function findAction(
-    root: HTMLElement,
-    label: string,
-  ): HTMLButtonElement | undefined {
+  function flushPlans(): void {
+    TestBed.inject(HttpTestingController)
+      .match('/api/plans')
+      .forEach((request) => request.flush([]));
+  }
+
+  function findAction(root: HTMLElement, label: string): HTMLElement | undefined {
     return Array.from(
-      root.querySelectorAll<HTMLButtonElement>('button.planned-action'),
-    ).find((button) => button.textContent?.includes(label));
+      root.querySelectorAll<HTMLElement>('a.planned-action, button.planned-action'),
+    ).find((action) => action.textContent?.includes(label));
   }
 
   it('exposes a skip link, active navigation, and the main landmark', async () => {
     resolveSession('VIEWER');
     const harness = await RouterTestingHarness.create('/plans');
     harness.detectChanges();
+    flushPlans();
 
     const root = rootOf(harness);
     const skipLink = root.querySelector<HTMLAnchorElement>('a.skip-link');
-    const activeLink = root.querySelector<HTMLAnchorElement>(
-      'a[aria-current="page"]',
-    );
+    const activeLink = root.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
 
     expect(skipLink?.getAttribute('href')).toBe('#main-content');
     expect(root.querySelector('main#main-content')).not.toBeNull();
     expect(activeLink?.textContent).toContain('Test Plans');
-    expect(root.querySelector('a[href="/runs"]')?.textContent).toContain(
-      'Run History',
-    );
-    expect(root.querySelector('a[href="/compare"]')?.textContent).toContain(
-      'Compare Runs',
-    );
+    expect(root.querySelector('a[href="/runs"]')?.textContent).toContain('Run History');
+    expect(root.querySelector('a[href="/compare"]')?.textContent).toContain('Compare Runs');
   });
 
   it('moves focus to the main landmark when the skip link is used', async () => {
     resolveSession('VIEWER');
     const harness = await RouterTestingHarness.create('/plans');
     harness.detectChanges();
+    flushPlans();
 
     const root = rootOf(harness);
     const skipLink = root.querySelector<HTMLAnchorElement>('a.skip-link');
@@ -108,55 +102,49 @@ describe('AppShell', () => {
     expect(document.activeElement).toBe(main);
   });
 
-  it('shows the signed-in email and role, with Planner actions as disabled placeholders', async () => {
+  it('shows the signed-in email and role with a working Planner action', async () => {
     resolveSession('PLANNER');
     const harness = await RouterTestingHarness.create('/plans');
     harness.detectChanges();
+    flushPlans();
 
     const root = rootOf(harness);
 
-    expect(root.querySelector('.user-email')?.textContent).toContain(
-      'planner@probedesk.local',
-    );
-    expect(root.querySelector('.role-chip')?.textContent).toContain(
-      'Role: Planner',
-    );
+    expect(root.querySelector('.user-email')?.textContent).toContain('planner@probedesk.local');
+    expect(root.querySelector('.role-chip')?.textContent).toContain('Role: Planner');
 
     const newPlan = findAction(root, 'New plan');
-    expect(newPlan?.disabled).toBe(true);
+    expect(newPlan?.tagName).toBe('A');
+    expect(newPlan?.getAttribute('href')).toBe('/plans?create=1');
     expect(findAction(root, 'Start run')).toBeUndefined();
-    expect(
-      root.querySelector<HTMLButtonElement>('.sign-out-action')?.disabled,
-    ).toBe(false);
+    expect(root.querySelector<HTMLButtonElement>('.sign-out-action')?.disabled).toBe(false);
   });
 
   it('shows only the Operator action for an Operator', async () => {
     resolveSession('OPERATOR');
     const harness = await RouterTestingHarness.create('/plans');
     harness.detectChanges();
+    flushPlans();
 
     const root = rootOf(harness);
     const startRun = findAction(root, 'Start run');
 
-    expect(startRun?.disabled).toBe(true);
+    expect(startRun?.getAttribute('disabled')).not.toBeNull();
     expect(findAction(root, 'New plan')).toBeUndefined();
-    expect(root.querySelector('.role-chip')?.textContent).toContain(
-      'Role: Operator',
-    );
+    expect(root.querySelector('.role-chip')?.textContent).toContain('Role: Operator');
   });
 
   it('shows a read-only note for a Viewer without action placeholders', async () => {
     resolveSession('VIEWER');
     const harness = await RouterTestingHarness.create('/plans');
     harness.detectChanges();
+    flushPlans();
 
     const root = rootOf(harness);
 
     expect(findAction(root, 'New plan')).toBeUndefined();
     expect(findAction(root, 'Start run')).toBeUndefined();
-    expect(root.textContent).toContain(
-      'Your role has read-only access to plans and runs.',
-    );
+    expect(root.textContent).toContain('Your role has read-only access to plans and runs.');
   });
 
   it('signs out through the API, clears state, notifies, and returns to login', async () => {
@@ -166,14 +154,13 @@ describe('AppShell', () => {
     const router = TestBed.inject(Router);
     const http = TestBed.inject(HttpTestingController);
     harness.detectChanges();
+    flushPlans();
 
     const root = rootOf(harness);
     root.querySelector<HTMLButtonElement>('.sign-out-action')?.click();
     harness.detectChanges();
 
-    const signOutButton = root.querySelector<HTMLButtonElement>(
-      '.sign-out-action',
-    );
+    const signOutButton = root.querySelector<HTMLButtonElement>('.sign-out-action');
     expect(signOutButton?.disabled).toBe(true);
     expect(signOutButton?.textContent).toContain('Signing out…');
 
@@ -199,10 +186,9 @@ describe('AppShell', () => {
     const router = TestBed.inject(Router);
     const http = TestBed.inject(HttpTestingController);
     harness.detectChanges();
+    flushPlans();
 
-    rootOf(harness)
-      .querySelector<HTMLButtonElement>('.sign-out-action')
-      ?.click();
+    rootOf(harness).querySelector<HTMLButtonElement>('.sign-out-action')?.click();
 
     http.expectOne('/api/auth/logout').flush(
       {
@@ -220,9 +206,7 @@ describe('AppShell', () => {
     expect(auth.role()).toBe('OPERATOR');
     expect(router.url).toBe('/plans');
     await vi.waitFor(() => {
-      expect(notifications.error).toHaveBeenCalledWith(
-        'The session service is unavailable.',
-      );
+      expect(notifications.error).toHaveBeenCalledWith('The session service is unavailable.');
     });
   });
 });

@@ -1,11 +1,5 @@
-import {
-  provideHttpClient,
-  withXsrfConfiguration,
-} from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import {
   Router,
@@ -54,13 +48,9 @@ describe('LoginPage', () => {
     document.cookie = 'XSRF-TOKEN=; Max-Age=0; path=/';
   });
 
-  async function openLogin(
-    returnUrl?: string,
-  ): Promise<RouterTestingHarness> {
+  async function openLogin(returnUrl?: string): Promise<RouterTestingHarness> {
     const url =
-      returnUrl === undefined
-        ? '/login'
-        : `/login?returnUrl=${encodeURIComponent(returnUrl)}`;
+      returnUrl === undefined ? '/login' : `/login?returnUrl=${encodeURIComponent(returnUrl)}`;
     const harness = await RouterTestingHarness.create(url);
     harness.detectChanges();
     return harness;
@@ -70,11 +60,7 @@ describe('LoginPage', () => {
     return harness.fixture.nativeElement as HTMLElement;
   }
 
-  function typeInto(
-    root: HTMLElement,
-    selector: string,
-    value: string,
-  ): void {
+  function typeInto(root: HTMLElement, selector: string, value: string): void {
     const input = root.querySelector<HTMLInputElement>(selector);
     if (input === null) {
       throw new Error(`Input not found: ${selector}`);
@@ -133,9 +119,7 @@ describe('LoginPage', () => {
     submit(root);
     harness.detectChanges();
 
-    const button = root.querySelector<HTMLButtonElement>(
-      'button[type="submit"]',
-    );
+    const button = root.querySelector<HTMLButtonElement>('button[type="submit"]');
     expect(button?.disabled).toBe(true);
     expect(button?.textContent).toContain('Signing in…');
 
@@ -167,29 +151,19 @@ describe('LoginPage', () => {
     typeInto(root, '#password', 'wrong-password');
     submit(root);
 
-    http
-      .expectOne('/api/auth/login')
-      .flush(INVALID_CREDENTIALS, {
-        status: 401,
-        statusText: 'Unauthorized',
-      });
+    http.expectOne('/api/auth/login').flush(INVALID_CREDENTIALS, {
+      status: 401,
+      statusText: 'Unauthorized',
+    });
     await harness.fixture.whenStable();
     harness.detectChanges();
 
     const alert = root.querySelector('[role="alert"]');
-    expect(alert?.textContent).toContain(
-      'The email or password is incorrect.',
-    );
-    expect(root.querySelector<HTMLInputElement>('#email')?.value).toBe(
-      'planner@probedesk.local',
-    );
-    expect(root.querySelector<HTMLInputElement>('#password')?.value).toBe(
-      'wrong-password',
-    );
+    expect(alert?.textContent).toContain('The email or password is incorrect.');
+    expect(root.querySelector<HTMLInputElement>('#email')?.value).toBe('planner@probedesk.local');
+    expect(root.querySelector<HTMLInputElement>('#password')?.value).toBe('wrong-password');
 
-    const button = root.querySelector<HTMLButtonElement>(
-      'button[type="submit"]',
-    );
+    const button = root.querySelector<HTMLButtonElement>('button[type="submit"]');
     expect(button?.disabled).toBe(false);
     expect(button?.textContent).toContain('Sign in');
   });
@@ -269,6 +243,9 @@ describe('LoginPage', () => {
 
     await harness.fixture.whenStable();
     harness.detectChanges();
+    http.expectOne('/api/plans').flush([]);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
 
     expect(TestBed.inject(Router).url).toBe('/plans');
   });
@@ -279,9 +256,7 @@ describe('LoginPage', () => {
 
     const toggle = root.querySelector<HTMLButtonElement>('.password-toggle');
     expect(toggle?.getAttribute('aria-label')).toBe('Show password');
-    expect(root.querySelector<HTMLInputElement>('#password')?.type).toBe(
-      'password',
-    );
+    expect(root.querySelector<HTMLInputElement>('#password')?.type).toBe('password');
 
     toggle?.click();
     harness.detectChanges();

@@ -1,0 +1,458 @@
+<app-page-header title="Plan Editor" [subtitle]="headerSubtitle()">
+  @if (latestVersion(); as version) {
+    <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', version.id]">
+      View version {{ version.versionNumber }}
+    </a>
+  }
+  <button mat-stroked-button type="button" disabled aria-describedby="publish-availability">
+    Publish
+  </button>
+</app-page-header>
+
+<p id="publish-availability">
+  Publishing and creating a new draft from a published version are available with P2-07.
+</p>
+
+@if (facade.planStatus() === 'error') {
+  <app-error-state
+    heading="The plan could not be loaded"
+    [message]="planErrorMessage()"
+    [requestId]="facade.planError()?.requestId ?? null"
+    [retryable]="true"
+    retryLabel="Try again"
+    (retry)="reloadPlan()"
+  />
+} @else if (facade.planStatus() === 'loaded') {
+  @if (facade.plan(); as plan) {
+    @if (plan.draft) {
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate class="editor-form">
+        @if (submitAttempted() && form.invalid) {
+          <section
+            id="validation-summary"
+            class="validation-summary"
+            role="alert"
+            tabindex="-1"
+            aria-labelledby="validation-summary-heading"
+          >
+            <h2 id="validation-summary-heading">Check the highlighted fields</h2>
+            <p>The draft has not been sent to the server.</p>
+            @if (validationItems().length > 0) {
+              <ul>
+                @for (item of validationItems(); track item.key) {
+                  <li>{{ item.text }}</li>
+                }
+              </ul>
+            }
+          </section>
+        }
+
+        @if (facade.draftConflict()) {
+          <section
+            id="save-error-panel"
+            class="inline-error conflict-panel"
+            role="alert"
+            tabindex="-1"
+            aria-labelledby="conflict-heading"
+          >
+            <h2 id="conflict-heading">This draft changed in another session</h2>
+            <p>
+              Your local input has not been overwritten. The saved draft is newer than the revision
+              this form was loaded from, so the server rejected the save.
+            </p>
+            @if (saveErrorRequestId(); as requestId) {
+              <p class="request-id">
+                Request ID: <code>{{ requestId }}</code>
+              </p>
+            }
+            @if (!showReloadConfirm()) {
+              <button
+                mat-stroked-button
+                type="button"
+                id="reload-draft-button"
+                (click)="askReload()"
+              >
+                Reload saved draft
+              </button>
+            } @else {
+              <p class="confirm-reload">
+                Reloading discards your local changes. This cannot be undone.
+              </p>
+              <div class="conflict-actions">
+                <button
+                  mat-flat-button
+                  type="button"
+                  id="confirm-reload-button"
+                  (click)="reloadPlan()"
+                >
+                  Discard and reload
+                </button>
+                <button mat-button type="button" (click)="cancelReload()">Keep editing</button>
+              </div>
+            }
+          </section>
+        } @else if (facade.saveError()) {
+          <section
+            id="save-error-panel"
+            class="inline-error"
+            role="alert"
+            tabindex="-1"
+            aria-labelledby="save-error-heading"
+          >
+            <h2 id="save-error-heading">The draft could not be saved</h2>
+            <p>{{ saveErrorMessage() }}</p>
+            @if (saveErrorRequestId(); as requestId) {
+              <p class="request-id">
+                Request ID: <code>{{ requestId }}</code>
+              </p>
+            }
+            <p>Your input is still here. Correct the highlighted fields and try again.</p>
+          </section>
+        }
+
+        <mat-card class="summary-card" appearance="outlined">
+          <h2 class="section-heading">Plan details</h2>
+          <mat-form-field appearance="outline" class="plan-name-field">
+            <mat-label>Plan name</mat-label>
+            <input id="plan-name" matInput type="text" formControlName="name" autocomplete="off" />
+            <mat-hint>1–100 characters after trimming.</mat-hint>
+            <mat-error id="plan-name-error">
+              @if (visibleError(form.controls.name)) {
+                {{ fieldError(form.controls.name, 'Plan name') }}
+              }
+            </mat-error>
+          </mat-form-field>
+
+          <dl class="plan-meta">
+            <div>
+              <dt>Device profile</dt>
+              <dd>{{ profileName() }}</dd>
+            </div>
+            <div>
+              <dt>Draft revision</dt>
+              <dd>{{ expectedRevision() ?? 'Unavailable' }}</dd>
+            </div>
+            <div>
+              <dt>Published version</dt>
+              <dd>
+                @if (latestVersion(); as version) {
+                  Version {{ version.versionNumber }}
+                } @else {
+                  Not published yet
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Draft steps</dt>
+              <dd>{{ stepCount() }} / {{ maxSteps }}</dd>
+            </div>
+          </dl>
+        </mat-card>
+
+        <section class="steps-section" aria-labelledby="steps-heading">
+          <div class="steps-heading-row">
+            <div>
+              <h2 id="steps-heading" class="section-heading">Steps</h2>
+              <p id="reorder-hint" class="section-hint">
+                Reorder with the Move up and Move down buttons, or drag a step by its handle. The
+                visible order is the order that will be saved.
+              </p>
+            </div>
+            <button
+              mat-stroked-button
+              type="button"
+              id="add-step-button"
+              [disabled]="!canAddStep()"
+              (click)="addStep()"
+            >
+              Add step
+            </button>
+          </div>
+
+          <p class="visually-hidden" aria-live="polite">{{ moveAnnouncement() }}</p>
+
+          @if (stepCount() === 0) {
+            <div class="empty-steps">
+              <h3>No steps yet</h3>
+              <p>
+                A draft can be saved with zero steps. Publishing requires at least one valid step.
+              </p>
+              <button mat-flat-button type="button" (click)="addStep()">Add the first step</button>
+            </div>
+          } @else {
+            <div
+              class="step-list"
+              cdkDropList
+              aria-describedby="reorder-hint"
+              (cdkDropListDropped)="dropStep($event)"
+            >
+              @for (
+                step of steps.controls;
+                track step.controls.clientId.value;
+                let index = $index
+              ) {
+                @let id = step.controls.clientId.value;
+                <section
+                  class="step-card"
+                  cdkDrag
+                  [formGroup]="step"
+                  [attr.aria-labelledby]="'step-heading-' + id"
+                >
+                  <header class="step-header">
+                    <span class="drag-handle" cdkDragHandle aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path
+                          d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-width="3"
+                        />
+                      </svg>
+                    </span>
+                    <div class="step-title">
+                      <h3 [id]="'step-heading-' + id" tabindex="-1" class="step-heading">
+                        Step {{ index + 1 }}
+                      </h3>
+                      <p class="step-preview">
+                        {{ stepName(step) }} · {{ stepSampleLabel(step) }} ·
+                        {{ stepDuration(step) }} nominal
+                      </p>
+                    </div>
+                    <div class="step-actions">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [id]="'move-up-' + id"
+                        [disabled]="index === 0"
+                        [attr.aria-label]="'Move step ' + (index + 1) + ' up'"
+                        (click)="moveStep(index, index - 1)"
+                      >
+                        <span aria-hidden="true">↑</span>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [id]="'move-down-' + id"
+                        [disabled]="index === steps.length - 1"
+                        [attr.aria-label]="'Move step ' + (index + 1) + ' down'"
+                        (click)="moveStep(index, index + 1)"
+                      >
+                        <span aria-hidden="true">↓</span>
+                      </button>
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        class="remove-step"
+                        [attr.aria-label]="'Remove step ' + (index + 1)"
+                        (click)="removeStep(index)"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </header>
+
+                  <div class="step-fields">
+                    <mat-form-field appearance="outline" class="field-name">
+                      <mat-label>Step name</mat-label>
+                      <input
+                        matInput
+                        type="text"
+                        formControlName="name"
+                        [id]="'step-name-' + id"
+                        autocomplete="off"
+                      />
+                      <mat-hint>1–100 characters after trimming.</mat-hint>
+                      <mat-error [id]="'step-name-error-' + id">
+                        @if (visibleError(step.controls.name)) {
+                          {{ fieldError(step.controls.name, 'Step name') }}
+                        }
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Unit</mat-label>
+                      <input
+                        matInput
+                        type="text"
+                        formControlName="unit"
+                        [id]="'step-unit-' + id"
+                        autocomplete="off"
+                      />
+                      <mat-hint>For example V, A, or °C.</mat-hint>
+                      <mat-error [id]="'step-unit-error-' + id">
+                        @if (visibleError(step.controls.unit)) {
+                          {{ fieldError(step.controls.unit, 'Unit') }}
+                        }
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Minimum</mat-label>
+                      <input
+                        matInput
+                        type="text"
+                        inputmode="decimal"
+                        formControlName="minimum"
+                        [id]="'step-minimum-' + id"
+                        autocomplete="off"
+                      />
+                      <mat-hint>Up to 6 decimal places.</mat-hint>
+                      <mat-error [id]="'step-minimum-error-' + id">
+                        @if (visibleError(step.controls.minimum)) {
+                          {{ fieldError(step.controls.minimum, 'Minimum') }}
+                        }
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Maximum</mat-label>
+                      <input
+                        matInput
+                        type="text"
+                        inputmode="decimal"
+                        formControlName="maximum"
+                        [id]="'step-maximum-' + id"
+                        autocomplete="off"
+                        [errorStateMatcher]="maximumErrorStateMatcher"
+                      />
+                      <mat-hint>Must be greater than or equal to minimum.</mat-hint>
+                      <mat-error [id]="'step-maximum-error-' + id">
+                        @if (maximumVisible(step)) {
+                          @if (step.controls.maximum.invalid) {
+                            {{ fieldError(step.controls.maximum, 'Maximum') }}
+                          } @else {
+                            {{ rangeErrorMessage() }}
+                          }
+                        }
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Sample count</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        formControlName="sampleCount"
+                        [id]="'step-sample-count-' + id"
+                        min="1"
+                        max="1000"
+                        step="1"
+                      />
+                      <mat-hint>1–1,000 whole samples.</mat-hint>
+                      <mat-error [id]="'step-sample-count-error-' + id">
+                        @if (visibleError(step.controls.sampleCount)) {
+                          {{ fieldError(step.controls.sampleCount, 'Sample count') }}
+                        }
+                      </mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Interval (ms)</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        formControlName="intervalMs"
+                        [id]="'step-interval-' + id"
+                        min="100"
+                        max="5000"
+                        step="1"
+                      />
+                      <mat-hint>100–5,000 ms per sample.</mat-hint>
+                      <mat-error [id]="'step-interval-error-' + id">
+                        @if (visibleError(step.controls.intervalMs)) {
+                          {{ fieldError(step.controls.intervalMs, 'Interval') }}
+                        }
+                      </mat-error>
+                    </mat-form-field>
+                  </div>
+
+                  @if (stepErrorSummary(step); as message) {
+                    <p class="step-error" role="status">{{ message }}</p>
+                  }
+                </section>
+              }
+            </div>
+          }
+
+          @if (!canAddStep()) {
+            <p class="limit-note" role="status">
+              A draft can contain at most {{ maxSteps }} steps.
+            </p>
+          }
+        </section>
+
+        <mat-card class="totals-card" appearance="outlined" aria-labelledby="totals-heading">
+          <h2 id="totals-heading" class="section-heading">Nominal totals</h2>
+          <dl class="totals">
+            <div>
+              <dt>Steps</dt>
+              <dd>{{ stepCount() }} / {{ maxSteps }}</dd>
+            </div>
+            <div [class.exceeded]="totalSamplesExceeded()">
+              <dt>Total samples</dt>
+              <dd>
+                {{ totals().totalSamples | number }} /
+                {{ maxTotalSamples | number }}
+              </dd>
+            </div>
+            <div [class.exceeded]="totalDurationExceeded()">
+              <dt>Nominal duration</dt>
+              <dd>
+                {{ formatDuration(totals().totalDurationMs) }} /
+                {{ formatDuration(maxNominalDurationMs) }}
+              </dd>
+            </div>
+          </dl>
+          @if (totalSamplesExceeded()) {
+            <p class="total-error" role="alert">
+              The plan exceeds the maximum of
+              {{ maxTotalSamples | number }} total samples.
+            </p>
+          }
+          @if (totalDurationExceeded()) {
+            <p class="total-error" role="alert">
+              The plan exceeds the maximum nominal duration of
+              {{ formatDuration(maxNominalDurationMs) }}.
+            </p>
+          }
+        </mat-card>
+
+        <div class="save-bar">
+          <p class="save-state" aria-live="polite">
+            @if (facade.savePending()) {
+              Saving draft…
+            } @else if (dirty()) {
+              Unsaved changes
+            } @else {
+              All changes saved
+            }
+          </p>
+          <button
+            mat-flat-button
+            type="submit"
+            class="save-button"
+            [disabled]="facade.savePending() || expectedRevision() === null"
+            [attr.aria-busy]="facade.savePending()"
+          >
+            {{ facade.savePending() ? 'Saving…' : 'Save draft' }}
+          </button>
+        </div>
+      </form>
+    } @else {
+      <section class="no-draft" aria-labelledby="no-draft-heading">
+        <h2 id="no-draft-heading">No open draft</h2>
+        <p>
+          This plan has no draft to edit. Creating a new draft from the latest published version is
+          available with P2-07.
+        </p>
+        @if (latestVersion(); as version) {
+          <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', version.id]">
+            View version {{ version.versionNumber }}
+          </a>
+        }
+      </section>
+    }
+  }
+} @else {
+  <app-loading-state message="Loading plan draft…" />
+}

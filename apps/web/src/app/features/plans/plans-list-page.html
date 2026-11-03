@@ -1,0 +1,220 @@
+<app-page-header
+  title="Test Plans"
+  subtitle="Draft, publish, and inspect versioned measurement plans. The API decides which plan information your role can see."
+>
+  <button
+    mat-stroked-button
+    type="button"
+    (click)="reloadPlans()"
+    [disabled]="facade.plansStatus() === 'loading'"
+  >
+    Refresh
+  </button>
+  @if (isPlanner()) {
+    <button
+      mat-flat-button
+      type="button"
+      aria-controls="create-plan-panel"
+      [attr.aria-expanded]="createOpen()"
+      (click)="toggleCreate()"
+    >
+      {{ createOpen() ? 'Close new plan form' : 'New plan' }}
+    </button>
+  }
+</app-page-header>
+
+@if (isPlanner() && createOpen()) {
+  <mat-card
+    class="create-panel"
+    appearance="outlined"
+    id="create-plan-panel"
+    role="region"
+    aria-labelledby="create-plan-heading"
+  >
+    <h2 id="create-plan-heading">New plan</h2>
+    <p class="panel-intro">
+      Give the plan a name and choose the device profile. The new plan starts with an empty draft
+      that you can edit and save immediately.
+    </p>
+
+    @if (facade.profilesStatus() === 'error') {
+      <div class="inline-error" role="alert">
+        <p>{{ profilesErrorMessage() }}</p>
+        <button mat-stroked-button type="button" (click)="retryProfiles()">
+          Retry device profiles
+        </button>
+      </div>
+    }
+
+    <form [formGroup]="createForm" (ngSubmit)="submitCreate()" novalidate>
+      <div class="create-fields">
+        <mat-form-field appearance="outline">
+          <mat-label>Plan name</mat-label>
+          <input
+            id="create-plan-name"
+            matInput
+            type="text"
+            formControlName="name"
+            autocomplete="off"
+          />
+          <mat-error id="create-plan-name-error">
+            @if (createForm.controls.name.hasError('required')) {
+              Plan name is required.
+            } @else if (createForm.controls.name.hasError('maxlength')) {
+              Plan name must be at most 100 characters.
+            } @else if (createNameServerError(); as message) {
+              {{ message }}
+            }
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Device profile</mat-label>
+          <select
+            id="create-plan-profile"
+            matNativeControl
+            formControlName="profileId"
+            [disabled]="facade.profilesStatus() === 'loading' || facade.profiles().length === 0"
+          >
+            <option value="" disabled>Select a device profile</option>
+            @for (profile of facade.profiles(); track profile.id) {
+              <option [value]="profile.id">{{ profileLabel(profile) }}</option>
+            }
+          </select>
+          <mat-error id="create-plan-profile-error">
+            @if (createForm.controls.profileId.hasError('required')) {
+              Select a device profile.
+            } @else if (createProfileServerError(); as message) {
+              {{ message }}
+            }
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      @if (facade.profilesStatus() === 'loading') {
+        <p class="panel-status" role="status">Loading device profiles…</p>
+      } @else if (facade.profilesStatus() === 'loaded' && facade.profiles().length === 0) {
+        <p class="inline-error" role="alert">
+          No device profiles are available. A profile is required before a plan can be created.
+        </p>
+      }
+
+      @if (facade.createError(); as error) {
+        <div class="inline-error" role="alert">
+          <p>{{ createErrorMessage() }}</p>
+          @if (createErrorRequestId(); as requestId) {
+            <p class="request-id">
+              Request ID: <code>{{ requestId }}</code>
+            </p>
+          }
+        </div>
+      }
+
+      <div class="create-actions">
+        <button mat-button type="button" (click)="closeCreate()">Cancel</button>
+        <button
+          mat-flat-button
+          type="submit"
+          [disabled]="facade.createPending() || facade.profiles().length === 0"
+          [attr.aria-busy]="facade.createPending()"
+        >
+          {{ facade.createPending() ? 'Creating…' : 'Create plan' }}
+        </button>
+      </div>
+    </form>
+  </mat-card>
+}
+
+@switch (facade.plansStatus()) {
+  @case ('loaded') {
+    @if (facade.plans().length === 0) {
+      <app-empty-state
+        heading="No test plans yet"
+        message="A plan holds an ordered list of measurement steps. When a planner creates one, it appears here with its published versions."
+      >
+        @if (isPlanner()) {
+          <button mat-flat-button type="button" (click)="openCreate()">
+            Create the first plan
+          </button>
+        } @else {
+          <p class="empty-note">Published plans appear here once a planner publishes them.</p>
+        }
+      </app-empty-state>
+    } @else {
+      <mat-card class="list-panel" appearance="outlined">
+        <div class="table-scroll">
+          <table>
+            <caption class="visually-hidden">
+              Test plans with their latest published version and open draft status
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Plan</th>
+                <th scope="col">Latest published version</th>
+                @if (isPlanner()) {
+                  <th scope="col">Draft</th>
+                  <th scope="col">Actions</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (plan of facade.plans(); track plan.id) {
+                <tr>
+                  <td>
+                    <span class="plan-name">{{ plan.name }}</span>
+                    @if (plan.profile; as profile) {
+                      <span class="plan-profile">{{ profile.name }}</span>
+                    }
+                  </td>
+                  <td>
+                    @if (plan.latestPublishedVersion; as version) {
+                      <a [routerLink]="['/plans', plan.id, 'versions', version.id]">
+                        Version {{ version.versionNumber }}
+                      </a>
+                    } @else if (plan.versionsKnown) {
+                      <span class="muted">Not published yet</span>
+                    } @else {
+                      <span class="muted">Unavailable</span>
+                    }
+                  </td>
+                  @if (isPlanner()) {
+                    <td>
+                      @if (plan.hasDraft) {
+                        <span class="draft-badge">Draft in progress</span>
+                        @if (plan.draftRevision !== null) {
+                          <span class="draft-revision"> Revision {{ plan.draftRevision }} </span>
+                        }
+                      } @else if (plan.draftKnown) {
+                        <span class="muted">No open draft</span>
+                      } @else {
+                        <span class="muted">Unavailable</span>
+                      }
+                    </td>
+                    <td>
+                      <a mat-button [routerLink]="['/plans', plan.id, 'edit']">
+                        {{ plan.hasDraft ? 'Edit draft' : 'Open editor' }}
+                      </a>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </mat-card>
+    }
+  }
+  @case ('error') {
+    <app-error-state
+      heading="Test plans could not be loaded"
+      [message]="plansErrorMessage()"
+      [requestId]="facade.plansError()?.requestId ?? null"
+      [retryable]="true"
+      retryLabel="Try again"
+      (retry)="reloadPlans()"
+    />
+  }
+  @default {
+    <app-loading-state message="Loading test plans…" />
+  }
+}
