@@ -6,6 +6,7 @@ import {
   SESSION_COOKIE_NAME,
 } from '../src/auth/auth.constants.js';
 import {
+  Prisma,
   Role,
   RunEventType,
   RunScenario,
@@ -58,6 +59,18 @@ const FAIL_EVENT_FUNCTION = 'runs_e2e_fail_run_event';
 
 function runKey(): string {
   return `runs-api-e2e-${randomUUID()}`;
+}
+
+/** The same P2002 the partial unique index raises for a losing start. */
+function runningUniqueViolation(): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError(
+    'Unique constraint failed on the fields: (`test_runs_single_running_key`)',
+    {
+      code: 'P2002',
+      clientVersion: '7.10.1',
+      meta: { modelName: 'TestRun', target: ['test_runs_single_running_key'] },
+    },
+  );
 }
 
 describe('runs API (e2e)', () => {
@@ -690,6 +703,55 @@ describe('runs API (e2e)', () => {
     expect(
       await prisma.testRun.count({
         where: { requestedById: { in: testUserIds() } },
+      }),
+    ).toBe(0);
+  });
+
+  it('retries a unique loser once when the winning run is already terminal', async () => {
+    const key = runKey();
+    const transactionSpy = vi.spyOn(prisma, '$transaction');
+    transactionSpy.mockImplementationOnce(() =>
+      Promise.reject(runningUniqueViolation()),
+    );
+
+    try {
+      // The forced P2002 is not backed by an active row: exactly the narrow
+      // terminalization race in B3. The retry must create the run and return
+      // 202 instead of surfacing the unique error as a 500.
+      const response = await postRun(operator, key, normalBody()).expect(202);
+      expect(response.body).toMatchObject({
+        runId: expect.any(String),
+        status: RunStatus.RUNNING,
+        outcome: null,
+      });
+      expect(transactionSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      transactionSpy.mockRestore();
+    }
+
+    expect(
+      await prisma.testRun.count({
+        where: { requestedById: operatorUser.id, idempotencyKey: key },
+      }),
+    ).toBe(1);
+  });
+
+  it('surfaces an unexpected error only after every start retry fails', async () => {
+    const key = runKey();
+    const transactionSpy = vi.spyOn(prisma, '$transaction');
+    transactionSpy.mockRejectedValue(runningUniqueViolation());
+
+    try {
+      const response = await postRun(operator, key, normalBody()).expect(500);
+      expect(response.body).toMatchObject({ code: 'INTERNAL_ERROR' });
+      expect(transactionSpy).toHaveBeenCalledTimes(3);
+    } finally {
+      transactionSpy.mockRestore();
+    }
+
+    expect(
+      await prisma.testRun.count({
+        where: { requestedById: operatorUser.id, idempotencyKey: key },
       }),
     ).toBe(0);
   });

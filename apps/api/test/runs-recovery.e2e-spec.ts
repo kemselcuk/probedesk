@@ -17,6 +17,7 @@ import {
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { RUN_EVALUATION_VERSION } from '../src/runs/run-domain.js';
 import { RunExecutor } from '../src/runs/run-executor.js';
+import { RunRecoveryService } from '../src/runs/run-recovery.service.js';
 import { RUN_SCHEDULER } from '../src/runs/run-scheduler.js';
 import { buildRunSnapshot } from '../src/runs/run-snapshot.js';
 import { SIMULATOR_VERSION } from '../src/simulator/index.js';
@@ -92,12 +93,9 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
     const plannerUser = await createRunTestUser(prisma, Role.PLANNER);
     operatorUser = await createRunTestUser(prisma, Role.OPERATOR);
     const profile = await createRunTestProfile(prisma);
-    fixture = await createPublishedRunFixture(
-      prisma,
-      plannerUser.id,
-      profile,
-      { planName: 'Recovery e2e plan' },
-    );
+    fixture = await createPublishedRunFixture(prisma, plannerUser.id, profile, {
+      planName: 'Recovery e2e plan',
+    });
     operator = await login(operatorUser, app);
   });
 
@@ -369,6 +367,73 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
     };
   }
 
+  /**
+   * Inserts a RUNNING snapshot whose expected sample count disagrees with its
+   * copied steps, without going through the start API. This reproduces a
+   * corrupt/stale snapshot that the executor must reject as simulator output
+   * instead of turning into a tolerance failure.
+   */
+  async function createCorruptSnapshotRun(): Promise<string> {
+    const startedAt = new Date(Date.now() - 60_000);
+    const snapshot = buildRunSnapshot(
+      {
+        planId: fixture.planId,
+        revisionId: fixture.revisionId,
+        planName: fixture.planName,
+        versionNumber: fixture.versionNumber,
+        profile: fixture.profile,
+        steps: fixture.steps.map((step) => ({
+          ...step,
+          minimum: new Prisma.Decimal(step.minimum),
+          maximum: new Prisma.Decimal(step.maximum),
+        })),
+      },
+      {
+        scenario: RunScenario.NORMAL,
+        seed: 123_456_789n,
+        simulatorVersion: SIMULATOR_VERSION,
+        evaluationVersion: RUN_EVALUATION_VERSION,
+      },
+      {
+        requestedById: operatorUser.id,
+        idempotencyKey: `corrupt-${randomUUID()}`,
+        requestHash: `corrupt-hash-${randomUUID()}`,
+        startedAt,
+      },
+    );
+
+    const run = await prisma.testRun.create({
+      data: {
+        ...snapshot.run,
+        expectedSampleCount: 7,
+        eventSequence: 1,
+        steps: { create: snapshot.steps },
+      },
+    });
+
+    await prisma.runEvent.create({
+      data: {
+        runId: run.id,
+        sequence: 1,
+        type: RunEventType.RUN_STARTED,
+        schemaVersion: 1,
+        occurredAt: startedAt,
+        payload: {
+          status: RunStatus.RUNNING,
+          planId: fixture.planId,
+          planVersionId: fixture.revisionId,
+          planName: fixture.planName,
+          versionNumber: fixture.versionNumber,
+          scenario: RunScenario.NORMAL,
+          expectedSampleCount: 7,
+          stepCount: snapshot.steps.length,
+        },
+      },
+    });
+
+    return run.id;
+  }
+
   async function dropRecoveryTriggers(): Promise<void> {
     await prisma.$executeRawUnsafe(
       `DROP TRIGGER IF EXISTS "${RECOVERY_BLOCK_TRIGGER}" ON "test_runs"`,
@@ -495,9 +560,9 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
       expect(
         await prisma.measurement.count({ where: { runId: synthetic.runId } }),
       ).toBe(3);
-      expect(await prisma.runEvent.count({ where: { runId: synthetic.runId } })).toBe(
-        2,
-      );
+      expect(
+        await prisma.runEvent.count({ where: { runId: synthetic.runId } }),
+      ).toBe(2);
     } finally {
       await fresh.close();
     }
@@ -585,9 +650,7 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
 
       await dropRecoveryTriggers();
 
-      await request(fresh.getHttpServer())
-        .get('/api/health/ready')
-        .expect(200);
+      await request(fresh.getHttpServer()).get('/api/health/ready').expect(200);
       const recovered = await prisma.testRun.findUniqueOrThrow({
         where: { id: synthetic.runId },
       });
@@ -600,21 +663,15 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
   });
 
   it('marks invalid simulator output ERROR instead of a tolerance failure', async () => {
-    const started = await startRun();
-    await waitFor(
-      () => executor.activeExecutionCount === 1,
-      'the executor to claim the run',
-    );
-
-    // The executor is paused before its first write. A stored expected count
-    // that disagrees with the copied steps is invalid simulator input/output.
-    await prisma.testRun.update({
-      where: { id: started.runId },
-      data: { expectedSampleCount: 7 },
-    });
+    // A snapshot whose expected count disagrees with its copied steps is
+    // invalid simulator input/output. The snapshot columns are immutable
+    // after insert (B12), so the corrupt row is created directly instead of
+    // being patched through an UPDATE.
+    const runId = await createCorruptSnapshotRun();
+    executor.start(runId);
     await releaseNextTimer(scheduler, 'the executor start delay');
 
-    const run = await waitForTerminal(started.runId);
+    const run = await waitForTerminal(runId);
     expect(run).toMatchObject({
       status: RunStatus.ERROR,
       outcome: null,
@@ -624,7 +681,7 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
     expect(run.finishedAt).toBeInstanceOf(Date);
 
     const steps = await prisma.runStep.findMany({
-      where: { runId: started.runId },
+      where: { runId },
       orderBy: { position: 'asc' },
     });
     expect(steps.map((step) => step.status)).toEqual([
@@ -633,11 +690,9 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
       RunStepStatus.NOT_RUN,
     ]);
     expect(steps.every((step) => step.outcome === null)).toBe(true);
-    expect(
-      await prisma.measurement.count({ where: { runId: started.runId } }),
-    ).toBe(0);
+    expect(await prisma.measurement.count({ where: { runId } })).toBe(0);
 
-    const events = await loadEvents(started.runId);
+    const events = await loadEvents(runId);
     expectGapFree(events);
     expect(events.map((event) => event.type)).toEqual([
       RunEventType.RUN_STARTED,
@@ -662,8 +717,7 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
       await waitFor(async () => {
         const step = await stepAt(started.runId, 1);
         return (
-          step?.status === RunStepStatus.RUNNING &&
-          scheduler.pendingCount === 1
+          step?.status === RunStepStatus.RUNNING && scheduler.pendingCount === 1
         );
       }, 'the first step to start');
       await releaseNextTimer(scheduler, 'the first sample timer');
@@ -726,6 +780,97 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
     }
   });
 
+  it('invalidates a cached recovery when the technical failure write fails', async () => {
+    try {
+      const started = await startRun();
+      await waitFor(
+        () => executor.activeExecutionCount === 1,
+        'the executor to claim the run',
+      );
+      await releaseNextTimer(scheduler, 'the executor start delay');
+      await waitFor(async () => {
+        const step = await stepAt(started.runId, 1);
+        return (
+          step?.status === RunStepStatus.RUNNING && scheduler.pendingCount === 1
+        );
+      }, 'the first step to start');
+      await releaseNextTimer(scheduler, 'the first sample timer');
+      await waitFor(async () => {
+        const step = await stepAt(started.runId, 1);
+        return step?.recordedCount === 1 && scheduler.pendingCount === 1;
+      }, 'the first sample to commit');
+
+      // The start itself must succeed before test_runs updates are blocked.
+      // From here the next measurement insert fails and the ERROR update is
+      // also blocked, so the executor knows it left a RUNNING row and marks
+      // recovery dirty.
+      await installRecoveryBlockingTrigger();
+      await installMeasurementFailureTrigger();
+      await releaseNextTimer(scheduler, 'the failing sample timer');
+      await waitFor(
+        () => executor.activeExecutionCount === 0,
+        'the executor to stop after the failed failure write',
+      );
+
+      const recovery = app.get(RunRecoveryService);
+      expect(recovery.isDirty).toBe(true);
+      expect(recovery.isComplete).toBe(false);
+
+      const stuck = await prisma.testRun.findUniqueOrThrow({
+        where: { id: started.runId },
+      });
+      expect(stuck.status).toBe(RunStatus.RUNNING);
+      expect(stuck.finishedAt).toBeNull();
+
+      // While the write is still blocked, readiness re-runs recovery and
+      // stays unavailable; a new start is rejected instead of trusting the
+      // cached pre-outage success.
+      const notReady = await request(app.getHttpServer())
+        .get('/api/health/ready')
+        .expect(503);
+      expect(notReady.body).toMatchObject({
+        details: { checks: { startup: 'pending' } },
+      });
+
+      const rejectedStart = await postAs(app, operator, '/api/runs')
+        .set('Idempotency-Key', runKey())
+        .send({
+          planVersionId: fixture.revisionId,
+          scenario: RunScenario.NORMAL,
+          seed: 123_456_789,
+        })
+        .expect(503);
+      expect(rejectedStart.body).toMatchObject({
+        code: 'SERVICE_UNAVAILABLE',
+        details: { checks: { startup: 'pending' } },
+      });
+
+      // The database returns. Readiness itself reconciles the stale run; no
+      // process restart is needed and a new start is accepted again.
+      await dropRecoveryTriggers();
+      await dropMeasurementFailureTrigger();
+
+      await request(app.getHttpServer()).get('/api/health/ready').expect(200);
+
+      const recovered = await prisma.testRun.findUniqueOrThrow({
+        where: { id: started.runId },
+      });
+      expect(recovered).toMatchObject({
+        status: RunStatus.INTERRUPTED,
+        outcome: null,
+        reasonCode: 'SERVER_RESTART',
+      });
+      expect(recovery.isDirty).toBe(false);
+      expect(recovery.isComplete).toBe(true);
+
+      const next = await startRun();
+      expect(next.status).toBe(RunStatus.RUNNING);
+    } finally {
+      await dropRecoveryTriggers();
+      await dropMeasurementFailureTrigger();
+    }
+  });
+
   it('leaves RUNNING data on controlled shutdown and recovers it on next start', async () => {
     const shutdownScheduler = new ControlledRunScheduler('paused');
     let shutdownApp = await createTestApplication(
@@ -753,7 +898,9 @@ describe('run interruption, technical errors and startup recovery (e2e)', () => 
       await releaseNextTimer(shutdownScheduler, 'the first sample timer');
       await waitFor(async () => {
         const step = await stepAt(started.runId, 1);
-        return step?.recordedCount === 1 && shutdownScheduler.pendingCount === 1;
+        return (
+          step?.recordedCount === 1 && shutdownScheduler.pendingCount === 1
+        );
       }, 'the first sample to commit before shutdown');
 
       await shutdownApp.close();

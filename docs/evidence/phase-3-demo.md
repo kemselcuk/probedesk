@@ -67,3 +67,26 @@ Ekran görüntüleri:
 - Grafikler (P5), karşılaştırma (P6), Playwright (P7) ve Compose teslimi (P8) açıktır.
 - Bu demo ürün kabulü değildir; bağımsız Faz 3 incelemesi ve kullanıcı nihai kabulü
   ayrıca gereklidir.
+
+## Yeniden üretme
+
+Bu demo commit’teki script’lerle yeniden çalıştırılabilir; geliştirme kimlikleri
+script içine gömülü değildir.
+
+```bash
+# 1. API ve web (web proxy'si /api -> 127.0.0.1:3100 olacak şekilde)
+PORT=3100 node apps/api/dist/main.js
+cd apps/web && npx ng serve --port 4200 --proxy-config <proxy-to-3100>.json
+
+# 2. API yaşam döngüsü (NORMAL, FORCED_FAILURE, cancel, Run Again)
+RUN_VERSION_ID=<published-version-uuid> node scripts/phase-3-demo.mjs
+
+# 3. Gerçek Chrome kontrolü (script çıktısındaki run kimlikleriyle)
+VERSION_ID=<published-version-uuid> \
+FORCED_RUN=<failed-run-uuid> NORMAL_RUN=<passed-run-uuid> \
+  node scripts/phase-3-ui-check.mjs
+```
+
+UI script’i start sonrası uygulamanın kendi yönlendirmesini bekler
+(`/runs/:runId`); detay ekranına elle gidilmez. `/runs/:runId/live` P4
+placeholder’ının “View run details” bağlantısı da kontrol edilir.

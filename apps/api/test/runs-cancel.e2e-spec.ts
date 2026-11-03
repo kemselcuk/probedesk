@@ -82,12 +82,9 @@ describe('run cancellation (e2e)', () => {
     operatorUser = await createRunTestUser(prisma, Role.OPERATOR);
     const viewerUser = await createRunTestUser(prisma, Role.VIEWER);
     const profile = await createRunTestProfile(prisma);
-    fixture = await createPublishedRunFixture(
-      prisma,
-      plannerUser.id,
-      profile,
-      { planName: 'Cancel e2e plan' },
-    );
+    fixture = await createPublishedRunFixture(prisma, plannerUser.id, profile, {
+      planName: 'Cancel e2e plan',
+    });
 
     planner = await login(plannerUser);
     operator = await login(operatorUser);
@@ -239,7 +236,9 @@ describe('run cancellation (e2e)', () => {
     await releaseNextTimer('the executor start delay');
     await waitFor(async () => {
       const step = await stepAt(runId, 1);
-      return step?.status === RunStepStatus.RUNNING && scheduler.pendingCount === 1;
+      return (
+        step?.status === RunStepStatus.RUNNING && scheduler.pendingCount === 1
+      );
     }, 'the first step to start');
 
     await releaseNextTimer('the first sample timer');
@@ -265,6 +264,94 @@ describe('run cancellation (e2e)', () => {
       return step?.recordedCount === 1 && scheduler.pendingCount === 1;
     }, 'the second step sample to commit');
   }
+
+  /**
+   * Advances a paused run to the final sample boundary: step 3 is RUNNING and
+   * its only sample timer is still held. Completion and cancel can then race.
+   */
+  async function advanceToFinalSampleBoundary(runId: string): Promise<void> {
+    await advanceToPartialRun(runId);
+
+    await releaseNextTimer('the second step sample 2 timer');
+    await waitFor(async () => {
+      const step = await stepAt(runId, 2);
+      return step?.recordedCount === 2 && scheduler.pendingCount === 1;
+    }, 'the second step to record its second sample');
+
+    await releaseNextTimer('the second step sample 3 timer');
+    await waitFor(async () => {
+      const second = await stepAt(runId, 2);
+      const third = await stepAt(runId, 3);
+      return (
+        second?.status === RunStepStatus.COMPLETED &&
+        third?.status === RunStepStatus.RUNNING &&
+        scheduler.pendingCount === 1
+      );
+    }, 'the final step to start at its sample boundary');
+  }
+
+  it('keeps exactly one terminal state when cancel races final completion', async () => {
+    const started = await startRun();
+    await advanceToFinalSampleBoundary(started.runId);
+
+    const cancelRequest = postAs(
+      operator,
+      `/api/runs/${started.runId}/cancel`,
+    ).then((response) => ({
+      status: response.status,
+      body: response.body as RunSnapshotDto,
+    }));
+
+    scheduler.releasePending();
+
+    const cancelled = await cancelRequest;
+    const run = await waitForTerminal(started.runId);
+    const events = await loadEvents(started.runId);
+    expectGapFree(events);
+
+    expect([RunStatus.CANCELLED, RunStatus.COMPLETED]).toContain(run.status);
+    expect(cancelled.status).toBe(200);
+    expect(cancelled.body.status).toBe(run.status);
+
+    const terminalEvents = events.filter(
+      (event) =>
+        event.type === RunEventType.RUN_CANCELLED ||
+        event.type === RunEventType.RUN_COMPLETED,
+    );
+    expect(terminalEvents).toHaveLength(1);
+    expect(events.at(-1)?.type).toBe(terminalEvents[0]?.type);
+
+    const expectedTerminalType =
+      run.status === RunStatus.COMPLETED
+        ? RunEventType.RUN_COMPLETED
+        : RunEventType.RUN_CANCELLED;
+    expect(terminalEvents[0]?.type).toBe(expectedTerminalType);
+    expect(terminalEvents[0]?.occurredAt.getTime()).toBe(
+      run.finishedAt?.getTime(),
+    );
+
+    const measurements = await prisma.measurement.findMany({
+      where: { runId: started.runId },
+      orderBy: [{ runStepId: 'asc' }, { sampleIndex: 'asc' }],
+    });
+    expect(run.recordedSampleCount).toBe(measurements.length);
+    expect(cancelled.body.recordedSampleCount).toBe(measurements.length);
+
+    if (run.status === RunStatus.COMPLETED) {
+      expect(run.recordedSampleCount).toBe(run.expectedSampleCount);
+      const steps = await prisma.runStep.findMany({
+        where: { runId: started.runId },
+      });
+      expect(
+        steps.every((step) => step.status === RunStepStatus.COMPLETED),
+      ).toBe(true);
+      expect(steps.every((step) => step.outcome !== null)).toBe(true);
+    } else {
+      expect(run.outcome).toBeNull();
+      expect(run.reasonCode).toBe('USER_CANCELLED');
+      expect(run.cancelledById).toBe(operatorUser.id);
+    }
+  });
 
   it('cancels a partial run while preserving measurements and completed steps', async () => {
     const started = await startRun();
@@ -335,7 +422,9 @@ describe('run cancellation (e2e)', () => {
       cancelledStepCount: 1,
       notRunStepCount: 1,
     });
-    expect(events.filter((event) => event.type === RunEventType.RUN_CANCELLED)).toHaveLength(1);
+    expect(
+      events.filter((event) => event.type === RunEventType.RUN_CANCELLED),
+    ).toHaveLength(1);
 
     const measurementCount = await prisma.measurement.count({
       where: { runId: started.runId },
@@ -349,9 +438,9 @@ describe('run cancellation (e2e)', () => {
     expect(
       await prisma.measurement.count({ where: { runId: started.runId } }),
     ).toBe(measurementCount);
-    expect(await prisma.runEvent.count({ where: { runId: started.runId } })).toBe(
-      events.length,
-    );
+    expect(
+      await prisma.runEvent.count({ where: { runId: started.runId } }),
+    ).toBe(events.length);
     expect(
       await request(server())
         .get('/api/runs/active')
@@ -445,7 +534,9 @@ describe('run cancellation (e2e)', () => {
     await releaseNextTimer('the executor start delay');
     await waitFor(async () => {
       const step = await stepAt(started.runId, 1);
-      return step?.status === RunStepStatus.RUNNING && scheduler.pendingCount === 1;
+      return (
+        step?.status === RunStepStatus.RUNNING && scheduler.pendingCount === 1
+      );
     }, 'the first step to start');
 
     let cancelRequest:
@@ -525,12 +616,67 @@ describe('run cancellation (e2e)', () => {
     }
   });
 
+  it('computes cancel finishedAt after waiting for the run row lock', async () => {
+    const started = await startRun();
+    await advanceToPartialRun(started.runId);
+
+    let releaseTime: Date | null = null;
+    let cancelRequest:
+      | Promise<{ status: number; body: RunSnapshotDto }>
+      | undefined;
+
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`
+          SELECT "id" FROM "test_runs"
+          WHERE "id" = ${started.runId}::uuid
+          FOR UPDATE
+        `;
+
+        cancelRequest = postAs(
+          operator,
+          `/api/runs/${started.runId}/cancel`,
+        ).then((response) => ({
+          status: response.status,
+          body: response.body as RunSnapshotDto,
+        }));
+
+        await waitFor(async () => {
+          const rows = await prisma.$queryRaw<Array<{ waiting: number }>>`
+            SELECT count(*)::int AS waiting
+            FROM pg_locks
+            WHERE NOT granted AND pid <> pg_backend_pid()
+          `;
+          return (rows[0]?.waiting ?? 0) > 0;
+        }, 'the cancel transaction to wait on the run row');
+
+        await delay(50);
+        releaseTime = new Date();
+      },
+      { timeout: 10_000, maxWait: 5_000 },
+    );
+
+    const cancelled = await cancelRequest;
+    const run = await waitForTerminal(started.runId);
+
+    expect(cancelled?.status).toBe(200);
+    expect(run.status).toBe(RunStatus.CANCELLED);
+    expect(releaseTime).toBeInstanceOf(Date);
+    expect(run.finishedAt).toBeInstanceOf(Date);
+    expect(run.finishedAt!.getTime()).toBeGreaterThanOrEqual(
+      releaseTime!.getTime(),
+    );
+
+    const terminalEvent = (await loadEvents(started.runId)).find(
+      (event) => event.type === RunEventType.RUN_CANCELLED,
+    );
+    expect(terminalEvent?.occurredAt.getTime()).toBe(run.finishedAt?.getTime());
+  });
+
   it('enforces Operator, session, CSRF and unknown-run rules', async () => {
     const unknownId = randomUUID();
 
-    await request(server())
-      .post(`/api/runs/${unknownId}/cancel`)
-      .expect(401);
+    await request(server()).post(`/api/runs/${unknownId}/cancel`).expect(401);
 
     await postAs(planner, `/api/runs/${unknownId}/cancel`).expect(403);
     await postAs(viewer, `/api/runs/${unknownId}/cancel`).expect(403);

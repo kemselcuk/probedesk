@@ -48,6 +48,13 @@ interface ExistingRun {
 /** The event sequence assigned to the first committed run event. */
 const START_EVENT_SEQUENCE = 1;
 
+/**
+ * A unique violation can mean that a concurrent winner terminalized before the
+ * loser re-read the active row. The loser retries its create transaction so the
+ * start request still resolves to 409 or 202 instead of an internal error.
+ */
+const MAX_START_ATTEMPTS = 3;
+
 @Injectable()
 export class RunsService {
   constructor(
@@ -106,73 +113,97 @@ export class RunsService {
       startedAt,
     );
 
-    try {
-      const created = await this.prisma.$transaction(
-        async (tx) => {
-          const run = await tx.testRun.create({
-            data: {
-              ...snapshot.run,
-              // The run row and its first event commit together.
-              eventSequence: START_EVENT_SEQUENCE,
-              steps: { create: snapshot.steps },
-            },
-            select: { id: true, status: true, outcome: true },
-          });
+    let uniqueFailure: unknown = null;
 
-          await tx.runEvent.create({
-            data: {
-              runId: run.id,
-              sequence: START_EVENT_SEQUENCE,
-              type: RunEventType.RUN_STARTED,
-              schemaVersion: RUN_EVENT_SCHEMA_VERSION,
-              occurredAt: startedAt,
-              payload: {
-                status: RunStatus.RUNNING,
-                planId: snapshot.run.planId,
-                planVersionId: snapshot.run.planRevisionId,
-                planName: snapshot.run.planNameSnapshot,
-                versionNumber: snapshot.run.versionNumberSnapshot,
-                scenario: snapshot.run.scenario,
-                expectedSampleCount: snapshot.run.expectedSampleCount,
-                stepCount: snapshot.steps.length,
-              },
-            },
-          });
+    for (let attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt += 1) {
+      try {
+        const created = await this.createRun(snapshot, startedAt);
 
-          return run;
-        },
-        { timeout: 10_000, maxWait: 5_000 },
-      );
+        // The snapshot is committed; execution must not be awaited here. A
+        // failed/terminated HTTP connection cannot stop the scheduled run.
+        this.runExecutor.start(created.id);
 
-      // The snapshot is committed; execution must not be awaited here. A
-      // failed/terminated HTTP connection cannot stop the scheduled run.
-      this.runExecutor.start(created.id);
+        return { replayed: false, response: toResponse(created) };
+      } catch (error) {
+        if (!isUniqueConstraintViolation(error)) {
+          throw error;
+        }
 
-      return { replayed: false, response: toResponse(created) };
-    } catch (error) {
-      if (!isUniqueConstraintViolation(error)) {
-        throw error;
+        uniqueFailure = error;
+
+        // A concurrent request with the same key may have committed first;
+        // that is a successful replay, not an active-run conflict. Otherwise
+        // the RUNNING partial unique index rejected this start.
+        const raced = await this.findByKey(requestedById, idempotencyKey);
+        if (raced) {
+          return replayExisting(raced, requestHash);
+        }
+
+        const active = await this.findActiveRun();
+        if (active) {
+          throw runAlreadyActive(active.id);
+        }
+
+        // The winner became terminal between its unique-index insert and this
+        // request's failure, so no active row is visible. The index slot is
+        // free again; retry instead of surfacing a race as a 500.
       }
-
-      // A concurrent request with the same key may have committed first; that
-      // is a successful replay, not an active-run conflict. Otherwise the
-      // RUNNING partial unique index rejected this start.
-      const raced = await this.findByKey(requestedById, idempotencyKey);
-      if (raced) {
-        return replayExisting(raced, requestHash);
-      }
-
-      const active = await this.prisma.testRun.findFirst({
-        where: { status: RunStatus.RUNNING },
-        select: { id: true },
-        orderBy: { startedAt: 'desc' },
-      });
-      if (active) {
-        throw runAlreadyActive(active.id);
-      }
-
-      throw error;
     }
+
+    // Three consecutive unique violations with no idempotency record and no
+    // active run means the database state contradicts the index. Surface the
+    // original unexpected error rather than inventing a contract response.
+    throw uniqueFailure;
+  }
+
+  private async createRun(
+    snapshot: RunSnapshotRows,
+    startedAt: Date,
+  ): Promise<{ id: string; status: RunStatus; outcome: RunOutcome | null }> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const run = await tx.testRun.create({
+          data: {
+            ...snapshot.run,
+            // The run row and its first event commit together.
+            eventSequence: START_EVENT_SEQUENCE,
+            steps: { create: snapshot.steps },
+          },
+          select: { id: true, status: true, outcome: true },
+        });
+
+        await tx.runEvent.create({
+          data: {
+            runId: run.id,
+            sequence: START_EVENT_SEQUENCE,
+            type: RunEventType.RUN_STARTED,
+            schemaVersion: RUN_EVENT_SCHEMA_VERSION,
+            occurredAt: startedAt,
+            payload: {
+              status: RunStatus.RUNNING,
+              planId: snapshot.run.planId,
+              planVersionId: snapshot.run.planRevisionId,
+              planName: snapshot.run.planNameSnapshot,
+              versionNumber: snapshot.run.versionNumberSnapshot,
+              scenario: snapshot.run.scenario,
+              expectedSampleCount: snapshot.run.expectedSampleCount,
+              stepCount: snapshot.steps.length,
+            },
+          },
+        });
+
+        return run;
+      },
+      { timeout: 10_000, maxWait: 5_000 },
+    );
+  }
+
+  private async findActiveRun(): Promise<{ id: string } | null> {
+    return this.prisma.testRun.findFirst({
+      where: { status: RunStatus.RUNNING },
+      select: { id: true },
+      orderBy: { startedAt: 'desc' },
+    });
   }
 
   private async findByKey(

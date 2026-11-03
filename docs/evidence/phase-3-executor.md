@@ -36,7 +36,7 @@ Migration gerekmedi. P3-03 şeması sayaç/outcome CHECK'lerini, tek RUNNING par
 7. Son adımdan sonra run transaction'ı bütün adımların COMPLETED, outcome'larının dolu ve `recordedSampleCount = expectedSampleCount` olduğunu doğrular. Sonuç her adım PASSED ise PASSED, değilse FAILED'dır; status COMPLETED, outcome, finishedAt ve `run.completed` aynı transaction'da commit edilir.
 8. Her olay sırası TestRun satırı kilidi altında artırılır; `(runId, sequence)` unique kısıtı ikinci güvencedir. Olaylar `schemaVersion=1` taşır ve istemcinin ihtiyaç duyduğu sayaç/örnek/istatistik alanlarını içerir.
 9. Beklenmeyen hata yakalanır; run RUNNING ise ERROR + güvenli `reasonCode` + `finishedAt` yazılır, aktif adım ERROR, başlamamış adımlar NOT_RUN yapılır ve `run.errored` eklenir. Hata kaydı da başarısız olursa yalnızca run kimliği ve güvenli neden kodu loglanır; SQL/DSN yazılmaz.
-10. `OnApplicationShutdown` bütün timer'ları iptal eder. Terminal durum gören gecikmiş callback'ler yazı yapmadan çıkar. İşlem sırasında kapanışın yarım transaction bırakması P3-08 recovery kapsamındadır.
+10. `OnModuleDestroy` bütün timer'ları iptal eder. Terminal durum gören gecikmiş callback'ler yazı yapmadan çıkar. İşlem sırasında kapanışın yarım transaction bırakması P3-08 recovery kapsamındadır.
 
 ## Test edilen davranışlar
 

@@ -1,6 +1,6 @@
 # Test, inceleme ve teslim sözleşmesi
 
-Durum: Kısmen uygulandı. Phase 1 testleri (P1) gerçek PostgreSQL ve Angular TestBed ile çalışıyor; P2–P8 davranış testleri henüz yazılmadı. Gereksinimler: REQ-23–27.
+Durum: Kısmen uygulandı. Phase 1–3 testleri gerçek PostgreSQL, Angular TestBed ve gerçek Chrome ile çalışıyor; P4–P8 davranış testleri henüz yazılmadı. Gereksinimler: REQ-23–27.
 
 ## Test katmanları
 

@@ -242,8 +242,9 @@ describe('run schema constraints (e2e)', () => {
     ).rejects.toMatchObject({ code: 'P2002' });
 
     await terminalize(first.id);
+    // The other run stays RUNNING so the composite ownership foreign key is
+    // what rejects this write, not the terminal-run measurement trigger.
     const other = await createRun();
-    await terminalize(other.id);
 
     await expect(
       prisma.measurement.create({
@@ -436,11 +437,6 @@ describe('run schema constraints (e2e)', () => {
 
     await expectRunCheck(
       run.id,
-      `"expectedSampleCount" = 0`,
-      'test_runs_expectedSampleCount_check',
-    );
-    await expectRunCheck(
-      run.id,
       `"recordedSampleCount" = "expectedSampleCount" + 1`,
       'test_runs_recordedSampleCount_check',
     );
@@ -451,42 +447,10 @@ describe('run schema constraints (e2e)', () => {
        "recordedSampleCount" = 0`,
       'test_runs_completed_counts_check',
     );
-    await expectRunCheck(run.id, `"seed" = 4294967296`, 'test_runs_seed_check');
-    await expectRunCheck(
-      run.id,
-      `"errorProbability" = 1.5`,
-      'test_runs_errorProbability_check',
-    );
-    await expectRunCheck(
-      run.id,
-      `"errorProbability" = NULL`,
-      'test_runs_scenario_settings_check',
-    );
-    await expectRunCheck(
-      run.id,
-      `"profileSnapshot" = '[]'::jsonb`,
-      'test_runs_profileSnapshot_check',
-    );
-    await expectRunCheck(
-      run.id,
-      `"planNameSnapshot" = '   '`,
-      'test_runs_planNameSnapshot_check',
-    );
-    await expectRunCheck(
-      run.id,
-      `"versionNumberSnapshot" = 0`,
-      'test_runs_versionNumberSnapshot_check',
-    );
-
     await expectStepCheck(
       step.id,
       `"recordedCount" = "sampleCount" + 1`,
       'run_steps_recordedCount_check',
-    );
-    await expectStepCheck(
-      step.id,
-      `"sampleCount" = 0`,
-      'run_steps_sampleCount_check',
     );
     await expectStepCheck(
       step.id,
@@ -510,10 +474,114 @@ describe('run schema constraints (e2e)', () => {
       `"statistics" = '[]'::jsonb`,
       'run_steps_statistics_check',
     );
+  });
+
+  it('keeps the documented check constraints alongside the immutability triggers', async () => {
+    const rows = await prisma.$queryRaw<Array<{ constraintName: string }>>`
+      SELECT conname AS "constraintName"
+      FROM pg_constraint
+      WHERE contype = 'c'
+        AND conrelid IN ('test_runs'::regclass, 'run_steps'::regclass)
+    `;
+    const names = rows.map((row) => row.constraintName);
+
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'test_runs_status_outcome_check',
+        'test_runs_terminal_timestamps_check',
+        'test_runs_seed_check',
+        'test_runs_errorProbability_check',
+        'test_runs_scenario_settings_check',
+        'test_runs_expectedSampleCount_check',
+        'test_runs_recordedSampleCount_check',
+        'test_runs_completed_counts_check',
+        'test_runs_profileSnapshot_check',
+        'test_runs_planNameSnapshot_check',
+        'test_runs_versionNumberSnapshot_check',
+        'run_steps_status_outcome_check',
+        'run_steps_recordedCount_check',
+        'run_steps_outOfToleranceCount_check',
+        'run_steps_firstFailure_check',
+        'run_steps_completed_counts_check',
+        'run_steps_statistics_check',
+        'run_steps_sampleCount_check',
+        'run_steps_bounds_check',
+      ]),
+    );
+  });
+
+  it('rejects snapshot and rule-copy changes and new measurements on a terminal run', async () => {
+    const run = await createRun();
+    const step = run.steps[0]!;
+
+    await prisma.measurement.create({
+      data: {
+        runId: run.id,
+        runStepId: step.id,
+        sampleIndex: 0,
+        value: '4.750000',
+        isWithinTolerance: true,
+        recordedAt: new Date(),
+        elapsedMs: 200,
+      },
+    });
+
+    await terminalize(run.id, RunStatus.CANCELLED);
+
+    await expect(
+      prisma.measurement.create({
+        data: {
+          runId: run.id,
+          runStepId: step.id,
+          sampleIndex: 1,
+          value: '4.750000',
+          isWithinTolerance: true,
+          recordedAt: new Date(),
+          elapsedMs: 400,
+        },
+      }),
+    ).rejects.toThrow(/Measurements cannot be added to a terminal run/);
+
+    await expectRunCheck(
+      run.id,
+      `"planNameSnapshot" = 'Changed after start'`,
+      'Run snapshot fields are immutable',
+    );
+    await expectRunCheck(
+      run.id,
+      `"seed" = 1`,
+      'Run snapshot fields are immutable',
+    );
+    await expectRunCheck(
+      run.id,
+      `"expectedSampleCount" = 1`,
+      'Run snapshot fields are immutable',
+    );
+    await expectRunCheck(
+      run.id,
+      `"status" = 'RUNNING'`,
+      'A terminal run status is immutable',
+    );
+
     await expectStepCheck(
       step.id,
-      `"minimum" = 6, "maximum" = 5`,
-      'run_steps_bounds_check',
+      `"name" = 'Changed after start'`,
+      'Run rule copy fields are immutable',
+    );
+    await expectStepCheck(
+      step.id,
+      `"minimum" = 0`,
+      'Run rule copy fields are immutable',
+    );
+
+    await prisma.runStep.update({
+      where: { id: step.id },
+      data: { status: RunStepStatus.CANCELLED },
+    });
+    await expectStepCheck(
+      step.id,
+      `"status" = 'RUNNING'`,
+      'A terminal step status is immutable',
     );
   });
 

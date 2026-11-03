@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import {
@@ -78,6 +79,51 @@ interface TerminalRun {
 
 const FAIL_MEASUREMENT_TRIGGER = 'runs_execution_e2e_fail_measurement';
 const FAIL_MEASUREMENT_FUNCTION = 'runs_execution_e2e_fail_measurement';
+const SLOW_STEP_EVENT_TRIGGER = 'runs_execution_e2e_slow_step_event';
+const SLOW_STEP_EVENT_FUNCTION = 'runs_execution_e2e_slow_step_event';
+
+/**
+ * Controlled scheduler that can fire a shutdown hook on an exact `now()` call.
+ * The final run completion reads the clock after taking the row lock, so the
+ * third clock read after arming is inside the finalization transaction.
+ */
+/**
+ * Controlled timers with a real monotonic clock, so a database delay inside
+ * beginStep is observable in the first measurement's elapsedMs.
+ */
+class RealMonotonicControlledScheduler extends ControlledRunScheduler {
+  private readonly origin = performance.now();
+
+  override monotonicMs(): number {
+    return performance.now() - this.origin;
+  }
+}
+
+class FinalizationHookScheduler extends ControlledRunScheduler {
+  private remainingNowCalls: number | null = null;
+  private hook: (() => void) | null = null;
+
+  fireOnNowCall(count: number, hook: () => void): void {
+    this.remainingNowCalls = count;
+    this.hook = hook;
+  }
+
+  override now(): Date {
+    const value = super.now();
+
+    if (this.remainingNowCalls !== null) {
+      this.remainingNowCalls -= 1;
+      if (this.remainingNowCalls === 0) {
+        const pending = this.hook;
+        this.remainingNowCalls = null;
+        this.hook = null;
+        pending?.();
+      }
+    }
+
+    return value;
+  }
+}
 
 function runKey(): string {
   return `runs-execution-e2e-${randomUUID()}`;
@@ -167,6 +213,7 @@ describe('sequential run execution (e2e)', () => {
     executor = app.get(RunExecutor);
 
     await dropFailureTrigger();
+    await dropSlowStepEventTrigger();
     await deleteRunTestData(prisma);
 
     plannerUser = await createRunTestUser(prisma, Role.PLANNER);
@@ -243,6 +290,7 @@ describe('sequential run execution (e2e)', () => {
           'executor to become idle before cleanup',
         );
         await dropFailureTrigger();
+        await dropSlowStepEventTrigger();
         await deleteRunTestData(prisma);
       }
     } finally {
@@ -439,6 +487,15 @@ describe('sequential run execution (e2e)', () => {
     );
     await prisma.$executeRawUnsafe(
       `DROP FUNCTION IF EXISTS "${FAIL_MEASUREMENT_FUNCTION}"()`,
+    );
+  }
+
+  async function dropSlowStepEventTrigger(): Promise<void> {
+    await prisma.$executeRawUnsafe(
+      `DROP TRIGGER IF EXISTS "${SLOW_STEP_EVENT_TRIGGER}" ON "run_events"`,
+    );
+    await prisma.$executeRawUnsafe(
+      `DROP FUNCTION IF EXISTS "${SLOW_STEP_EVENT_FUNCTION}"()`,
     );
   }
 
@@ -785,6 +842,233 @@ describe('sequential run execution (e2e)', () => {
     });
   });
 
+  it('leaves the run RUNNING when shutdown begins inside finalization', async () => {
+    const shutdownScheduler = new FinalizationHookScheduler('paused');
+    let shutdownApp = await createTestApplication(
+      {},
+      {
+        overrides: [{ provide: RUN_SCHEDULER, useValue: shutdownScheduler }],
+      },
+    );
+
+    try {
+      const shutdownExecutor = shutdownApp.get(RunExecutor);
+      const created = await request(shutdownApp.getHttpServer())
+        .post('/api/runs')
+        .set('Cookie', operator.cookie)
+        .set('X-XSRF-TOKEN', operator.csrfToken)
+        .set('Idempotency-Key', runKey())
+        .send({
+          planVersionId: normalPlan.revisionId,
+          scenario: RunScenario.NORMAL,
+          seed: 123_456_789,
+        })
+        .expect(202);
+      const runId = (created.body as StartRunResponseBody).runId;
+
+      const release = async (label: string): Promise<void> => {
+        await waitFor(() => shutdownScheduler.pendingCount === 1, label);
+        shutdownScheduler.releasePending();
+      };
+
+      await waitFor(
+        () => shutdownExecutor.activeExecutionCount === 1,
+        'the shutdown executor to claim the run',
+      );
+      await release('the start delay');
+
+      await waitFor(async () => {
+        const step = await prisma.runStep.findFirst({
+          where: { runId, position: 1 },
+        });
+        return (
+          step?.status === RunStepStatus.RUNNING &&
+          shutdownScheduler.pendingCount === 1
+        );
+      }, 'step 1 to start');
+      await release('step 1 sample 0');
+      await waitFor(async () => {
+        const step = await prisma.runStep.findFirst({
+          where: { runId, position: 1 },
+        });
+        return (
+          step?.recordedCount === 1 && shutdownScheduler.pendingCount === 1
+        );
+      }, 'step 1 sample 0 to commit');
+      await release('step 1 sample 1');
+      await waitFor(async () => {
+        const first = await prisma.runStep.findFirst({
+          where: { runId, position: 1 },
+        });
+        const second = await prisma.runStep.findFirst({
+          where: { runId, position: 2 },
+        });
+        return (
+          first?.status === RunStepStatus.COMPLETED &&
+          second?.status === RunStepStatus.RUNNING &&
+          shutdownScheduler.pendingCount === 1
+        );
+      }, 'step 1 to complete and step 2 to start');
+
+      for (let index = 0; index < 3; index += 1) {
+        await release(`step 2 sample ${index}`);
+        await waitFor(async () => {
+          const step = await prisma.runStep.findFirst({
+            where: { runId, position: 2 },
+          });
+          return (
+            step?.recordedCount === index + 1 &&
+            (index === 2
+              ? step.status === RunStepStatus.COMPLETED &&
+                shutdownScheduler.pendingCount === 1
+              : shutdownScheduler.pendingCount === 1)
+          );
+        }, `step 2 sample ${index} to commit`);
+      }
+
+      await waitFor(async () => {
+        const step = await prisma.runStep.findFirst({
+          where: { runId, position: 3 },
+        });
+        return (
+          step?.status === RunStepStatus.RUNNING &&
+          shutdownScheduler.pendingCount === 1
+        );
+      }, 'the final step to start');
+
+      // Every prior clock read is done. The next three reads are the final
+      // sample's recordedAt, the final step's finishedAt and completeRun's
+      // finishedAt inside the locked completion transaction.
+      shutdownScheduler.fireOnNowCall(3, () => {
+        shutdownExecutor.beginShutdown();
+      });
+      shutdownScheduler.releasePending();
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+
+      const stored = await prisma.testRun.findUniqueOrThrow({
+        where: { id: runId },
+        include: { steps: { orderBy: { position: 'asc' } } },
+      });
+      expect(stored.status).toBe(RunStatus.RUNNING);
+      expect(stored.outcome).toBeNull();
+      expect(stored.finishedAt).toBeNull();
+      expect(stored.recordedSampleCount).toBe(6);
+      expect(stored.steps.map((step) => step.status)).toEqual([
+        RunStepStatus.COMPLETED,
+        RunStepStatus.COMPLETED,
+        RunStepStatus.COMPLETED,
+      ]);
+      expect(
+        await prisma.runEvent.count({
+          where: { runId, type: RunEventType.RUN_COMPLETED },
+        }),
+      ).toBe(0);
+      expect(shutdownScheduler.pendingCount).toBe(0);
+    } finally {
+      shutdownScheduler.dispose();
+      if (shutdownApp) {
+        await shutdownApp.close();
+        shutdownApp = undefined as unknown as INestApplication;
+      }
+    }
+  });
+
+  it('includes the beginStep commit duration in the first sample elapsedMs', async () => {
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION "${SLOW_STEP_EVENT_FUNCTION}"()
+      RETURNS trigger
+      LANGUAGE plpgsql
+      AS $$
+      BEGIN
+        PERFORM pg_sleep(0.15);
+        RETURN NEW;
+      END;
+      $$
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TRIGGER "${SLOW_STEP_EVENT_TRIGGER}"
+      BEFORE INSERT ON "run_events"
+      FOR EACH ROW
+      WHEN (NEW."type" = 'step.started')
+      EXECUTE FUNCTION "${SLOW_STEP_EVENT_FUNCTION}"()
+    `);
+
+    const slowScheduler = new RealMonotonicControlledScheduler('paused');
+    let slowApp = await createTestApplication(
+      {},
+      {
+        overrides: [{ provide: RUN_SCHEDULER, useValue: slowScheduler }],
+      },
+    );
+
+    try {
+      const slowExecutor = slowApp.get(RunExecutor);
+      const created = await request(slowApp.getHttpServer())
+        .post('/api/runs')
+        .set('Cookie', operator.cookie)
+        .set('X-XSRF-TOKEN', operator.csrfToken)
+        .set('Idempotency-Key', runKey())
+        .send({
+          planVersionId: normalPlan.revisionId,
+          scenario: RunScenario.NORMAL,
+          seed: 123_456_789,
+        })
+        .expect(202);
+      const runId = (created.body as StartRunResponseBody).runId;
+
+      await waitFor(
+        () => slowExecutor.activeExecutionCount === 1,
+        'the slow executor to claim the run',
+      );
+      await waitFor(() => slowScheduler.pendingCount === 1, 'the start delay');
+      slowScheduler.releasePending();
+      await waitFor(async () => {
+        const step = await prisma.runStep.findFirst({
+          where: { runId, position: 1 },
+        });
+        return (
+          step?.status === RunStepStatus.RUNNING &&
+          slowScheduler.pendingCount === 1
+        );
+      }, 'the slow step start to commit');
+
+      slowScheduler.releasePending();
+      await waitFor(async () => {
+        const measurement = await prisma.measurement.findFirst({
+          where: { runId },
+          orderBy: { sampleIndex: 'asc' },
+        });
+        return measurement !== null;
+      }, 'the first slow sample to commit');
+
+      const first = await prisma.measurement.findFirstOrThrow({
+        where: { runId, sampleIndex: 0 },
+      });
+      // The step.started event insert slept 150 ms inside beginStep. If the
+      // monotonic reference were captured after that commit the value would be
+      // near the controlled interval instead.
+      expect(first.elapsedMs).toBeGreaterThanOrEqual(120);
+
+      await request(slowApp.getHttpServer())
+        .post(`/api/runs/${runId}/cancel`)
+        .set('Cookie', operator.cookie)
+        .set('X-XSRF-TOKEN', operator.csrfToken)
+        .expect(200);
+      await waitFor(
+        () => slowExecutor.activeExecutionCount === 0,
+        'the slow executor to stop after cancel',
+      );
+    } finally {
+      slowScheduler.dispose();
+      if (slowApp) {
+        await slowApp.close();
+        slowApp = undefined as unknown as INestApplication;
+      }
+      await dropSlowStepEventTrigger();
+    }
+  });
+
   it('rejects stale execution writes after a terminal status', async () => {
     scheduler.setMode('paused');
     const started = await startRun(normalPlan, {
@@ -830,7 +1114,7 @@ describe('sequential run execution (e2e)', () => {
     ).toBe(0);
   });
 
-  it('rejects duplicate terminal writes and a stale executor restart', async () => {
+  it('rejects duplicate measurement inserts and a stale executor restart after completion', async () => {
     const started = await startRun(normalPlan, {
       scenario: RunScenario.NORMAL,
     });
@@ -886,6 +1170,62 @@ describe('sequential run execution (e2e)', () => {
       outcome: RunOutcome.PASSED,
       recordedSampleCount: 6,
     });
+  });
+
+  it('rejects new measurements, rule edits and stale step writes after the run is terminal', async () => {
+    const started = await startRun(normalPlan, {
+      scenario: RunScenario.NORMAL,
+    });
+    const run = await waitForTerminal(started.runId);
+    expect(run.status).toBe(RunStatus.COMPLETED);
+
+    const step = await prisma.runStep.findFirstOrThrow({
+      where: { runId: started.runId, position: 1 },
+    });
+
+    await expect(
+      prisma.measurement.create({
+        data: {
+          runId: started.runId,
+          runStepId: step.id,
+          sampleIndex: step.sampleCount,
+          value: '4.750000',
+          isWithinTolerance: true,
+          recordedAt: new Date(),
+          elapsedMs: 0,
+        },
+      }),
+    ).rejects.toThrow(/Measurements cannot be added to a terminal run/);
+
+    await expect(
+      prisma.runStep.update({
+        where: { id: step.id },
+        data: { status: RunStepStatus.RUNNING, startedAt: new Date() },
+      }),
+    ).rejects.toThrow(/A terminal step status is immutable/);
+
+    await expect(
+      prisma.runStep.update({
+        where: { id: step.id },
+        data: { minimum: '0.000000' },
+      }),
+    ).rejects.toThrow(/Run rule copy fields are immutable/);
+
+    await expect(
+      prisma.testRun.update({
+        where: { id: started.runId },
+        data: { planNameSnapshot: 'Changed after completion' },
+      }),
+    ).rejects.toThrow(/Run snapshot fields are immutable/);
+
+    expect(
+      await prisma.measurement.count({ where: { runId: started.runId } }),
+    ).toBe(6);
+    expect(
+      await prisma.runEvent.count({
+        where: { runId: started.runId, type: RunEventType.RUN_COMPLETED },
+      }),
+    ).toBe(1);
   });
 
   it('marks an unexpected execution failure ERROR and emits run.errored', async () => {

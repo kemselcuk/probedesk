@@ -1,5 +1,16 @@
 // Phase 3 UI evidence: run details, start form and cancel via real Chrome.
-// Usage: node scripts/phase-3-ui-check.mjs
+//
+// Prerequisites:
+//   1. API running (e.g. PORT=3100 node apps/api/dist/main.js)
+//   2. Angular dev server on :4200 with a proxy to that API, e.g.
+//      cd apps/web && npx ng serve --port 4200 --proxy-config <proxy-to-api>.json
+//   3. Two completed runs (one FORCED_FAILURE, one NORMAL) created by
+//      scripts/phase-3-demo.mjs, plus a published version id.
+//
+// Usage:
+//   VERSION_ID=<published-version-uuid> \
+//   FORCED_RUN=<failed-run-uuid> NORMAL_RUN=<passed-run-uuid> \
+//   node scripts/phase-3-ui-check.mjs
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -7,10 +18,14 @@ import { join } from 'node:path';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 9336;
-const APP = 'http://127.0.0.1:4200';
-const VERSION_ID = '4d06f8a1-d827-43de-9833-54d4b655326c';
-const FORCED_RUN = '28f167a3-2e23-4e42-8cf1-c5c8e2b16b6c';
-const NORMAL_RUN = 'd6b277f6-376c-4b36-98aa-624a8db9d9ee';
+const APP = process.env.APP_URL ?? 'http://127.0.0.1:4200';
+const VERSION_ID = process.env.VERSION_ID;
+const FORCED_RUN = process.env.FORCED_RUN;
+const NORMAL_RUN = process.env.NORMAL_RUN;
+
+for (const [name, value] of Object.entries({ VERSION_ID, FORCED_RUN, NORMAL_RUN })) {
+  if (!value) throw new Error(`${name} is required (see the usage comment)`);
+}
 
 const userDataDir = mkdtempSync(join(tmpdir(), 'probedesk-chrome-'));
 const chrome = spawn(CHROME, [
@@ -173,9 +188,15 @@ async function main() {
   })()`);
   await waitFor(cdp, `document.querySelector('#start-run-submit') && !document.querySelector('#start-run-submit').disabled`);
   await evaluate(cdp, `document.querySelector('form').requestSubmit()`);
-  await waitFor(cdp, `location.pathname.startsWith('/runs/') && location.pathname.endsWith('/live')`, 25000);
+  // The application itself must navigate from the form to the run details screen.
+  await waitFor(cdp, `location.pathname.startsWith('/runs/') && !location.pathname.endsWith('/live')`, 25000);
   const startedRunId = await evaluate(cdp, `location.pathname.split('/')[2]`);
+  await waitFor(cdp, `document.body.innerText.includes('Run Details')`);
 
+  // The P4 live placeholder must still offer a working link back to details.
+  await navigate(cdp, `/runs/${startedRunId}/live`);
+  await waitFor(cdp, `document.body.innerText.includes('View run details')`);
+  const liveDetailsHref = await evaluate(cdp, `document.querySelector('a[href*="/runs/"]')?.getAttribute('href') ?? null`);
   await navigate(cdp, `/runs/${startedRunId}`);
   await waitFor(cdp, `!!document.querySelector('#cancel-run-button')`);
   await evaluate(cdp, `document.querySelector('#cancel-run-button').click()`);
@@ -208,6 +229,7 @@ async function main() {
         normal,
         startForm: form,
         startedRunId,
+        liveDetailsHref,
         cancelDialogTitle: dialogTitle,
         cancelled,
         exceptions,

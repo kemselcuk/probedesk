@@ -31,11 +31,18 @@ const TRANSACTION_OPTIONS = { timeout: 10_000, maxWait: 5_000 } as const;
  * The first successful pass is cached; a failed pass is retried on the next
  * readiness request so a database that comes back can finish reconciliation
  * without a restart. Until then readiness and new run starts stay unavailable.
+ *
+ * A cached success is invalidated by `markDirty()`. The executor calls it when
+ * a technical failure could not be persisted (for example during a database
+ * outage), which leaves a RUNNING row behind. Readiness and starts then run
+ * recovery again instead of trusting the stale success forever.
  */
 @Injectable()
 export class RunRecoveryService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RunRecoveryService.name);
   private completed = false;
+  private dirty = false;
+  private generation = 0;
   private inFlight: Promise<boolean> | null = null;
 
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -51,7 +58,23 @@ export class RunRecoveryService implements OnApplicationBootstrap {
 
   /** True once every leftover RUNNING run has been reconciled. */
   get isComplete(): boolean {
-    return this.completed;
+    return this.completed && !this.dirty;
+  }
+
+  /** True when a later success must not be treated as the cached final pass. */
+  get isDirty(): boolean {
+    return this.dirty;
+  }
+
+  /**
+   * Invalidates a cached success because this process knows it left a RUNNING
+   * row that no recovery pass has reconciled yet. Any recovery already in
+   * flight cannot clear this generation.
+   */
+  markDirty(): void {
+    this.dirty = true;
+    this.completed = false;
+    this.generation += 1;
   }
 
   /**
@@ -60,7 +83,7 @@ export class RunRecoveryService implements OnApplicationBootstrap {
    * the driver error text is never logged or returned.
    */
   ensureCompleted(): Promise<boolean> {
-    if (this.completed) {
+    if (this.completed && !this.dirty) {
       return Promise.resolve(true);
     }
 
@@ -81,6 +104,8 @@ export class RunRecoveryService implements OnApplicationBootstrap {
   }
 
   private async recover(): Promise<boolean> {
+    const generation = this.generation;
+
     try {
       await this.prisma.assertMigrationsApplied();
     } catch {
@@ -100,8 +125,8 @@ export class RunRecoveryService implements OnApplicationBootstrap {
       if (isMissingSchemaObject(error)) {
         // The migration manifest can be marked applied while a test database
         // has no run tables. There cannot be old runs without those tables.
-        this.completed = true;
-        return true;
+        // A dirty mark that arrived during this pass still wins.
+        return this.finishPass(generation);
       }
       return false;
     }
@@ -110,23 +135,45 @@ export class RunRecoveryService implements OnApplicationBootstrap {
       await this.recoverRun(run.id);
     }
 
+    return this.finishPass(generation);
+  }
+
+  /**
+   * Caches the pass only when no dirty mark or newer pass invalidated it while
+   * it was running. A database that came back is thereby reconciled before
+   * readiness or a new start is allowed.
+   */
+  private finishPass(generation: number): boolean {
+    if (this.generation !== generation) {
+      this.dirty = true;
+      this.completed = false;
+      return false;
+    }
+
     this.completed = true;
+    this.dirty = false;
     return true;
   }
 
   private async recoverRun(runId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      const current = await tx.testRun.findUnique({
-        where: { id: runId },
-        select: { status: true, startedAt: true },
-      });
-      if (!current || current.status !== RunStatus.RUNNING) {
+      // Lock first, then timestamp: the interrupted run's finishedAt and the
+      // event time follow commit order (B7). A run finalized by another actor
+      // is left exactly as committed.
+      const current = await tx.$queryRaw<
+        Array<{ status: RunStatus; startedAt: Date }>
+      >`
+        SELECT "status", "startedAt"
+        FROM "test_runs"
+        WHERE "id" = ${runId}::uuid
+        FOR UPDATE
+      `;
+      const row = current[0];
+      if (!row || row.status !== RunStatus.RUNNING) {
         return;
       }
 
-      const finishedAt = terminalTimestamp(current.startedAt);
-      // The conditional UPDATE locks the run row and re-checks RUNNING. A run
-      // finalized by another actor is left exactly as committed.
+      const finishedAt = terminalTimestamp(row.startedAt);
       const transitioned = await tx.testRun.updateMany({
         where: { id: runId, status: RunStatus.RUNNING },
         data: {

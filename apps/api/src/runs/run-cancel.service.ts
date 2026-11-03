@@ -38,19 +38,25 @@ export class RunCancellationService {
     cancelledById: string,
   ): Promise<RunSnapshotDto | null> {
     await this.prisma.$transaction(async (tx) => {
-      const current = await tx.testRun.findUnique({
-        where: { id: runId },
-        select: { status: true, startedAt: true },
-      });
-
-      if (!current) {
+      // Lock first, then timestamp. If a step completion or run finalization
+      // already holds the row lock, this transaction waits for it and computes
+      // finishedAt after that commit, so terminal timestamps and event times
+      // follow commit order (B7). A run finalized by another actor is left
+      // exactly as committed.
+      const current = await tx.$queryRaw<
+        Array<{ status: RunStatus; startedAt: Date }>
+      >`
+        SELECT "status", "startedAt"
+        FROM "test_runs"
+        WHERE "id" = ${runId}::uuid
+        FOR UPDATE
+      `;
+      const row = current[0];
+      if (!row || row.status !== RunStatus.RUNNING) {
         return;
       }
 
-      // This conditional UPDATE is the row lock and the status re-check. If a
-      // completion, error or earlier cancel committed first, count is zero and
-      // no step or event is touched.
-      const finishedAt = terminalTimestamp(current.startedAt);
+      const finishedAt = terminalTimestamp(row.startedAt);
       const transitioned = await tx.testRun.updateMany({
         where: { id: runId, status: RunStatus.RUNNING },
         data: {

@@ -32,6 +32,7 @@ import {
   type StepStatistics,
 } from './measurement-evaluation.js';
 import { RUN_EVENT_SCHEMA_VERSION } from './run-domain.js';
+import { RunRecoveryService } from './run-recovery.service.js';
 import {
   RUN_SCHEDULER,
   type RunScheduler,
@@ -132,10 +133,14 @@ export class RunExecutor implements OnModuleDestroy {
   private readonly logger = new Logger(RunExecutor.name);
   /** In-process cancellation registry: one execution state per run id. */
   private readonly executions = new Map<string, ExecutionState>();
+  /** Set by controlled shutdown; checked again inside the completion commit. */
+  private shuttingDown = false;
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RUN_SCHEDULER) private readonly scheduler: RunScheduler,
+    @Inject(RunRecoveryService)
+    private readonly recovery: RunRecoveryService,
   ) {}
 
   /**
@@ -182,13 +187,20 @@ export class RunExecutor implements OnModuleDestroy {
 
   /**
    * Controlled shutdown stops timers and leaves the run data untouched for
-   * startup recovery. It never writes a terminal status.
+   * startup recovery. It never writes a terminal status. The flag stays set so
+   * a completion transaction that already started cannot commit COMPLETED.
    */
-  onModuleDestroy(): void {
+  beginShutdown(): void {
+    this.shuttingDown = true;
+
     for (const state of this.executions.values()) {
       this.stopExecution(state);
     }
     this.executions.clear();
+  }
+
+  onModuleDestroy(): void {
+    this.beginShutdown();
   }
 
   private async runExecution(
@@ -228,12 +240,15 @@ export class RunExecutor implements OnModuleDestroy {
       }
 
       const startedAt = this.scheduler.now();
+      // Capture the step's elapsed reference at the start, before the
+      // beginStep commit. The first sample's elapsedMs therefore includes the
+      // commit duration instead of starting after it (B8).
+      const stepStartedMonotonic = this.scheduler.monotonicMs();
       const started = await this.beginStep(runId, plannedStep.step, startedAt);
       if (!started) {
         return;
       }
 
-      const stepStartedMonotonic = this.scheduler.monotonicMs();
       for (const sample of plannedStep.samples) {
         await this.wait(state, plannedStep.step.intervalMs);
 
@@ -815,6 +830,10 @@ export class RunExecutor implements OnModuleDestroy {
   }
 
   private async completeRun(runId: string): Promise<boolean> {
+    if (this.shuttingDown) {
+      return false;
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const locked = await tx.testRun.updateMany({
         where: { id: runId, status: RunStatus.RUNNING },
@@ -878,6 +897,14 @@ export class RunExecutor implements OnModuleDestroy {
         (step) => step.outcome === RunOutcome.PASSED,
       ).length;
 
+      // Controlled shutdown may have begun while this transaction waited for
+      // the row lock. Leaving the run RUNNING lets startup recovery mark it
+      // INTERRUPTED. Throwing (rather than returning false) rolls back the
+      // event-sequence increment already taken under the lock.
+      if (this.shuttingDown) {
+        throw new RunStoppedError();
+      }
+
       await tx.testRun.update({
         where: { id: runId },
         data: {
@@ -906,6 +933,12 @@ export class RunExecutor implements OnModuleDestroy {
           },
         },
       });
+
+      // A shutdown arriving during the event insert still rolls the whole
+      // completion back; the remaining window is the commit itself.
+      if (this.shuttingDown) {
+        throw new RunStoppedError();
+      }
 
       return true;
     }, TRANSACTION_OPTIONS);
@@ -994,8 +1027,11 @@ export class RunExecutor implements OnModuleDestroy {
         });
       }, TRANSACTION_OPTIONS);
     } catch {
-      // A database that cannot record the failure leaves the row for P3-08
-      // recovery. Never print driver errors: they may contain SQL or the DSN.
+      // A database that cannot record the failure leaves the row RUNNING. Mark
+      // recovery dirty so readiness and new starts re-run reconciliation after
+      // the database returns instead of trusting an old cached success (B4).
+      // Never print driver errors: they may contain SQL or the DSN.
+      this.recovery.markDirty();
       this.logger.error(
         `Run ${runId} could not be marked ERROR; recovery is required.`,
         undefined,
