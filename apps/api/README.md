@@ -267,6 +267,119 @@ their candidate rows. No extra index was added for this endpoint; a
 `startedAt`-leading index is the possible next optimization if history volume
 requires it.
 
+## Run comparison
+
+`GET /api/comparisons?leftRunId=<uuid>&rightRunId=<uuid>` compares two
+terminal runs of one plan for a Planner, Operator or Viewer. Both ids are
+required and must be UUIDs. Unknown ids answer `404 NOT_FOUND` without saying
+which side is missing.
+
+- A `RUNNING` run is rejected with `409 RUN_NOT_TERMINAL`; `details.leftStatus`
+  and `details.rightStatus` identify the non-terminal side. `COMPLETED`,
+  `CANCELLED`, `INTERRUPTED` and `ERROR` are all comparable.
+- The same run on both sides is `400 VALIDATION_ERROR` with a `rightRunId`
+  field error.
+- Different versions of the same plan are accepted. Different plans answer
+  `422 COMPARISON_PLAN_MISMATCH` with `details.leftPlanId` and
+  `details.rightPlanId`.
+- Missing, malformed, duplicated or unknown query parameters answer
+  `400 VALIDATION_ERROR`.
+
+Steps are matched only by the persistent `logicalStepId`; names and positions
+never participate in matching. Renames and reorders therefore keep their
+match, while deleting a step and adding a new one with the same display name
+produces one removed and one added step with different identities.
+
+```json
+{
+  "planId": "…",
+  "versionDifference": {
+    "sameVersion": false,
+    "leftVersionNumber": 1,
+    "rightVersionNumber": 2
+  },
+  "leftRun": {
+    "id": "…",
+    "planId": "…",
+    "planVersionId": "…",
+    "planName": "Variant plan v1",
+    "versionNumber": 1,
+    "profile": { "id": "…", "code": "DC_POWER_MODULE", "name": "DC Power Module", "description": null },
+    "scenario": "NORMAL",
+    "seed": 222,
+    "errorProbability": null,
+    "failureStepId": null,
+    "simulatorVersion": "mulberry32-v1",
+    "evaluationVersion": "decimal-v1",
+    "status": "COMPLETED",
+    "outcome": "PASSED",
+    "startedAt": "2026-11-03T12:00:00.000Z",
+    "finishedAt": "2026-11-03T12:00:01.000Z",
+    "requestedBy": { "id": "…", "email": "operator@example.com", "role": "OPERATOR" },
+    "reasonCode": null,
+    "expectedSampleCount": 5,
+    "recordedSampleCount": 5,
+    "outOfToleranceCount": 0,
+    "stepCount": 3,
+    "partial": false
+  },
+  "rightRun": { "...": "Same shape as leftRun" },
+  "matchedSteps": [
+    {
+      "logicalStepId": "…",
+      "changedFields": [
+        { "field": "unit", "left": "A", "right": "mA" },
+        { "field": "position", "left": 2, "right": 1 },
+        { "field": "minimum", "left": "0.450000", "right": "450.000000" },
+        { "field": "maximum", "left": "0.550000", "right": "550.000000" }
+      ],
+      "numericComparison": {
+        "comparable": false,
+        "reason": "UNIT_MISMATCH",
+        "statistics": null
+      },
+      "left": { "...": "RunSnapshotStepDto with stored summary and measurements" },
+      "right": { "...": "RunSnapshotStepDto with stored summary and measurements" }
+    }
+  ],
+  "addedSteps": [{ "...": "right-only RunSnapshotStepDto" }],
+  "removedSteps": [{ "...": "left-only RunSnapshotStepDto" }]
+}
+```
+
+- `changedFields` is an array of `{field, left, right}` objects in the fixed
+  order `name`, `unit`, `position`, `minimum`, `maximum`, `sampleCount`,
+  `intervalMs`. Only changed fields are present; each value comes from that
+  run's own snapshot.
+- `leftRun` and `rightRun` are run summaries; the embedded `left`/`right` step
+  objects use the run snapshot step shape: copied rules, verdict, counters,
+  stored statistics and measurements. A finished run is never re-evaluated with
+  another version's limits.
+- `addedSteps` contains only right-run steps and `removedSteps` only left-run
+  steps. The absent side is not represented by a zero-filled or empty step.
+- When a matched step has the same unit, `numericComparison.statistics` holds
+  side-by-side values and `delta = right - left` (six-fraction-digit decimal
+  text; sample count is an integer). When units differ, `comparable` is false,
+  `reason` is `UNIT_MISMATCH` and `statistics` is `null`; no numeric delta is
+  produced.
+- Each measurement series keeps its own `sampleIndex` and `elapsedMs`. The API
+  never interpolates, normalises, pads or index-aligns two series, even when
+  `sampleCount` or `intervalMs` changed.
+- A partial terminal run remains comparable. Its missing statistics are `null`
+  in every member and its missing measurements are an empty array; no `0` or
+  `PASSED` placeholder is inserted. `leftRun.partial` / `rightRun.partial` is
+  true.
+- Matched steps are ordered by the left position and then `logicalStepId`;
+  added/removed steps by their own side's position then `logicalStepId`. The
+  response contains no generated timestamp and identical stored data always
+  serialises identically.
+- Both runs, their steps and measurements are read in one `REPEATABLE READ`
+  transaction. The endpoint never queries the live plan or draft.
+
+The OpenAPI document contains the `RunComparisonDto`, matched/one-sided step,
+rule-change and numeric-comparison schemas. The generated client package must
+be rebuilt from this document before the comparison UI uses the new types.
+
 ## Run event stream (SSE)
 
 `GET /api/runs/:id/events` streams the committed `RunEvent` rows for one run to

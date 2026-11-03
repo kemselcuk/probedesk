@@ -1377,6 +1377,104 @@
           "plan-versions"
         ]
       }
+    },
+    "/api/comparisons": {
+      "get": {
+        "operationId": "ComparisonsController_compare",
+        "parameters": [
+          {
+            "name": "leftRunId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Left (base) run id."
+          },
+          {
+            "name": "rightRunId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Right (comparison) run id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Both immutable run summaries, the version difference, logicalStepId matches with changed rule fields, and one-sided added/removed steps. Matching never uses names or order; each run keeps its own limits, verdict and measurement series. Numeric deltas exist only when a matched step has the same unit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunComparisonDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A run id is missing, malformed, duplicated or supplied with an unknown query parameter; both ids are also required to differ.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "One or both run ids do not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RUN_NOT_TERMINAL when either run is still RUNNING. Terminal statuses COMPLETED, CANCELLED, INTERRUPTED and ERROR are accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "COMPARISON_PLAN_MISMATCH when the runs belong to different plans. Different versions of one plan are accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Compare two terminal runs of the same plan.",
+        "tags": [
+          "comparisons"
+        ]
+      }
     }
   },
   "info": {
@@ -2806,6 +2904,439 @@
           "publishedAt",
           "name",
           "publishedBy"
+        ]
+      },
+      "ComparisonVersionDifferenceDto": {
+        "type": "object",
+        "properties": {
+          "sameVersion": {
+            "type": "boolean",
+            "example": false,
+            "description": "True when both runs executed the same plan version."
+          },
+          "leftVersionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "rightVersionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 2
+          }
+        },
+        "required": [
+          "sameVersion",
+          "leftVersionNumber",
+          "rightVersionNumber"
+        ]
+      },
+      "ComparisonRunSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "profile": {
+            "$ref": "#/components/schemas/DeviceProfileDto"
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "example": "NORMAL"
+          },
+          "seed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4294967295,
+            "example": 123456789
+          },
+          "errorProbability": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Canonical probability for RANDOM, otherwise null."
+          },
+          "failureStepId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "Logical step selected for FORCED_FAILURE, otherwise null."
+          },
+          "simulatorVersion": {
+            "type": "string",
+            "example": "mulberry32-v1"
+          },
+          "evaluationVersion": {
+            "type": "string",
+            "example": "decimal-v1"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "COMPLETED"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Overall verdict; null for CANCELLED, INTERRUPTED and ERROR runs."
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requestedBy": {
+            "$ref": "#/components/schemas/RunRequestedByDto"
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Safe technical/cancellation reason code, if any."
+          },
+          "expectedSampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10000,
+            "example": 6
+          },
+          "recordedSampleCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 6
+          },
+          "outOfToleranceCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "stepCount": {
+            "type": "number",
+            "minimum": 1,
+            "example": 3,
+            "description": "Number of copied steps in this run."
+          },
+          "partial": {
+            "type": "boolean",
+            "example": false,
+            "description": "True when the run is not COMPLETED or recorded fewer samples than expected."
+          }
+        },
+        "required": [
+          "id",
+          "planId",
+          "planVersionId",
+          "planName",
+          "versionNumber",
+          "profile",
+          "scenario",
+          "seed",
+          "errorProbability",
+          "failureStepId",
+          "simulatorVersion",
+          "evaluationVersion",
+          "status",
+          "outcome",
+          "startedAt",
+          "finishedAt",
+          "requestedBy",
+          "reasonCode",
+          "expectedSampleCount",
+          "recordedSampleCount",
+          "outOfToleranceCount",
+          "stepCount",
+          "partial"
+        ]
+      },
+      "ComparisonRuleChangeDto": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "name",
+              "unit",
+              "position",
+              "minimum",
+              "maximum",
+              "sampleCount",
+              "intervalMs"
+            ],
+            "example": "minimum"
+          },
+          "left": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "example": "4.750000",
+            "description": "Left run value: decimal text for limits, integer otherwise."
+          },
+          "right": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "example": "4.500000",
+            "description": "Right run value: decimal text for limits, integer otherwise."
+          }
+        },
+        "required": [
+          "field",
+          "left",
+          "right"
+        ]
+      },
+      "ComparisonDecimalValueDto": {
+        "type": "object",
+        "properties": {
+          "left": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "4.980000",
+            "description": "Left run value, or null when that run has no summary."
+          },
+          "right": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.020000",
+            "description": "Right run value, or null when that run has no summary."
+          },
+          "delta": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "0.040000",
+            "description": "right - left as a canonical six-place decimal. Null when either side is missing; never zero-filled."
+          }
+        },
+        "required": [
+          "left",
+          "right",
+          "delta"
+        ]
+      },
+      "ComparisonCountValueDto": {
+        "type": "object",
+        "properties": {
+          "left": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "example": 2,
+            "description": "Left run value, or null when that run has no summary."
+          },
+          "right": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "example": 3
+          },
+          "delta": {
+            "type": "number",
+            "nullable": true,
+            "example": 1,
+            "description": "right - left, or null when either side is missing."
+          }
+        },
+        "required": [
+          "left",
+          "right",
+          "delta"
+        ]
+      },
+      "ComparisonStatisticsDto": {
+        "type": "object",
+        "properties": {
+          "minimum": {
+            "$ref": "#/components/schemas/ComparisonDecimalValueDto"
+          },
+          "maximum": {
+            "$ref": "#/components/schemas/ComparisonDecimalValueDto"
+          },
+          "average": {
+            "$ref": "#/components/schemas/ComparisonDecimalValueDto"
+          },
+          "sampleCount": {
+            "$ref": "#/components/schemas/ComparisonCountValueDto"
+          }
+        },
+        "required": [
+          "minimum",
+          "maximum",
+          "average",
+          "sampleCount"
+        ]
+      },
+      "ComparisonNumericComparisonDto": {
+        "type": "object",
+        "properties": {
+          "comparable": {
+            "type": "boolean",
+            "example": true,
+            "description": "True exactly when both steps use the same unit."
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "SAME_UNIT",
+              "UNIT_MISMATCH"
+            ],
+            "example": "SAME_UNIT"
+          },
+          "statistics": {
+            "nullable": true,
+            "description": "Side-by-side summaries for the same unit, or null when units differ. Deltas are right - left.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonStatisticsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "comparable",
+          "reason",
+          "statistics"
+        ]
+      },
+      "ComparisonMatchedStepDto": {
+        "type": "object",
+        "properties": {
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "changedFields": {
+            "description": "Changed rule fields in fixed order: name, unit, position, minimum, maximum, sampleCount, intervalMs. Empty when the rules are identical.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRuleChangeDto"
+            }
+          },
+          "numericComparison": {
+            "$ref": "#/components/schemas/ComparisonNumericComparisonDto"
+          },
+          "left": {
+            "description": "Left run step with its own copied limits, verdict and measurement series. The series is never aligned to the right one.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunSnapshotStepDto"
+              }
+            ]
+          },
+          "right": {
+            "description": "Right run step with its own copied limits, verdict and measurement series. The series is never aligned to the left one.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunSnapshotStepDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "logicalStepId",
+          "changedFields",
+          "numericComparison",
+          "left",
+          "right"
+        ]
+      },
+      "RunComparisonDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The shared plan id. Both runs always belong to this plan."
+          },
+          "versionDifference": {
+            "$ref": "#/components/schemas/ComparisonVersionDifferenceDto"
+          },
+          "leftRun": {
+            "$ref": "#/components/schemas/ComparisonRunSummaryDto"
+          },
+          "rightRun": {
+            "$ref": "#/components/schemas/ComparisonRunSummaryDto"
+          },
+          "matchedSteps": {
+            "description": "Steps present in both runs, ordered by left position then logicalStepId.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComparisonMatchedStepDto"
+            }
+          },
+          "addedSteps": {
+            "description": "Steps that exist only in the right run, ordered by right position then logicalStepId. The left side is absent, not zero-filled.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSnapshotStepDto"
+            }
+          },
+          "removedSteps": {
+            "description": "Steps that exist only in the left run, ordered by left position then logicalStepId. The right side is absent, not zero-filled.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSnapshotStepDto"
+            }
+          }
+        },
+        "required": [
+          "planId",
+          "versionDifference",
+          "leftRun",
+          "rightRun",
+          "matchedSteps",
+          "addedSteps",
+          "removedSteps"
         ]
       }
     }

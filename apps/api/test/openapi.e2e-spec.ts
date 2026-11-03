@@ -31,6 +31,7 @@ describe('OpenAPI document (e2e)', () => {
       '/api/auth/login',
       '/api/auth/logout',
       '/api/auth/me',
+      '/api/comparisons',
       '/api/device-profiles',
       '/api/health/live',
       '/api/health/ready',
@@ -176,6 +177,31 @@ describe('OpenAPI document (e2e)', () => {
     expect(document.paths['/api/runs/{id}/events']?.get?.security).toEqual([
       { session: [] },
     ]);
+    expect(document.paths['/api/comparisons']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(document.paths['/api/comparisons']?.get?.responses).toHaveProperty(
+      '200',
+    );
+    expect(document.paths['/api/comparisons']?.get?.responses).toHaveProperty(
+      '400',
+    );
+    expect(document.paths['/api/comparisons']?.get?.responses).toHaveProperty(
+      '401',
+    );
+    expect(document.paths['/api/comparisons']?.get?.responses).toHaveProperty(
+      '404',
+    );
+    expect(document.paths['/api/comparisons']?.get?.responses).toHaveProperty(
+      '409',
+    );
+    expect(document.paths['/api/comparisons']?.get?.responses).toHaveProperty(
+      '422',
+    );
+    expect(document.components?.schemas).toHaveProperty('RunComparisonDto');
+    expect(document.components?.schemas).toHaveProperty(
+      'ComparisonMatchedStepDto',
+    );
     expect(
       document.paths['/api/runs/{id}/events']?.get?.responses,
     ).toHaveProperty('200');

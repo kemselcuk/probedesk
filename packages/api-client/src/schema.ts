@@ -324,6 +324,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/comparisons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compare two terminal runs of the same plan. */
+        get: operations["ComparisonsController_compare"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -919,6 +936,179 @@ export interface components {
             /** @example Power rail verification */
             name: string;
             publishedBy: components["schemas"]["PublishedBySummaryDto"];
+        };
+        ComparisonVersionDifferenceDto: {
+            /**
+             * @description True when both runs executed the same plan version.
+             * @example false
+             */
+            sameVersion: boolean;
+            /** @example 1 */
+            leftVersionNumber: number;
+            /** @example 2 */
+            rightVersionNumber: number;
+        };
+        ComparisonRunSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            planId: string;
+            /** Format: uuid */
+            planVersionId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example 1 */
+            versionNumber: number;
+            profile: components["schemas"]["DeviceProfileDto"];
+            /**
+             * @example NORMAL
+             * @enum {string}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+            /** @example 123456789 */
+            seed: number;
+            /**
+             * @description Canonical probability for RANDOM, otherwise null.
+             * @example null
+             */
+            errorProbability: string | null;
+            /**
+             * Format: uuid
+             * @description Logical step selected for FORCED_FAILURE, otherwise null.
+             */
+            failureStepId: string | null;
+            /** @example mulberry32-v1 */
+            simulatorVersion: string;
+            /** @example decimal-v1 */
+            evaluationVersion: string;
+            /**
+             * @example COMPLETED
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+            /**
+             * @description Overall verdict; null for CANCELLED, INTERRUPTED and ERROR runs.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            requestedBy: components["schemas"]["RunRequestedByDto"];
+            /** @description Safe technical/cancellation reason code, if any. */
+            reasonCode: string | null;
+            /** @example 6 */
+            expectedSampleCount: number;
+            /** @example 6 */
+            recordedSampleCount: number;
+            /** @example 0 */
+            outOfToleranceCount: number;
+            /**
+             * @description Number of copied steps in this run.
+             * @example 3
+             */
+            stepCount: number;
+            /**
+             * @description True when the run is not COMPLETED or recorded fewer samples than expected.
+             * @example false
+             */
+            partial: boolean;
+        };
+        ComparisonRuleChangeDto: {
+            /**
+             * @example minimum
+             * @enum {string}
+             */
+            field: "name" | "unit" | "position" | "minimum" | "maximum" | "sampleCount" | "intervalMs";
+            /**
+             * @description Left run value: decimal text for limits, integer otherwise.
+             * @example 4.750000
+             */
+            left: string | number;
+            /**
+             * @description Right run value: decimal text for limits, integer otherwise.
+             * @example 4.500000
+             */
+            right: string | number;
+        };
+        ComparisonDecimalValueDto: {
+            /**
+             * @description Left run value, or null when that run has no summary.
+             * @example 4.980000
+             */
+            left: string | null;
+            /**
+             * @description Right run value, or null when that run has no summary.
+             * @example 5.020000
+             */
+            right: string | null;
+            /**
+             * @description right - left as a canonical six-place decimal. Null when either side is missing; never zero-filled.
+             * @example 0.040000
+             */
+            delta: string | null;
+        };
+        ComparisonCountValueDto: {
+            /**
+             * @description Left run value, or null when that run has no summary.
+             * @example 2
+             */
+            left: number | null;
+            /** @example 3 */
+            right: number | null;
+            /**
+             * @description right - left, or null when either side is missing.
+             * @example 1
+             */
+            delta: number | null;
+        };
+        ComparisonStatisticsDto: {
+            minimum: components["schemas"]["ComparisonDecimalValueDto"];
+            maximum: components["schemas"]["ComparisonDecimalValueDto"];
+            average: components["schemas"]["ComparisonDecimalValueDto"];
+            sampleCount: components["schemas"]["ComparisonCountValueDto"];
+        };
+        ComparisonNumericComparisonDto: {
+            /**
+             * @description True exactly when both steps use the same unit.
+             * @example true
+             */
+            comparable: boolean;
+            /**
+             * @example SAME_UNIT
+             * @enum {string}
+             */
+            reason: "SAME_UNIT" | "UNIT_MISMATCH";
+            /** @description Side-by-side summaries for the same unit, or null when units differ. Deltas are right - left. */
+            statistics: components["schemas"]["ComparisonStatisticsDto"] | null;
+        };
+        ComparisonMatchedStepDto: {
+            /** Format: uuid */
+            logicalStepId: string;
+            /** @description Changed rule fields in fixed order: name, unit, position, minimum, maximum, sampleCount, intervalMs. Empty when the rules are identical. */
+            changedFields: components["schemas"]["ComparisonRuleChangeDto"][];
+            numericComparison: components["schemas"]["ComparisonNumericComparisonDto"];
+            /** @description Left run step with its own copied limits, verdict and measurement series. The series is never aligned to the right one. */
+            left: components["schemas"]["RunSnapshotStepDto"];
+            /** @description Right run step with its own copied limits, verdict and measurement series. The series is never aligned to the left one. */
+            right: components["schemas"]["RunSnapshotStepDto"];
+        };
+        RunComparisonDto: {
+            /**
+             * Format: uuid
+             * @description The shared plan id. Both runs always belong to this plan.
+             */
+            planId: string;
+            versionDifference: components["schemas"]["ComparisonVersionDifferenceDto"];
+            leftRun: components["schemas"]["ComparisonRunSummaryDto"];
+            rightRun: components["schemas"]["ComparisonRunSummaryDto"];
+            /** @description Steps present in both runs, ordered by left position then logicalStepId. */
+            matchedSteps: components["schemas"]["ComparisonMatchedStepDto"][];
+            /** @description Steps that exist only in the right run, ordered by right position then logicalStepId. The left side is absent, not zero-filled. */
+            addedSteps: components["schemas"]["RunSnapshotStepDto"][];
+            /** @description Steps that exist only in the left run, ordered by left position then logicalStepId. The right side is absent, not zero-filled. */
+            removedSteps: components["schemas"]["RunSnapshotStepDto"][];
         };
     };
     responses: never;
@@ -1889,6 +2079,76 @@ export interface operations {
             };
             /** @description The version does not exist or is not published. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    ComparisonsController_compare: {
+        parameters: {
+            query: {
+                /** @description Left (base) run id. */
+                leftRunId: string;
+                /** @description Right (comparison) run id. */
+                rightRunId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Both immutable run summaries, the version difference, logicalStepId matches with changed rule fields, and one-sided added/removed steps. Matching never uses names or order; each run keeps its own limits, verdict and measurement series. Numeric deltas exist only when a matched step has the same unit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunComparisonDto"];
+                };
+            };
+            /** @description A run id is missing, malformed, duplicated or supplied with an unknown query parameter; both ids are also required to differ. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description One or both run ids do not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description RUN_NOT_TERMINAL when either run is still RUNNING. Terminal statuses COMPLETED, CANCELLED, INTERRUPTED and ERROR are accepted. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description COMPARISON_PLAN_MISMATCH when the runs belong to different plans. Different versions of one plan are accepted. */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

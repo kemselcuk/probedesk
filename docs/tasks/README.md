@@ -91,7 +91,7 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P6-01 — Karşılaştırma API'si](P6-01.md) | Backend | Planned |
+| [P6-01 — Karşılaştırma API'si](P6-01.md) | Backend | In Review |
 | [P6-02 — Karşılaştırma seçimi ve route](P6-02.md) | Frontend | Planned |
 | [P6-03 — Sonuç ve kural farkları](P6-03.md) | Frontend | Planned |
 | [P6-04 — İki serili karşılaştırma grafikleri](P6-04.md) | Frontend | Planned |
