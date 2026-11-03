@@ -16,6 +16,8 @@ gerçekten üretildiğinde eklenir.
   gerçek Chrome'da salt okunur v1, yeni taslak editörü ve iki sekmeli stale-revision kontrolü.
 - [Faz 2 inceleme düzeltmeleri](phase-2-review-fixes-api.md) ve
   [web düzeltmeleri](phase-2-review-fixes-web.md).
+- [Phase 3 simülasyon ve yürütme demosu](phase-3-demo.md): NORMAL/FORCED_FAILURE,
+  iptal, Run Again, süreç kesintisi recovery ve gerçek Chrome kontrolleri.
 
 ## Kayıt biçimi
 
