@@ -51,8 +51,9 @@ Kaydedilmiş 5 örnek korundu, sürdürme yapılmadı, bekleyen adımlar `NOT_RU
 | Başarısız run detayı | Failed, tolerans dışı değer görünür | `Failed`; `0.600000` ölçüm tablosunda; 90 satır; Cancel yok; Run Again var |
 | Başarılı run detayı | Passed | `Passed`; Run Again var |
 | Start Run formu | Sürüm adımları + üç senaryo | 3 adım; NORMAL/FORCED_FAILURE/RANDOM |
-| UI’dan run başlatma | Gerçek `runId` ile live sayfası | `249981a0-…` ile `/runs/:id/live` |
+| UI’dan run başlatma | Gerçek `runId` ile detay ekranı | Uygulama `56d71d45-…` ile `/runs/:id` detayına yönlendirdi |
 | İptal dialogu | Onay ister, iyimser durum yok | “Cancel this run?”; onay sonrası `Cancelled` |
+| `/runs/:id/live` placeholder | Detaya bağlantı | “View run details” → `/runs/56d71d45-…` |
 | İptal sonrası | Cancel gizli, Run Again var | Cancel yok; Run Again var |
 | Konsol | İstisna yok | `exceptions: []` |
 

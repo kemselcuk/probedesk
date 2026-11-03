@@ -189,15 +189,10 @@ async function main() {
   await waitFor(cdp, `document.querySelector('#start-run-submit') && !document.querySelector('#start-run-submit').disabled`);
   await evaluate(cdp, `document.querySelector('form').requestSubmit()`);
   // The application itself must navigate from the form to the run details screen.
-  await waitFor(cdp, `location.pathname.startsWith('/runs/') && !location.pathname.endsWith('/live')`, 25000);
+  await waitFor(cdp, `/^\\/runs\\/[0-9a-f-]{36}$/.test(location.pathname)`, 25000);
   const startedRunId = await evaluate(cdp, `location.pathname.split('/')[2]`);
   await waitFor(cdp, `document.body.innerText.includes('Run Details')`);
 
-  // The P4 live placeholder must still offer a working link back to details.
-  await navigate(cdp, `/runs/${startedRunId}/live`);
-  await waitFor(cdp, `document.body.innerText.includes('View run details')`);
-  const liveDetailsHref = await evaluate(cdp, `document.querySelector('a[href*="/runs/"]')?.getAttribute('href') ?? null`);
-  await navigate(cdp, `/runs/${startedRunId}`);
   await waitFor(cdp, `!!document.querySelector('#cancel-run-button')`);
   await evaluate(cdp, `document.querySelector('#cancel-run-button').click()`);
   await waitFor(cdp, `!!document.querySelector('#cancel-run-confirm')`);
@@ -211,6 +206,11 @@ async function main() {
     runAgainVisible: !!document.querySelector('#run-again-button'),
   }))()`);
   await screenshot(cdp, 'docs/evidence/phase-3-cancelled-run.png');
+
+  // The P4 live placeholder must still offer a working link back to details.
+  await navigate(cdp, `/runs/${startedRunId}/live`);
+  await waitFor(cdp, `document.body.innerText.includes('View run details')`);
+  const liveDetailsHref = await evaluate(cdp, `document.querySelector('a[href*="/runs/"]')?.getAttribute('href') ?? null`);
 
   const exceptions = cdp.events
     .filter((event) => event.method === 'Runtime.exceptionThrown')
