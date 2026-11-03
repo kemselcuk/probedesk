@@ -19,7 +19,10 @@ gerçekten üretildiğinde eklenir.
 - [Phase 3 simülasyon ve yürütme demosu](phase-3-demo.md): NORMAL/FORCED_FAILURE,
   iptal, Run Again, süreç kesintisi recovery ve gerçek Chrome kontrolleri.
 - [Phase 4 SSE canlı akış demosu](phase-4-demo.md): replay/cursor protokolü,
-  iki sekmeli canlı akış, kesinti ve yeniden bağlanma.
+  iki sekmeli canlı akış, gerçek upstream kesintisi ve yeniden bağlanma.
+- [Faz 4 inceleme düzeltmeleri — web](phase-4-review-fixes-web.md): H-01
+  sonsuz reconnect, M-03 final snapshot, M-01 gerçek kesinti kanıtı ve M-02
+  görev/kanıt güncellemeleri.
 
 ## Kayıt biçimi
 

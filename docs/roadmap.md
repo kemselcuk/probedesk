@@ -1,6 +1,6 @@
 # Ayrıntılı uygulama yol haritası
 
-Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 Accepted (teknik kabul, 2026-11-03); P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4 In Review; P5 In Progress; P6–P8 Planned. Phase 1 iskeleti, Phase 2 plan yaşam döngüsü ve Phase 3 simülasyon/yürütme çalışır durumda (P3 inceleme düzeltmeleri sürüyor); canlı SSE akışı, geçmiş/grafikler, karşılaştırma ve video henüz yoktur.
+Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4 In Review; P5 In Progress; P6–P8 Planned. Phase 1 iskeleti, Phase 2 plan yaşam döngüsü, Phase 3 simülasyon/yürütme ve Phase 4 canlı SSE akışı/iki sekmeli yeniden bağlanma çalışır durumda; Phase 4 inceleme düzeltmeleri sürüyor. Phase 5 geçmiş/grafikler sürüyor; karşılaştırma ve video henüz yoktur.
 
 ## Sıra ve sahiplik
 
@@ -16,8 +16,8 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 | 1 | İskelet, giriş ve ilk CI | 8 | Planned |
 | 2 | Plan editörü ve sürümler | 8 | Planned |
 | 3 | Simülasyon ve yürütme | 10 | Planned |
-| 4 | Canlı durum ve bağlantı dayanıklılığı | 7 | Planned |
-| 5 | Geçmiş ve grafikler | 6 | Planned |
+| 4 | Canlı durum ve bağlantı dayanıklılığı | 7 | In Review |
+| 5 | Geçmiş ve grafikler | 6 | In Progress |
 | 6 | Karşılaştırma ve sürüm tutarlılığı | 6 | Planned |
 | 7 | Bütünleşik kalite ve CI | 6 | Planned |
 | 8 | Yerel teslim, kanıt ve video | 6 | Planned |

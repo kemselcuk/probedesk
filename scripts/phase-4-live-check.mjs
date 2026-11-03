@@ -1,12 +1,18 @@
-// Phase 4 browser check: live progress, two tabs, offline/online reconnect.
+// Phase 4 browser check: live progress, two tabs, real outage/reconnect.
+// The script serves the built SPA from scripts/app-server.mjs (port 4300) and
+// proxies /api through scripts/sse-proxy.mjs (port 3200). Killing sse-proxy
+// closes the real upstream socket; no synthetic Event('error') is dispatched.
+//
 // Usage: RUN_VERSION_ID=<uuid> node scripts/phase-4-live-check.mjs
-import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+// Optional: BUILD_WEB=1 forces a fresh `npm run build --workspace apps/web`.
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const BASE_URL = process.env.PROBEDESK_API_URL ?? 'http://127.0.0.1:3100';
-const APP = process.env.APP_URL ?? 'http://127.0.0.1:4200';
+const APP_PORT = Number(process.env.APP_PORT ?? 4300);
+const APP = process.env.APP_URL ?? `http://127.0.0.1:${APP_PORT}`;
 const VERSION_ID = process.env.RUN_VERSION_ID;
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 9337;
@@ -45,6 +51,32 @@ function createJar() {
 }
 
 let proxy = null;
+let appServer = null;
+
+function ensureWebBuild() {
+  const configuredDist = process.env.WEB_DIST;
+  const candidates = configuredDist
+    ? [
+        join(configuredDist, 'browser', 'index.html'),
+        join(configuredDist, 'index.html'),
+      ]
+    : [
+        'apps/web/dist/web/browser/index.html',
+        'apps/web/dist/web/index.html',
+      ];
+  if (process.env.BUILD_WEB !== '1' && candidates.some((path) => existsSync(path))) {
+    return;
+  }
+
+  console.log('Building apps/web because no built bundle was found...');
+  const result = spawnSync('npm', ['run', 'build', '--workspace', 'apps/web'], {
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    throw new Error('The web build failed; the live check cannot continue.');
+  }
+}
+
 function startProxy() {
   proxy = spawn(process.execPath, ['scripts/sse-proxy.mjs'], {
     env: { ...process.env, PROXY_PORT: '3200', API_URL: BASE_URL },
@@ -62,6 +94,25 @@ async function waitForProxy() {
     await delay(100);
   }
   throw new Error('SSE proxy did not start');
+}
+
+function startAppServer() {
+  appServer = spawn(process.execPath, ['scripts/app-server.mjs'], {
+    env: { ...process.env, APP_PORT: String(APP_PORT) },
+    stdio: ['ignore', 'ignore', 'inherit'],
+  });
+}
+async function waitForAppServer() {
+  for (let i = 0; i < 100; i += 1) {
+    try {
+      const response = await fetch(`${APP}/`);
+      if (response.ok) return;
+    } catch {
+      // not ready
+    }
+    await delay(100);
+  }
+  throw new Error(`App server did not start at ${APP}`);
 }
 
 const userDataDir = mkdtempSync(join(tmpdir(), 'probedesk-chrome-'));
@@ -135,8 +186,9 @@ async function openTab(url) {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
   await cdp.send('Network.enable');
-  // Keep references to EventSource instances so the test can force the
-  // client to observe an outage while the streaming proxy is down.
+  // Instrumentation only: record every EventSource the app opens so the check
+  // can prove that the real stream closed and reopened. The check never
+  // dispatches a synthetic error event.
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
     source: `(() => {
       const Native = window.EventSource;
@@ -205,6 +257,9 @@ const connectionLabel = `(() => {
 })()`;
 
 async function main() {
+  ensureWebBuild();
+  console.log(`APP_URL=${APP} (served by scripts/app-server.mjs)`);
+
   const api = createJar();
   const login = await api.login('operator@probedesk.local', 'OperatorDemo!2026');
   if (login.status !== 200) throw new Error('api login failed');
@@ -218,6 +273,8 @@ async function main() {
   await waitForChrome();
   startProxy();
   await waitForProxy();
+  startAppServer();
+  await waitForAppServer();
   const tabA = await openTab(`${APP}/runs/${runId}/live`);
   await loginInBrowser(tabA);
   await tabA.send('Page.navigate', { url: `${APP}/runs/${runId}/live` });
@@ -230,16 +287,12 @@ async function main() {
   await waitFor(tabA, `(${recorded}) > 2`, 20000);
   const firstProgress = await evaluate(tabA, recorded);
 
-  // Drop the streaming proxy; the run keeps executing on the API server.
+  // Drop the streaming proxy; the run keeps executing on the API server. The
+  // app server owns the downstream SSE socket, so its upstream error/close
+  // propagates to the browser as a real EventSource error. Do not dispatch a
+  // synthetic error here: both tabs must discover the outage themselves.
   proxy.kill('SIGKILL');
-  await delay(500);
-  // Vite can keep the downstream socket open after the proxy dies; nudge each
-  // tab's client to surface the error event so both independent reconnect
-  // paths run. Without this, a background tab can look "Connected" forever
-  // even though its upstream socket is gone.
-  const surfaceStreamError = `(window.__probedeskEventSources ?? []).forEach((source) => source.dispatchEvent(new Event('error')))`;
-  await evaluate(tabA, surfaceStreamError);
-  await evaluate(tabB, surfaceStreamError);
+  const outageStartedAt = Date.now();
   for (const tab of [tabA, tabB]) {
     await waitFor(
       tab,
@@ -247,7 +300,12 @@ async function main() {
       20000,
     );
   }
+  const outageDetectedMs = Date.now() - outageStartedAt;
   const offlineLabel = await evaluate(tabA, connectionLabel);
+  const offlineSources = await evaluate(
+    tabA,
+    `(window.__probedeskEventSources ?? []).map((source) => ({ url: source.url, readyState: source.readyState }))`,
+  );
   await delay(1500);
   startProxy();
   await waitForProxy();
@@ -258,8 +316,8 @@ async function main() {
   const readState = (cdp) => evaluate(cdp, `({
     path: location.pathname,
     status: document.querySelector('.status-label')?.textContent.trim() ?? null,
-    connection: (document.body.innerText.match(/Connection:\s*([A-Za-z]+)/) ?? [])[1] ?? null,
-    recorded: (document.body.innerText.match(/(\d+) of (\d+) samples recorded/) ?? [])[1] ?? null,
+    connection: (document.body.innerText.match(/Connection:\\s*([A-Za-z]+)/) ?? [])[1] ?? null,
+    recorded: (document.body.innerText.match(/(\\d+) of (\\d+) samples recorded/) ?? [])[1] ?? null,
     warning: document.querySelector('#live-stream-warning')?.textContent?.trim() ?? null,
     terminal: document.body.innerText.includes('Run finished'),
   })`);
@@ -353,6 +411,8 @@ async function main() {
         runId,
         firstProgress,
         offlineLabel,
+        outageDetectedMs,
+        offlineSources,
         finalA,
         finalB,
         exceptions,
@@ -372,6 +432,7 @@ main()
   })
   .finally(async () => {
     if (proxy) proxy.kill('SIGTERM');
+    if (appServer) appServer.kill('SIGTERM');
     chrome.kill('SIGTERM');
     await delay(300);
     rmSync(userDataDir, { recursive: true, force: true });
