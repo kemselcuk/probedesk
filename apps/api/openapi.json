@@ -550,6 +550,102 @@
         ]
       }
     },
+    "/api/runs/{id}/events": {
+      "get": {
+        "description": "Server-Sent Events over committed RunEvent rows.\n\nFrames use `id:` = run-local sequence, `event:` = one of\n(run.started, step.started, measurement.recorded, step.completed, run.completed, run.cancelled, run.interrupted, run.errored) and `data:` = the\nRunEventEnvelopeDto JSON envelope.\n\nReplay sends only events newer than the cursor in strict sequence order and\nthen follows the same table. A `: heartbeat` comment is sent every 15 seconds\nand consumes no domain sequence. A terminal event is always the last frame,\nafter which the server closes the connection.",
+        "operationId": "RunEventsController_stream",
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "description": "EventSource reconnect cursor. Takes precedence over ?after= when present and must be a non-negative integer.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Run id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "example": 0
+            },
+            "description": "Last sequence already applied by the client. Ignored when Last-Event-ID is present. Defaults to 0."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events over committed RunEvent rows.\n\nFrames use `id:` = run-local sequence, `event:` = one of\n(run.started, step.started, measurement.recorded, step.completed, run.completed, run.cancelled, run.interrupted, run.errored) and `data:` = the\nRunEventEnvelopeDto JSON envelope.\n\nReplay sends only events newer than the cursor in strict sequence order and\nthen follows the same table. A `: heartbeat` comment is sent every 15 seconds\nand consumes no domain sequence. A terminal event is always the last frame,\nafter which the server closes the connection.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "UTF-8 SSE frames separated by blank lines. The data field is a RunEventEnvelopeDto; the event field is the run event wire name."
+                },
+                "example": "id: 7\nevent: measurement.recorded\ndata: {\"schemaVersion\":1,\"runId\":\"6b6f0a1e-2b64-4e9d-9b8d-0fbe7e75a0c4\",\"sequence\":7,\"occurredAt\":\"2026-11-03T12:00:00.000Z\",\"payload\":{\"stepId\":\"d7e1ad9a-1d3c-4b8a-9c1e-5f3a7c2b8d40\",\"sampleIndex\":1,\"value\":\"5.000000\",\"isWithinTolerance\":true}}\n\n: heartbeat\n\n"
+              }
+            }
+          },
+          "204": {
+            "description": "The run is already terminal and no committed event is newer than the cursor. No stream is opened; EventSource stops reconnecting."
+          },
+          "400": {
+            "description": "The cursor is negative, malformed, ahead of the run last event sequence, or an unknown query parameter was supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The run does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Replay and follow the committed run event stream as Server-Sent Events.",
+        "tags": [
+          "runs"
+        ]
+      }
+    },
     "/api/device-profiles": {
       "get": {
         "operationId": "DeviceProfilesController_list",
@@ -1861,6 +1957,47 @@
           "recordedSampleCount",
           "lastEventSequence",
           "steps"
+        ]
+      },
+      "RunEventEnvelopeDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "integer",
+            "enum": [
+              1
+            ],
+            "example": 1,
+            "description": "Envelope schema version. Currently always 1."
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Run this event belongs to."
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 7,
+            "description": "Run-local event sequence. It is also the SSE id field and increases without gaps."
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Commit timestamp copied from the persisted RunEvent row."
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Event-specific payload. It never contains session, password, draft or idempotency data."
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "runId",
+          "sequence",
+          "occurredAt",
+          "payload"
         ]
       },
       "CreatePlanDto": {

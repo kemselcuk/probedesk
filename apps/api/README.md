@@ -196,6 +196,56 @@ draft. An unknown run id is `404 NOT_FOUND`; a non-UUID id is
 `400 VALIDATION_ERROR`. Responses contain no password hash, session token,
 idempotency key, request hash or draft content.
 
+## Run event stream (SSE)
+
+`GET /api/runs/:id/events` streams the committed `RunEvent` rows for one run to
+a Planner, Operator or Viewer session. The endpoint returns `text/event-stream`
+and is read-only; it does not accept a CSRF header and never changes a run.
+
+```text
+id: 7
+event: measurement.recorded
+data: {"schemaVersion":1,"runId":"…","sequence":7,"occurredAt":"2026-11-03T12:00:00.000Z","payload":{…}}
+
+: heartbeat
+
+```
+
+- `id` is the run-local event sequence. `data` is the persisted event's
+  `{schemaVersion, runId, sequence, occurredAt, payload}` envelope. `event` is
+  one of `run.started`, `step.started`, `measurement.recorded`, `step.completed`,
+  `run.completed`, `run.cancelled`, `run.interrupted` and `run.errored`.
+- `?after=<sequence>` is the last sequence already applied by the client. It
+  defaults to `0`. On an automatic `EventSource` reconnect, the `Last-Event-ID`
+  header takes precedence over the query value whenever it is present.
+- A run id must exist (`404 NOT_FOUND`) and the cursor must be a non-negative
+  integer that does not exceed `lastEventSequence` (`400 VALIDATION_ERROR`).
+  Unknown query parameters are also `400`. All of these checks finish before
+  the first SSE header, so their responses use the normal JSON error body with
+  `requestId`.
+- A terminal run with no event newer than the cursor returns `204 No Content`
+  instead of opening a stream. With a backlog, the server replays through the
+  terminal event and then closes. A terminal event is always the last frame.
+- Replay and live follow read the same durable table in ascending sequence
+  order. The default follow-up poll is 200 ms, one query at a time per
+  connection; replay/live handover therefore has no gap or duplicate. The
+  cursor is authoritative when a client reconnects.
+- A `: heartbeat` SSE comment is sent every 15 seconds. It consumes no event
+  sequence. Each heartbeat revalidates the session; expiry or revocation ends
+  the stream cleanly at the latest on the next heartbeat.
+- A client disconnect cancels the connection's poll timer, heartbeat timer and
+  follow-up query after it returns. It does not stop or cancel the run executor.
+- Responses send `Cache-Control: no-cache`, `Connection: keep-alive` and
+  `X-Accel-Buffering: no`, and headers are flushed before the first frame so a
+  proxy does not buffer the stream.
+
+The OpenAPI document describes the `text/event-stream` response and the
+`RunEventEnvelopeDto` component. OpenAPI cannot represent individual SSE
+frames, so event names and payloads are documented here and in the controller
+description; generated REST client types do not model the stream. SSE payloads
+contain run, step and measurement data only: no password, session, draft,
+idempotency-key or request-hash fields.
+
 ## Cancellation, interruption and technical errors
 
 `POST /api/runs/:id/cancel` requires an Operator session and the CSRF header. It

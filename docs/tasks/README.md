@@ -68,11 +68,11 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P4-01 — Kalıcı olaylardan SSE yayını](P4-01.md) | Backend | Planned |
-| [P4-02 — Angular SSE taşıma servisi](P4-02.md) | Frontend | Planned |
-| [P4-03 — Snapshot ve canlı durum birleştirme](P4-03.md) | Frontend | Planned |
-| [P4-04 — Live Run ekranı](P4-04.md) | Frontend | Planned |
-| [P4-05 — Yeniden bağlantı ve oturum kaybı](P4-05.md) | Frontend | Planned |
+| [P4-01 — Kalıcı olaylardan SSE yayını](P4-01.md) | Backend | In Review |
+| [P4-02 — Angular SSE taşıma servisi](P4-02.md) | Frontend | In Review |
+| [P4-03 — Snapshot ve canlı durum birleştirme](P4-03.md) | Frontend | In Review |
+| [P4-04 — Live Run ekranı](P4-04.md) | Frontend | In Review |
+| [P4-05 — Yeniden bağlantı ve oturum kaybı](P4-05.md) | Frontend | In Review |
 | [P4-06 — SSE entegrasyon testleri](P4-06.md) | Entegrasyon | Planned |
 | [P4-07 — Çok sekme ve ekran yaşam döngüsü](P4-07.md) | Entegrasyon | Planned |
 

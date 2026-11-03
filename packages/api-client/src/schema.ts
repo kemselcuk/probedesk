@@ -157,6 +157,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Replay and follow the committed run event stream as Server-Sent Events.
+         * @description Server-Sent Events over committed RunEvent rows.
+         *
+         *     Frames use `id:` = run-local sequence, `event:` = one of
+         *     (run.started, step.started, measurement.recorded, step.completed, run.completed, run.cancelled, run.interrupted, run.errored) and `data:` = the
+         *     RunEventEnvelopeDto JSON envelope.
+         *
+         *     Replay sends only events newer than the cursor in strict sequence order and
+         *     then follows the same table. A `: heartbeat` comment is sent every 15 seconds
+         *     and consumes no domain sequence. A terminal event is always the last frame,
+         *     after which the server closes the connection.
+         */
+        get: operations["RunEventsController_stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/device-profiles": {
         parameters: {
             query?: never;
@@ -605,6 +634,33 @@ export interface components {
             lastEventSequence: number;
             /** @description Steps ordered by ascending position. */
             steps: components["schemas"]["RunSnapshotStepDto"][];
+        };
+        RunEventEnvelopeDto: {
+            /**
+             * @description Envelope schema version. Currently always 1.
+             * @example 1
+             * @enum {integer}
+             */
+            schemaVersion: 1;
+            /**
+             * Format: uuid
+             * @description Run this event belongs to.
+             */
+            runId: string;
+            /**
+             * @description Run-local event sequence. It is also the SSE id field and increases without gaps.
+             * @example 7
+             */
+            sequence: number;
+            /**
+             * Format: date-time
+             * @description Commit timestamp copied from the persisted RunEvent row.
+             */
+            occurredAt: string;
+            /** @description Event-specific payload. It never contains session, password, draft or idempotency data. */
+            payload: {
+                [key: string]: unknown;
+            };
         };
         CreatePlanDto: {
             /** @example Power rail verification */
@@ -1171,6 +1227,87 @@ export interface operations {
             };
             /** @description The user is not an Operator or the CSRF token is invalid. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The run does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    RunEventsController_stream: {
+        parameters: {
+            query?: {
+                /** @description Last sequence already applied by the client. Ignored when Last-Event-ID is present. Defaults to 0. */
+                after?: number;
+            };
+            header?: {
+                /** @description EventSource reconnect cursor. Takes precedence over ?after= when present and must be a non-negative integer. */
+                "Last-Event-ID"?: number;
+            };
+            path: {
+                /** @description Run id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /**
+             * @description Server-Sent Events over committed RunEvent rows.
+             *
+             *     Frames use `id:` = run-local sequence, `event:` = one of
+             *     (run.started, step.started, measurement.recorded, step.completed, run.completed, run.cancelled, run.interrupted, run.errored) and `data:` = the
+             *     RunEventEnvelopeDto JSON envelope.
+             *
+             *     Replay sends only events newer than the cursor in strict sequence order and
+             *     then follows the same table. A `: heartbeat` comment is sent every 15 seconds
+             *     and consumes no domain sequence. A terminal event is always the last frame,
+             *     after which the server closes the connection.
+             */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example id: 7
+                     *     event: measurement.recorded
+                     *     data: {"schemaVersion":1,"runId":"6b6f0a1e-2b64-4e9d-9b8d-0fbe7e75a0c4","sequence":7,"occurredAt":"2026-11-03T12:00:00.000Z","payload":{"stepId":"d7e1ad9a-1d3c-4b8a-9c1e-5f3a7c2b8d40","sampleIndex":1,"value":"5.000000","isWithinTolerance":true}}
+                     *
+                     *     : heartbeat
+                     */
+                    "text/event-stream": string;
+                };
+            };
+            /** @description The run is already terminal and no committed event is newer than the cursor. No stream is opened; EventSource stops reconnecting. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The cursor is negative, malformed, ahead of the run last event sequence, or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

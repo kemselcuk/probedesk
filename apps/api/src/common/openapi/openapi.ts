@@ -39,7 +39,61 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     )
     .build();
 
-  return SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, config);
+  sortOperationParameters(document);
+  return document;
+}
+
+const HTTP_OPERATION_KEYS = [
+  'get',
+  'put',
+  'post',
+  'delete',
+  'options',
+  'head',
+  'patch',
+  'trace',
+] as const;
+
+/**
+ * OpenAPI parameters are an unordered set, but the committed document is
+ * byte-compared in tests. Nest derives route parameters and decorator-provided
+ * parameters through different metadata paths, whose relative order can vary
+ * with the TypeScript transformer. Sorting here makes `openapi:emit` and the
+ * in-process test document deterministic across `tsx` and Vitest.
+ */
+function sortOperationParameters(document: OpenAPIObject): void {
+  for (const pathItem of Object.values(document.paths)) {
+    for (const method of HTTP_OPERATION_KEYS) {
+      const operation = pathItem[method];
+      if (!operation || !Array.isArray(operation.parameters)) {
+        continue;
+      }
+
+      operation.parameters.sort((left, right) => {
+        const leftKey = parameterSortKey(left);
+        const rightKey = parameterSortKey(right);
+        if (leftKey === rightKey) {
+          return 0;
+        }
+        return leftKey < rightKey ? -1 : 1;
+      });
+    }
+  }
+}
+
+function parameterSortKey(parameter: unknown): string {
+  if (!isRecord(parameter)) {
+    return '';
+  }
+
+  const location = typeof parameter.in === 'string' ? parameter.in : '';
+  const name = typeof parameter.name === 'string' ? parameter.name : '';
+  return `${location}:${name}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 /**

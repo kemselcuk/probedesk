@@ -45,6 +45,7 @@ describe('OpenAPI document (e2e)', () => {
       '/api/runs/active',
       '/api/runs/{id}',
       '/api/runs/{id}/cancel',
+      '/api/runs/{id}/events',
     ]);
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
@@ -172,6 +173,35 @@ describe('OpenAPI document (e2e)', () => {
     expect(
       document.paths['/api/runs/{id}/cancel']?.post?.responses,
     ).toHaveProperty('404');
+    expect(document.paths['/api/runs/{id}/events']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(
+      document.paths['/api/runs/{id}/events']?.get?.responses,
+    ).toHaveProperty('200');
+    expect(
+      document.paths['/api/runs/{id}/events']?.get?.responses,
+    ).toHaveProperty('204');
+    expect(
+      document.paths['/api/runs/{id}/events']?.get?.responses,
+    ).toHaveProperty('400');
+    expect(
+      document.paths['/api/runs/{id}/events']?.get?.responses,
+    ).toHaveProperty('401');
+    expect(
+      document.paths['/api/runs/{id}/events']?.get?.responses,
+    ).toHaveProperty('404');
+    expect(
+      document.paths['/api/runs/{id}/events']?.get?.responses['200'],
+    ).toMatchObject({
+      content: { 'text/event-stream': expect.anything() },
+    });
+    expect(
+      document.paths['/api/runs/{id}/events']?.get?.responses['400'],
+    ).toMatchObject({
+      content: { 'application/json': expect.anything() },
+    });
+    expect(document.components?.schemas).toHaveProperty('RunEventEnvelopeDto');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('201');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('400');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('403');
