@@ -25,6 +25,7 @@ describe('plan schema constraints (e2e)', () => {
   const testDatabaseUrl = process.env.TEST_DATABASE_URL;
   let prisma: PrismaClient;
   let planner: TestUser;
+  let viewer: TestUser;
   let profileId: string;
 
   beforeAll(async () => {
@@ -44,6 +45,7 @@ describe('plan schema constraints (e2e)', () => {
 
     await deletePlanTestData(prisma);
     planner = await createPlanTestUser(prisma, Role.PLANNER);
+    viewer = await createPlanTestUser(prisma, Role.VIEWER);
     profileId = (await createPlanTestProfile(prisma)).id;
   });
 
@@ -62,28 +64,40 @@ describe('plan schema constraints (e2e)', () => {
     });
   }
 
-  async function createDraft(planId: string): Promise<PlanRevision> {
+  async function createDraft(
+    planId: string,
+    name = 'New plan',
+  ): Promise<PlanRevision> {
     return prisma.planRevision.create({
       data: {
         planId,
         state: PlanRevisionState.DRAFT,
-        name: 'New plan',
+        name,
         editRevision: 1,
       },
     });
   }
 
+  /**
+   * Published revisions cannot be inserted directly after the integrity
+   * migration. The helper uses the same DRAFT -> PUBLISHED transition as the
+   * publish service, including a valid step and a Planner publisher.
+   */
   async function createPublished(
     planId: string,
     versionNumber: number,
+    publisherId = planner.id,
   ): Promise<PlanRevision> {
-    return prisma.planRevision.create({
+    const draft = await createDraft(planId, `Version ${versionNumber}`);
+    const identity = await createIdentity(planId);
+    await createStep(planId, draft.id, identity, 1);
+
+    return prisma.planRevision.update({
+      where: { id: draft.id },
       data: {
-        planId,
         state: PlanRevisionState.PUBLISHED,
-        name: `Version ${versionNumber}`,
         versionNumber,
-        publishedById: planner.id,
+        publishedById: publisherId,
         publishedAt: new Date(),
       },
     });
@@ -92,14 +106,15 @@ describe('plan schema constraints (e2e)', () => {
   async function publishRevision(
     revisionId: string,
     versionNumber: number,
-  ): Promise<void> {
-    await prisma.planRevision.update({
+    options: { publisherId?: string; publishedAt?: Date } = {},
+  ): Promise<PlanRevision> {
+    return prisma.planRevision.update({
       where: { id: revisionId },
       data: {
         state: PlanRevisionState.PUBLISHED,
         versionNumber,
-        publishedById: planner.id,
-        publishedAt: new Date(),
+        publishedById: options.publisherId ?? planner.id,
+        publishedAt: options.publishedAt ?? new Date(),
       },
     });
   }
@@ -286,7 +301,7 @@ describe('plan schema constraints (e2e)', () => {
     }
   });
 
-  it('rejects a draft with a version number and a published revision without publisher metadata', async () => {
+  it('rejects a draft with a version number and a published transition without publisher metadata', async () => {
     const plan = await createPlan();
 
     try {
@@ -303,12 +318,15 @@ describe('plan schema constraints (e2e)', () => {
       expect(readPrismaErrorCode(error)).toBe('P2039');
     }
 
+    const draft = await createDraft(plan.id);
+    const identity = await createIdentity(plan.id);
+    await createStep(plan.id, draft.id, identity, 1);
+
     try {
-      await prisma.planRevision.create({
+      await prisma.planRevision.update({
+        where: { id: draft.id },
         data: {
-          planId: plan.id,
           state: PlanRevisionState.PUBLISHED,
-          name: 'Invalid published revision',
           versionNumber: 1,
         },
       });
@@ -316,5 +334,144 @@ describe('plan schema constraints (e2e)', () => {
     } catch (error) {
       expect(readPrismaErrorCode(error)).toBe('P2039');
     }
+
+    const unchanged = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: draft.id },
+    });
+    expect(unchanged.state).toBe(PlanRevisionState.DRAFT);
+  });
+
+  it('rejects a direct INSERT of a PUBLISHED revision', async () => {
+    const plan = await createPlan();
+
+    await expect(
+      prisma.$executeRaw`
+        INSERT INTO "plan_revisions" (
+          "planId", "state", "name", "versionNumber", "publishedById",
+          "publishedAt"
+        ) VALUES (
+          ${plan.id}::uuid, 'PUBLISHED', 'Direct published revision', 1,
+          ${planner.id}::uuid, now()
+        )
+      `,
+    ).rejects.toThrow(
+      /Published plan revisions can only be created by publishing a draft/,
+    );
+
+    expect(
+      await prisma.planRevision.count({
+        where: { planId: plan.id, state: PlanRevisionState.PUBLISHED },
+      }),
+    ).toBe(0);
+  });
+
+  it('rejects empty, whitespace-only and overlong revision names at the database', async () => {
+    const plan = await createPlan();
+    const draft = await createDraft(plan.id, 'Valid revision name');
+
+    for (const invalidName of ['', '   ', 'x'.repeat(101)]) {
+      await expect(
+        prisma.$executeRaw`
+          UPDATE "plan_revisions"
+          SET "name" = ${invalidName}
+          WHERE "id" = ${draft.id}::uuid
+        `,
+      ).rejects.toThrow(/plan_revisions_name_check/);
+    }
+
+    const stored = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: draft.id },
+    });
+    expect(stored.name).toBe('Valid revision name');
+  });
+
+  it('rejects TRUNCATE on plan_steps and on plan_revisions CASCADE', async () => {
+    const plan = await createPlan();
+    const draft = await createDraft(plan.id);
+    const identity = await createIdentity(plan.id);
+    await createStep(plan.id, draft.id, identity, 1);
+
+    await expect(
+      prisma.$executeRawUnsafe('TRUNCATE TABLE "plan_steps"'),
+    ).rejects.toThrow(/TRUNCATE is not allowed/);
+    await expect(
+      prisma.$executeRawUnsafe('TRUNCATE TABLE "plan_revisions" CASCADE'),
+    ).rejects.toThrow(/TRUNCATE is not allowed/);
+
+    expect(
+      await prisma.planRevision.count({ where: { planId: plan.id } }),
+    ).toBe(1);
+    expect(await prisma.planStep.count({ where: { planId: plan.id } })).toBe(1);
+  });
+
+  it('rejects a DRAFT to PUBLISHED transition without steps', async () => {
+    const plan = await createPlan();
+    const draft = await createDraft(plan.id);
+
+    await expect(publishRevision(draft.id, 1)).rejects.toThrow(
+      /A published revision must contain at least one step/,
+    );
+
+    const stored = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: draft.id },
+    });
+    expect(stored.state).toBe(PlanRevisionState.DRAFT);
+    expect(stored.versionNumber).toBeNull();
+  });
+
+  it('rejects a DRAFT to PUBLISHED transition with a non-Planner publisher', async () => {
+    const plan = await createPlan();
+    const draft = await createDraft(plan.id);
+    const identity = await createIdentity(plan.id);
+    await createStep(plan.id, draft.id, identity, 1);
+
+    await expect(
+      publishRevision(draft.id, 1, { publisherId: viewer.id }),
+    ).rejects.toThrow(/A published revision must name a Planner as publisher/);
+
+    const stored = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: draft.id },
+    });
+    expect(stored.state).toBe(PlanRevisionState.DRAFT);
+  });
+
+  it('rejects a baseVersionId that belongs to another plan', async () => {
+    const planA = await createPlan();
+    const publishedA = await createPublished(planA.id, 1);
+    const planB = await createPlan();
+    const draftB = await createDraft(planB.id);
+
+    await expect(
+      prisma.$executeRaw`
+        UPDATE "plan_revisions"
+        SET "baseVersionId" = ${publishedA.id}::uuid
+        WHERE "id" = ${draftB.id}::uuid
+      `,
+    ).rejects.toThrow(/plan_revisions_baseVersionId_planId_fkey/);
+
+    const stored = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: draftB.id },
+    });
+    expect(stored.baseVersionId).toBeNull();
+  });
+
+  it('rejects a baseVersionId that points at a DRAFT revision', async () => {
+    const plan = await createPlan();
+    const draft = await createDraft(plan.id);
+
+    await expect(
+      prisma.$executeRaw`
+        UPDATE "plan_revisions"
+        SET "baseVersionId" = ${draft.id}::uuid
+        WHERE "id" = ${draft.id}::uuid
+      `,
+    ).rejects.toThrow(
+      /baseVersionId must reference a published revision of the same plan/,
+    );
+
+    const stored = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: draft.id },
+    });
+    expect(stored.baseVersionId).toBeNull();
   });
 });

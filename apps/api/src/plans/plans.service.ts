@@ -24,6 +24,7 @@ import { PublishDraftDto } from './dto/publish-draft.dto.js';
 import { SaveDraftDto } from './dto/save-draft.dto.js';
 import {
   assertDraftLimits,
+  assertPublishableName,
   assertPublishableSteps,
   type StoredStepForPublish,
 } from './plan-limits.js';
@@ -148,11 +149,7 @@ export class PlansService {
             (revision) => revision.state === PlanRevisionState.DRAFT,
           )
         : undefined;
-      const name = draft?.name ?? published?.name;
-
-      if (!name) {
-        throw new Error('A plan must have at least one revision.');
-      }
+      const name = resolvePlanName(draft?.name, published?.name);
 
       return {
         id: plan.id,
@@ -347,6 +344,7 @@ export class PlansService {
           throw staleRevision(draft.editRevision);
         }
 
+        assertPublishableName(draft.name);
         assertPublishableSteps(toStoredSteps(draft.steps));
         const snapshot = draft.steps.map(toStepSnapshot);
 
@@ -398,6 +396,7 @@ export class PlansService {
           );
         }
 
+        assertPublishableName(stored.name);
         assertPublishableSteps(toStoredSteps(stored.steps));
         return stored;
       },
@@ -614,11 +613,7 @@ export class PlansService {
     published: (RevisionShape & { steps: StepShape[] }) | null,
     includeDraft: boolean,
   ): PlanDetailDto {
-    const name = draft?.name ?? published?.name;
-
-    if (!name) {
-      throw new Error('A plan must have at least one revision.');
-    }
+    const name = resolvePlanName(draft?.name, published?.name);
 
     return {
       id: plan.id,
@@ -746,6 +741,26 @@ function latestPublished<
   }
 
   return latest;
+}
+
+const FALLBACK_PLAN_NAME = 'Untitled plan';
+
+/**
+ * Chooses the displayed plan name from the role-appropriate revisions. The
+ * database check constraint makes blank revision names impossible, but legacy
+ * or corrupt rows must not turn one plan into a 500 for the whole list or the
+ * detail response.
+ */
+function resolvePlanName(
+  ...candidates: Array<string | null | undefined>
+): string {
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate;
+    }
+  }
+
+  return FALLBACK_PLAN_NAME;
 }
 
 function toDeviceProfile(profile: PlanShape['deviceProfile']): DeviceProfileDto {

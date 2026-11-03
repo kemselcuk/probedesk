@@ -446,6 +446,137 @@ describe('plan publish API (e2e)', () => {
     ).toBe(0);
   });
 
+  it('rejects a stored draft with an empty name at publish and keeps plan reads usable', async () => {
+    const plan = await createPlan('Publish name validation plan');
+    const firstDraft = await saveDraft(plan.id, {
+      name: 'Published fallback name',
+      expectedRevision: 1,
+      steps: [step()],
+    });
+    const versionOne = await expectPublished(plan.id, firstDraft.editRevision);
+
+    const secondDraftResponse = await postAs(
+      planner,
+      `/api/plans/${plan.id}/drafts`,
+    ).expect(201);
+    const secondDraft = secondDraftResponse.body as DraftBody;
+
+    const draftOnlyPlan = await createPlan('Draft-only fallback plan');
+    const draftOnlyRevision = await prisma.planRevision.findFirstOrThrow({
+      where: {
+        planId: draftOnlyPlan.id,
+        state: PlanRevisionState.DRAFT,
+      },
+    });
+
+    // Simulate a legacy row that predates the database CHECK so the publish
+    // service's own validation is exercised. The constraint is restored in the
+    // finally block and the next assertion proves it rejects the same rename.
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "plan_revisions" DROP CONSTRAINT "plan_revisions_name_check"',
+    );
+
+    try {
+      await prisma.$executeRaw`
+        UPDATE "plan_revisions"
+        SET "name" = ''
+        WHERE "id" = ${secondDraft.id}::uuid
+      `;
+      await prisma.$executeRaw`
+        UPDATE "plan_revisions"
+        SET "name" = ''
+        WHERE "id" = ${draftOnlyRevision.id}::uuid
+      `;
+
+      const rejected = await publish(
+        plan.id,
+        secondDraft.editRevision,
+      ).expect(400);
+      expect(rejected.body).toMatchObject({ code: 'VALIDATION_ERROR' });
+      expect(readFieldErrors(rejected.body)).toContainEqual(
+        expect.objectContaining({ path: 'name', code: 'INVALID_VALUE' }),
+      );
+      expect(
+        await prisma.planRevision.count({
+          where: { planId: plan.id, state: PlanRevisionState.PUBLISHED },
+        }),
+      ).toBe(1);
+
+      const plannerList = await getAs(planner, '/api/plans').expect(200);
+      const plannerItem = (
+        plannerList.body as Array<{ id: string; name: string }>
+      ).find((item) => item.id === plan.id);
+      expect(plannerItem?.name).toBe('Published fallback name');
+
+      const plannerDetail = await getAs(
+        planner,
+        `/api/plans/${plan.id}`,
+      ).expect(200);
+      expect((plannerDetail.body as PlanBody).name).toBe(
+        'Published fallback name',
+      );
+      expect((plannerDetail.body as PlanBody).latestPublishedVersion?.id).toBe(
+        versionOne.id,
+      );
+
+      for (const session of [operator, viewer]) {
+        const list = await getAs(session, '/api/plans').expect(200);
+        const item = (list.body as Array<{ id: string; name: string }>).find(
+          (entry) => entry.id === plan.id,
+        );
+        expect(item?.name).toBe('Published fallback name');
+
+        const detail = await getAs(
+          session,
+          `/api/plans/${plan.id}`,
+        ).expect(200);
+        expect((detail.body as PlanBody).name).toBe('Published fallback name');
+      }
+
+      const draftOnlyList = await getAs(planner, '/api/plans').expect(200);
+      const draftOnlyItem = (
+        draftOnlyList.body as Array<{ id: string; name: string }>
+      ).find((item) => item.id === draftOnlyPlan.id);
+      expect(draftOnlyItem?.name).toBe('Untitled plan');
+
+      const draftOnlyDetail = await getAs(
+        planner,
+        `/api/plans/${draftOnlyPlan.id}`,
+      ).expect(200);
+      expect((draftOnlyDetail.body as PlanBody).name).toBe('Untitled plan');
+    } finally {
+      await prisma.$executeRaw`
+        UPDATE "plan_revisions"
+        SET "name" = 'Restored draft name'
+        WHERE "id" = ${secondDraft.id}::uuid
+      `;
+      await prisma.$executeRaw`
+        UPDATE "plan_revisions"
+        SET "name" = 'Restored draft-only name'
+        WHERE "id" = ${draftOnlyRevision.id}::uuid
+      `;
+      await prisma.$executeRawUnsafe(
+        'ALTER TABLE "plan_revisions" ADD CONSTRAINT "plan_revisions_name_check" CHECK (char_length(btrim("name")) BETWEEN 1 AND 100)',
+      );
+    }
+
+    await expect(
+      prisma.$executeRaw`
+        UPDATE "plan_revisions"
+        SET "name" = ''
+        WHERE "id" = ${secondDraft.id}::uuid
+      `,
+    ).rejects.toThrow(/plan_revisions_name_check/);
+
+    const listAfterRejection = await getAs(planner, '/api/plans').expect(200);
+    expect(listAfterRejection.status).toBe(200);
+    const detailAfterRejection = await getAs(
+      planner,
+      `/api/plans/${plan.id}`,
+    ).expect(200);
+    expect(detailAfterRejection.status).toBe(200);
+  });
+
   it('lets exactly one of two concurrent publishes win and assigns one version', async () => {
     const plan = await createPlan('Concurrent publish plan');
     const draft = await saveDraft(plan.id, {

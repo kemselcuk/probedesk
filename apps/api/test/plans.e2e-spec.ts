@@ -539,13 +539,45 @@ describe('plans API (e2e)', () => {
     it('reports the highest published version in list and detail', async () => {
       const plan = await createPlan('Versioned plan');
       const versions = [];
+      let openDraft = await prisma.planRevision.findFirstOrThrow({
+        where: { planId: plan.id, state: PlanRevisionState.DRAFT },
+      });
+
       for (const versionNumber of [1, 2, 3]) {
-        versions.push(
-          await prisma.planRevision.create({
+        if (versionNumber > 1) {
+          openDraft = await prisma.planRevision.create({
             data: {
               planId: plan.id,
-              state: PlanRevisionState.PUBLISHED,
+              state: PlanRevisionState.DRAFT,
               name: `Version ${versionNumber}`,
+              editRevision: 1,
+            },
+          });
+        }
+
+        const identity = await prisma.stepIdentity.create({
+          data: { planId: plan.id },
+        });
+        await prisma.planStep.create({
+          data: {
+            planId: plan.id,
+            revisionId: openDraft.id,
+            logicalStepId: identity.id,
+            position: 1,
+            name: `Version ${versionNumber} step`,
+            unit: 'V',
+            minimum: '4.75',
+            maximum: '5.25',
+            sampleCount: 100,
+            intervalMs: 250,
+          },
+        });
+
+        versions.push(
+          await prisma.planRevision.update({
+            where: { id: openDraft.id },
+            data: {
+              state: PlanRevisionState.PUBLISHED,
               versionNumber,
               publishedById: plannerUser.id,
               publishedAt: new Date(

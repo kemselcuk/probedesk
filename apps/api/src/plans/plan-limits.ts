@@ -41,6 +41,25 @@ export function assertDraftLimits(dto: SaveDraftDto): void {
 }
 
 /**
+ * Re-validates the stored draft name immediately before it becomes immutable.
+ * The same trimmed 1-100 character rule as SaveDraftDto applies, so a direct
+ * SQL rename or a legacy row cannot publish an empty or overlong name.
+ */
+export function assertPublishableName(name: string): void {
+  const nameLength = name.trim().length;
+
+  if (nameLength < 1 || nameLength > 100) {
+    throw new ValidationFailedException([
+      {
+        path: 'name',
+        code: 'INVALID_VALUE',
+        message: 'name must be 1 to 100 characters after trimming',
+      },
+    ]);
+  }
+}
+
+/**
  * Re-validates the stored draft content immediately before it becomes
  * immutable. A draft can only reach this point through validated saves, but a
  * migration, manual SQL or a future write path must not be able to publish a

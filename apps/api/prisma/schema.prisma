@@ -93,7 +93,9 @@ model PlanRevision {
   publishedById   String?           @db.Uuid
   publishedAt     DateTime?         @db.Timestamptz(6)
   plan            TestPlan          @relation(fields: [planId], references: [id], onDelete: Restrict)
-  baseVersion     PlanRevision?     @relation("RevisionLineage", fields: [baseVersionId], references: [id], onDelete: Restrict)
+  // The composite target proves that the base version belongs to the same
+  // plan; a hand-written trigger additionally requires it to be PUBLISHED.
+  baseVersion     PlanRevision?     @relation("RevisionLineage", fields: [baseVersionId, planId], references: [id, planId], onDelete: Restrict)
   derivedVersions PlanRevision[]    @relation("RevisionLineage")
   publishedBy     User?             @relation(fields: [publishedById], references: [id], onDelete: Restrict)
   steps           PlanStep[]
