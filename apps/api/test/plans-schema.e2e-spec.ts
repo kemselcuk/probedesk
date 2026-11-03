@@ -89,6 +89,21 @@ describe('plan schema constraints (e2e)', () => {
     });
   }
 
+  async function publishRevision(
+    revisionId: string,
+    versionNumber: number,
+  ): Promise<void> {
+    await prisma.planRevision.update({
+      where: { id: revisionId },
+      data: {
+        state: PlanRevisionState.PUBLISHED,
+        versionNumber,
+        publishedById: planner.id,
+        publishedAt: new Date(),
+      },
+    });
+  }
+
   async function createIdentity(planId: string): Promise<string> {
     const identity = await prisma.stepIdentity.create({ data: { planId } });
     return identity.id;
@@ -174,12 +189,14 @@ describe('plan schema constraints (e2e)', () => {
 
   it('preserves a logical step identity in a later revision of the same plan', async () => {
     const plan = await createPlan();
-    const draft = await createDraft(plan.id);
-    const published = await createPublished(plan.id, 1);
     const identity = await createIdentity(plan.id);
+    const published = await createDraft(plan.id);
 
-    await createStep(plan.id, draft.id, identity, 1);
     await createStep(plan.id, published.id, identity, 1);
+    await publishRevision(published.id, 1);
+
+    const draft = await createDraft(plan.id);
+    await createStep(plan.id, draft.id, identity, 1);
 
     const rows = await prisma.planStep.findMany({
       where: { planId: plan.id, logicalStepId: identity },

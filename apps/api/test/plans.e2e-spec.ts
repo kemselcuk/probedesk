@@ -231,15 +231,12 @@ describe('plans API (e2e)', () => {
   }): Promise<{ plan: PlanBody; published: PublishedBody }> {
     const plan = await createPlan(options.draftName);
     const versionNumber = options.versionNumber ?? 1;
-    const revision = await prisma.planRevision.create({
-      data: {
-        planId: plan.id,
-        state: PlanRevisionState.PUBLISHED,
-        name: options.publishedName,
-        versionNumber,
-        publishedById: plannerUser.id,
-        publishedAt: new Date('2026-11-03T12:00:00.000Z'),
-      },
+    const revision = await prisma.planRevision.findFirstOrThrow({
+      where: { planId: plan.id, state: PlanRevisionState.DRAFT },
+    });
+    await prisma.planRevision.update({
+      where: { id: revision.id },
+      data: { name: options.publishedName },
     });
 
     for (let index = 0; index < (options.stepCount ?? 2); index += 1) {
@@ -261,6 +258,25 @@ describe('plans API (e2e)', () => {
         },
       });
     }
+
+    await prisma.planRevision.update({
+      where: { id: revision.id },
+      data: {
+        state: PlanRevisionState.PUBLISHED,
+        versionNumber,
+        publishedById: plannerUser.id,
+        publishedAt: new Date('2026-11-03T12:00:00.000Z'),
+      },
+    });
+
+    await prisma.planRevision.create({
+      data: {
+        planId: plan.id,
+        state: PlanRevisionState.DRAFT,
+        name: options.draftName,
+        editRevision: 1,
+      },
+    });
 
     const planWithPublished = await getPlan(plan.id);
     return { plan, published: planWithPublished.published! };

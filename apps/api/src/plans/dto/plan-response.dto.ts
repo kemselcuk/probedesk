@@ -67,6 +67,31 @@ export class PublishedVersionSummaryDto {
   publishedAt!: string;
 }
 
+/** Public publisher fields; never includes password hashes or session data. */
+export class PublishedBySummaryDto {
+  @ApiProperty({ type: String, format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: String, format: 'email', example: 'planner@example.com' })
+  email!: string;
+
+  @ApiProperty({
+    type: String,
+    enum: ['PLANNER', 'OPERATOR', 'VIEWER'],
+    example: 'PLANNER',
+  })
+  role!: 'PLANNER' | 'OPERATOR' | 'VIEWER';
+}
+
+/** One row of GET /plans/:id/versions, newest published version first. */
+export class PublishedVersionListItemDto extends PublishedVersionSummaryDto {
+  @ApiProperty({ type: String, example: 'Power rail verification' })
+  name!: string;
+
+  @ApiProperty({ type: () => PublishedBySummaryDto })
+  publishedBy!: PublishedBySummaryDto;
+}
+
 /** Open draft returned to a Planner. Other roles never receive this object. */
 export class DraftRevisionDto extends DraftSummaryDto {
   @ApiProperty({ type: String, format: 'uuid' })

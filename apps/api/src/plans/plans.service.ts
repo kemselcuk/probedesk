@@ -17,13 +17,20 @@ import {
   PlanListItemDto,
   PlanStepDto,
   PublishedRevisionDto,
+  PublishedVersionListItemDto,
   PublishedVersionSummaryDto,
 } from './dto/plan-response.dto.js';
+import { PublishDraftDto } from './dto/publish-draft.dto.js';
 import { SaveDraftDto } from './dto/save-draft.dto.js';
-import { assertDraftLimits } from './plan-limits.js';
+import {
+  assertDraftLimits,
+  assertPublishableSteps,
+  type StoredStepForPublish,
+} from './plan-limits.js';
 import { formatScaledDecimal } from './plan-decimal.js';
 
 interface StepShape {
+  id: string;
   logicalStepId: string;
   position: number;
   name: string;
@@ -234,34 +241,18 @@ export class PlansService {
 
     const revision = await this.prisma.$transaction(
       async (tx) => {
-        const locked = await tx.$queryRaw<Array<{ id: string }>>`
-          SELECT "id" FROM "test_plans" WHERE "id" = ${planId}::uuid FOR UPDATE
-        `;
-
-        if (locked.length === 0) {
-          throw notFound();
-        }
+        await this.lockPlan(tx, planId);
 
         const draft = await tx.planRevision.findFirst({
           where: { planId, state: PlanRevisionState.DRAFT },
         });
 
         if (!draft) {
-          throw new ApiException(
-            HttpStatus.CONFLICT,
-            'DRAFT_CONFLICT',
-            'This plan does not have an open draft.',
-            { details: { reason: 'NO_OPEN_DRAFT' } },
-          );
+          throw noOpenDraft();
         }
 
         if (draft.editRevision !== dto.expectedRevision) {
-          throw new ApiException(
-            HttpStatus.CONFLICT,
-            'DRAFT_CONFLICT',
-            'The draft was changed by another save. Reload it and try again.',
-            { details: { currentRevision: draft.editRevision } },
-          );
+          throw staleRevision(draft.editRevision);
         }
 
         const existingIds = dto.steps.flatMap((step) =>
@@ -322,6 +313,245 @@ export class PlansService {
     );
 
     return toDraftRevision(revision);
+  }
+
+  /**
+   * Publishes the open draft atomically. The plan row is locked first, so two
+   * concurrent publishes or a publish racing a save serialize. Version numbers
+   * are assigned from the locked plan's highest published number and the partial
+   * unique index in the database is the final backstop.
+   *
+   * The stored steps are re-read after the state transition. Any direct SQL
+   * write that slipped in before the revision row lock is visible in that read
+   * and aborts the transaction instead of publishing unreviewed content.
+   */
+  async publishDraft(
+    plannerId: string,
+    planId: string,
+    dto: PublishDraftDto,
+  ): Promise<PublishedRevisionDto> {
+    const revision = await this.prisma.$transaction(
+      async (tx) => {
+        await this.lockPlan(tx, planId);
+
+        const draft = await tx.planRevision.findFirst({
+          where: { planId, state: PlanRevisionState.DRAFT },
+          include: { steps: { orderBy: { position: 'asc' } } },
+        });
+
+        if (!draft) {
+          throw noOpenDraft();
+        }
+
+        if (draft.editRevision !== dto.expectedRevision) {
+          throw staleRevision(draft.editRevision);
+        }
+
+        assertPublishableSteps(toStoredSteps(draft.steps));
+        const snapshot = draft.steps.map(toStepSnapshot);
+
+        const aggregate = await tx.planRevision.aggregate({
+          where: { planId, versionNumber: { not: null } },
+          _max: { versionNumber: true },
+        });
+        const versionNumber = (aggregate._max.versionNumber ?? 0) + 1;
+        const publishedAt = new Date();
+
+        const updated = await tx.planRevision.updateMany({
+          where: {
+            id: draft.id,
+            planId,
+            state: PlanRevisionState.DRAFT,
+            editRevision: dto.expectedRevision,
+          },
+          data: {
+            state: PlanRevisionState.PUBLISHED,
+            versionNumber,
+            publishedById: plannerId,
+            publishedAt,
+          },
+        });
+
+        if (updated.count !== 1) {
+          throw new ApiException(
+            HttpStatus.CONFLICT,
+            'DRAFT_CONFLICT',
+            'The draft changed before it could be published. Reload it and try again.',
+            { details: { reason: 'DRAFT_CHANGED' } },
+          );
+        }
+
+        const stored = await tx.planRevision.findUniqueOrThrow({
+          where: { id: draft.id },
+          include: { steps: { orderBy: { position: 'asc' } } },
+        });
+
+        if (
+          stored.name !== draft.name ||
+          !sameStepContent(snapshot, stored.steps)
+        ) {
+          throw new ApiException(
+            HttpStatus.CONFLICT,
+            'DRAFT_CONFLICT',
+            'The draft changed while it was being published. Reload it and try again.',
+            { details: { reason: 'DRAFT_CHANGED' } },
+          );
+        }
+
+        assertPublishableSteps(toStoredSteps(stored.steps));
+        return stored;
+      },
+      { timeout: 10_000, maxWait: 5_000 },
+    );
+
+    return toPublishedRevision(revision);
+  }
+
+  /**
+   * Creates the next draft as a copy of the latest published version. The plan
+   * lock serializes two draft-creation requests, so the partial unique index is
+   * never the user-visible conflict path for this endpoint.
+   */
+  async createDraft(planId: string): Promise<DraftRevisionDto> {
+    const draft = await this.prisma.$transaction(
+      async (tx) => {
+        await this.lockPlan(tx, planId);
+
+        const openDraft = await tx.planRevision.findFirst({
+          where: { planId, state: PlanRevisionState.DRAFT },
+          select: { id: true, editRevision: true },
+        });
+
+        if (openDraft) {
+          throw new ApiException(
+            HttpStatus.CONFLICT,
+            'DRAFT_CONFLICT',
+            'This plan already has an open draft.',
+            {
+              details: {
+                reason: 'OPEN_DRAFT_EXISTS',
+                currentRevision: openDraft.editRevision,
+              },
+            },
+          );
+        }
+
+        const latest = await tx.planRevision.findFirst({
+          where: { planId, state: PlanRevisionState.PUBLISHED },
+          orderBy: [{ versionNumber: 'desc' }, { id: 'desc' }],
+          include: { steps: { orderBy: { position: 'asc' } } },
+        });
+
+        if (!latest) {
+          throw new ApiException(
+            HttpStatus.CONFLICT,
+            'DRAFT_CONFLICT',
+            'This plan does not have a published version to copy.',
+            { details: { reason: 'NO_PUBLISHED_VERSION' } },
+          );
+        }
+
+        const created = await tx.planRevision.create({
+          data: {
+            planId,
+            state: PlanRevisionState.DRAFT,
+            name: latest.name,
+            editRevision: 1,
+            baseVersionId: latest.id,
+          },
+        });
+
+        if (latest.steps.length > 0) {
+          await tx.planStep.createMany({
+            data: latest.steps.map((step) => ({
+              revisionId: created.id,
+              planId,
+              logicalStepId: step.logicalStepId,
+              position: step.position,
+              name: step.name,
+              unit: step.unit,
+              minimum: step.minimum,
+              maximum: step.maximum,
+              sampleCount: step.sampleCount,
+              intervalMs: step.intervalMs,
+            })),
+          });
+        }
+
+        return tx.planRevision.findUniqueOrThrow({
+          where: { id: created.id },
+          include: { steps: { orderBy: { position: 'asc' } } },
+        });
+      },
+      { timeout: 10_000, maxWait: 5_000 },
+    );
+
+    return toDraftRevision(draft);
+  }
+
+  /**
+   * Published versions for one plan, newest first. A plan that only has a draft
+   * is a 404 for Operator and Viewer so its existence is not disclosed.
+   */
+  async listVersions(
+    role: Role,
+    planId: string,
+  ): Promise<PublishedVersionListItemDto[]> {
+    const isPlanner = role === Role.PLANNER;
+    const plan = await this.prisma.testPlan.findFirst({
+      where: isPlanner
+        ? { id: planId }
+        : {
+            id: planId,
+            revisions: { some: { state: PlanRevisionState.PUBLISHED } },
+          },
+      select: { id: true },
+    });
+
+    if (!plan) {
+      throw notFound();
+    }
+
+    const versions = await this.prisma.planRevision.findMany({
+      where: { planId, state: PlanRevisionState.PUBLISHED },
+      orderBy: [{ versionNumber: 'desc' }, { id: 'desc' }],
+      include: {
+        publishedBy: { select: { id: true, email: true, role: true } },
+      },
+    });
+
+    return versions.map(toPublishedVersionListItem);
+  }
+
+  /** Reads one published revision with ordered steps; drafts are always 404. */
+  async getPublishedVersion(versionId: string): Promise<PublishedRevisionDto> {
+    const revision = await this.prisma.planRevision.findFirst({
+      where: { id: versionId, state: PlanRevisionState.PUBLISHED },
+      include: { steps: { orderBy: { position: 'asc' } } },
+    });
+
+    if (!revision) {
+      throw notFound();
+    }
+
+    return toPublishedRevision(revision);
+  }
+
+  /**
+   * Every draft mutation locks the plan row before touching revisions or steps.
+   * This single lock order is what makes save/publish/new-draft serialize.
+   */
+  private async lockPlan(
+    tx: Prisma.TransactionClient,
+    planId: string,
+  ): Promise<void> {
+    const locked = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "test_plans" WHERE "id" = ${planId}::uuid FOR UPDATE
+    `;
+
+    if (locked.length === 0) {
+      throw notFound();
+    }
   }
 
   /**
@@ -409,6 +639,89 @@ function notFound(): ApiException {
     'NOT_FOUND',
     'The requested resource was not found.',
   );
+}
+
+function noOpenDraft(): ApiException {
+  return new ApiException(
+    HttpStatus.CONFLICT,
+    'DRAFT_CONFLICT',
+    'This plan does not have an open draft.',
+    { details: { reason: 'NO_OPEN_DRAFT' } },
+  );
+}
+
+function staleRevision(currentRevision: number): ApiException {
+  return new ApiException(
+    HttpStatus.CONFLICT,
+    'DRAFT_CONFLICT',
+    'The draft was changed by another save. Reload it and try again.',
+    { details: { currentRevision } },
+  );
+}
+
+function toStoredSteps(steps: readonly StepShape[]): StoredStepForPublish[] {
+  return steps.map((step) => ({
+    logicalStepId: step.logicalStepId,
+    position: step.position,
+    name: step.name,
+    unit: step.unit,
+    minimum: formatScaledDecimal(step.minimum),
+    maximum: formatScaledDecimal(step.maximum),
+    sampleCount: step.sampleCount,
+    intervalMs: step.intervalMs,
+  }));
+}
+
+function toStepSnapshot(step: StepShape): string {
+  return JSON.stringify([
+    step.id,
+    step.logicalStepId,
+    step.position,
+    step.name,
+    step.unit,
+    formatScaledDecimal(step.minimum),
+    formatScaledDecimal(step.maximum),
+    step.sampleCount,
+    step.intervalMs,
+  ]);
+}
+
+function sameStepContent(
+  before: readonly string[],
+  after: readonly StepShape[],
+): boolean {
+  return (
+    before.length === after.length &&
+    after.every((step, index) => toStepSnapshot(step) === before[index])
+  );
+}
+
+function toPublishedVersionListItem(revision: {
+  id: string;
+  versionNumber: number | null;
+  name: string;
+  publishedAt: Date | null;
+  publishedBy: { id: string; email: string; role: Role } | null;
+}): PublishedVersionListItemDto {
+  if (
+    revision.versionNumber === null ||
+    revision.publishedAt === null ||
+    revision.publishedBy === null
+  ) {
+    throw new Error('A published revision must have version metadata.');
+  }
+
+  return {
+    id: revision.id,
+    versionNumber: revision.versionNumber,
+    name: revision.name,
+    publishedAt: revision.publishedAt.toISOString(),
+    publishedBy: {
+      id: revision.publishedBy.id,
+      email: revision.publishedBy.email,
+      role: revision.publishedBy.role,
+    },
+  };
 }
 
 function latestPublished<

@@ -106,6 +106,34 @@ Argon2id (19 MiB, 2 iterations, 1 lane) and the seed refuses to run when
 `NODE_ENV=production`. OpenAPI documents the `session` cookie scheme and the
 `csrfToken` header scheme.
 
+## Plan publishing and versions
+
+The plan endpoints form one versioned editing flow:
+
+- `PUT /api/plans/:id/draft` replaces the open draft with an `expectedRevision`.
+- `POST /api/plans/:id/draft/publish` publishes that draft atomically after
+  re-validating the stored steps (1–30 steps, measurement limits, contiguous
+  positions). The version number is `max + 1` inside the plan while the plan row
+  is locked, so concurrent publishes cannot duplicate a version.
+- `POST /api/plans/:id/drafts` copies the latest published version into a new
+  draft with `editRevision=1` and keeps every `logicalStepId`. A second draft is
+  rejected with `409 DRAFT_CONFLICT`.
+- `GET /api/plans/:id/versions` lists published versions newest first with a safe
+  publisher summary.
+- `GET /api/plan-versions/:id` reads one immutable published version. Draft ids
+  and unknown ids are `404`.
+
+Published revisions and steps are immutable in the API and in PostgreSQL. The
+`20261103170000_published_immutability` migration adds triggers that reject
+`UPDATE`/`DELETE` of published revisions, `UPDATE`/`DELETE` of their steps, and
+`INSERT` of steps into a published revision. The only accepted revision update is
+the `DRAFT -> PUBLISHED` transition (ordinary draft edits remain allowed). Step
+writes take a share lock on the
+owning revision, so a direct write racing a publish either serializes before the
+transition (and aborts the publish because the content changed) or waits and is
+rejected after it. The test cleanup helper disables these triggers as the schema
+owner; application connections cannot.
+
 ## Tests
 
 ```bash

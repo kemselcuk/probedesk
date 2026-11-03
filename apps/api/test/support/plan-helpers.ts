@@ -41,32 +41,53 @@ export async function createPlanTestProfile(
  * Deletes every row created by the plans test suites. Order follows the
  * restrictive foreign keys: steps, revisions, identities, plans, sessions, users
  * and finally profiles. It only targets the dedicated test prefixes.
+ *
+ * Published revisions and steps are protected by triggers from the
+ * `20261103170000_published_immutability` migration. Test cleanup runs as the
+ * schema owner and explicitly disables those triggers for the duration of the
+ * delete, then re-enables them. Application code never has this escape hatch.
  */
 export async function deletePlanTestData(prisma: PrismaClient): Promise<void> {
-  const planWhere = {
-    createdBy: { email: { startsWith: PLAN_TEST_EMAIL_PREFIX } },
-  };
-  const plans = await prisma.testPlan.findMany({
-    where: planWhere,
-    select: { id: true },
-  });
-  const planIds = plans.map((plan) => plan.id);
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "plan_steps" DISABLE TRIGGER USER',
+  );
+  await prisma.$executeRawUnsafe(
+    'ALTER TABLE "plan_revisions" DISABLE TRIGGER USER',
+  );
 
-  await prisma.planStep.deleteMany({ where: { planId: { in: planIds } } });
-  await prisma.planRevision.deleteMany({
-    where: { planId: { in: planIds } },
-  });
-  await prisma.stepIdentity.deleteMany({
-    where: { planId: { in: planIds } },
-  });
-  await prisma.testPlan.deleteMany({ where: { id: { in: planIds } } });
-  await prisma.session.deleteMany({
-    where: { user: { email: { startsWith: PLAN_TEST_EMAIL_PREFIX } } },
-  });
-  await prisma.user.deleteMany({
-    where: { email: { startsWith: PLAN_TEST_EMAIL_PREFIX } },
-  });
-  await prisma.deviceProfile.deleteMany({
-    where: { code: { startsWith: PLAN_TEST_PROFILE_CODE_PREFIX } },
-  });
+  try {
+    const planWhere = {
+      createdBy: { email: { startsWith: PLAN_TEST_EMAIL_PREFIX } },
+    };
+    const plans = await prisma.testPlan.findMany({
+      where: planWhere,
+      select: { id: true },
+    });
+    const planIds = plans.map((plan) => plan.id);
+
+    await prisma.planStep.deleteMany({ where: { planId: { in: planIds } } });
+    await prisma.planRevision.deleteMany({
+      where: { planId: { in: planIds } },
+    });
+    await prisma.stepIdentity.deleteMany({
+      where: { planId: { in: planIds } },
+    });
+    await prisma.testPlan.deleteMany({ where: { id: { in: planIds } } });
+    await prisma.session.deleteMany({
+      where: { user: { email: { startsWith: PLAN_TEST_EMAIL_PREFIX } } },
+    });
+    await prisma.user.deleteMany({
+      where: { email: { startsWith: PLAN_TEST_EMAIL_PREFIX } },
+    });
+    await prisma.deviceProfile.deleteMany({
+      where: { code: { startsWith: PLAN_TEST_PROFILE_CODE_PREFIX } },
+    });
+  } finally {
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "plan_revisions" ENABLE TRIGGER USER',
+    );
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "plan_steps" ENABLE TRIGGER USER',
+    );
+  }
 }

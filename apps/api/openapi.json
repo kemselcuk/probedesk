@@ -582,6 +582,303 @@
           "plans"
         ]
       }
+    },
+    "/api/plans/{id}/draft/publish": {
+      "post": {
+        "operationId": "PlansController_publishDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The published revision with its version number, publisher and ordered steps.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedRevisionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "expectedRevision is missing or invalid, or the stored draft content is not publishable. Nothing was published.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The plan does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "expectedRevision is stale, the plan has no open draft, or the draft changed during the transition. Nothing was published.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Publish the open draft atomically as the next version.",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}/drafts": {
+      "post": {
+        "operationId": "PlansController_createDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The new draft with editRevision 1, baseVersionId and copied steps that keep their logicalStepId values.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftRevisionDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The plan does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An open draft already exists or the plan has no published version. No draft was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Create a new draft copied from the latest published version.",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plans/{id}/versions": {
+      "get": {
+        "operationId": "PlansController_listVersions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Published version summaries including the publisher. A plan without published content is a 404 for Operator and Viewer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedVersionListItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The plan does not exist or has no published version for this role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List published versions for a plan, newest first.",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/plan-versions/{id}": {
+      "get": {
+        "operationId": "PlanVersionsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Published plan revision id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The published revision and its steps. Draft revisions and unknown ids are reported as 404.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedRevisionDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The version does not exist or is not published.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read one immutable published plan version with ordered steps.",
+        "tags": [
+          "plan-versions"
+        ]
+      }
     }
   },
   "info": {
@@ -1171,6 +1468,80 @@
           "name",
           "expectedRevision",
           "steps"
+        ]
+      },
+      "PublishDraftDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Current editRevision of the open draft. A mismatch is rejected with DRAFT_CONFLICT and nothing is published.",
+            "example": 3
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ]
+      },
+      "PublishedBySummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "planner@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PLANNER",
+              "OPERATOR",
+              "VIEWER"
+            ],
+            "example": "PLANNER"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ]
+      },
+      "PublishedVersionListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "publishedBy": {
+            "$ref": "#/components/schemas/PublishedBySummaryDto"
+          }
+        },
+        "required": [
+          "id",
+          "versionNumber",
+          "publishedAt",
+          "name",
+          "publishedBy"
         ]
       }
     }

@@ -158,6 +158,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/plans/{id}/draft/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish the open draft atomically as the next version. */
+        post: operations["PlansController_publishDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans/{id}/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a new draft copied from the latest published version. */
+        post: operations["PlansController_createDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plans/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List published versions for a plan, newest first. */
+        get: operations["PlansController_listVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plan-versions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one immutable published plan version with ordered steps. */
+        get: operations["PlanVersionsController_getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -377,6 +445,38 @@ export interface components {
              */
             expectedRevision: number;
             steps: components["schemas"]["DraftStepDto"][];
+        };
+        PublishDraftDto: {
+            /**
+             * @description Current editRevision of the open draft. A mismatch is rejected with DRAFT_CONFLICT and nothing is published.
+             * @example 3
+             */
+            expectedRevision: number;
+        };
+        PublishedBySummaryDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: email
+             * @example planner@example.com
+             */
+            email: string;
+            /**
+             * @example PLANNER
+             * @enum {string}
+             */
+            role: "PLANNER" | "OPERATOR" | "VIEWER";
+        };
+        PublishedVersionListItemDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example 1 */
+            versionNumber: number;
+            /** Format: date-time */
+            publishedAt: string;
+            /** @example Power rail verification */
+            name: string;
+            publishedBy: components["schemas"]["PublishedBySummaryDto"];
         };
     };
     responses: never;
@@ -808,6 +908,219 @@ export interface operations {
             };
             /** @description expectedRevision is stale or the plan has no open draft. No rows were changed. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlansController_publishDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Plan id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishDraftDto"];
+            };
+        };
+        responses: {
+            /** @description The published revision with its version number, publisher and ordered steps. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedRevisionDto"];
+                };
+            };
+            /** @description expectedRevision is missing or invalid, or the stored draft content is not publishable. Nothing was published. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The plan does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description expectedRevision is stale, the plan has no open draft, or the draft changed during the transition. Nothing was published. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlansController_createDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Plan id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The new draft with editRevision 1, baseVersionId and copied steps that keep their logicalStepId values. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftRevisionDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The plan does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description An open draft already exists or the plan has no published version. No draft was created. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlansController_listVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Plan id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Published version summaries including the publisher. A plan without published content is a 404 for Operator and Viewer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedVersionListItemDto"][];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The plan does not exist or has no published version for this role. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlanVersionsController_getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Published plan revision id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The published revision and its steps. Draft revisions and unknown ids are reported as 404. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishedRevisionDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The version does not exist or is not published. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

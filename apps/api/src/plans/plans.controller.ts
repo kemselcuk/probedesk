@@ -39,7 +39,10 @@ import {
   DraftRevisionDto,
   PlanDetailDto,
   PlanListItemDto,
+  PublishedRevisionDto,
+  PublishedVersionListItemDto,
 } from './dto/plan-response.dto.js';
+import { PublishDraftDto } from './dto/publish-draft.dto.js';
 import { SaveDraftDto } from './dto/save-draft.dto.js';
 import { PlansService } from './plans.service.js';
 
@@ -186,5 +189,132 @@ export class PlansController {
     @Body() body: SaveDraftDto,
   ): Promise<DraftRevisionDto> {
     return this.plansService.saveDraft(id, body);
+  }
+
+  @Post(':id/draft/publish')
+  @HttpCode(HttpStatus.CREATED)
+  @Header('Cache-Control', 'no-store')
+  @UseGuards(CsrfGuard)
+  @Roles(Role.PLANNER)
+  @ApiSecurity({ session: [], csrfToken: [] })
+  @ApiOperation({
+    summary: 'Publish the open draft atomically as the next version.',
+  })
+  @ApiCreatedResponse({
+    description:
+      'The published revision with its version number, publisher and ordered steps.',
+    type: PublishedRevisionDto,
+  })
+  @ApiBody({ type: PublishDraftDto })
+  @ApiBadRequestResponse({
+    description:
+      'expectedRevision is missing or invalid, or the stored draft content is not publishable. Nothing was published.',
+    type: ApiErrorDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  @ApiForbiddenResponse({
+    description: 'The user is not a Planner or the CSRF token is invalid.',
+    type: ApiErrorDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'The plan does not exist.',
+    type: ApiErrorDto,
+  })
+  @ApiConflictResponse({
+    description:
+      'expectedRevision is stale, the plan has no open draft, or the draft changed during the transition. Nothing was published.',
+    type: ApiErrorDto,
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Plan id.',
+  })
+  publishDraft(
+    @CurrentAuth() auth: AuthContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: PublishDraftDto,
+  ): Promise<PublishedRevisionDto> {
+    return this.plansService.publishDraft(auth.user.id, id, body);
+  }
+
+  @Post(':id/drafts')
+  @HttpCode(HttpStatus.CREATED)
+  @Header('Cache-Control', 'no-store')
+  @UseGuards(CsrfGuard)
+  @Roles(Role.PLANNER)
+  @ApiSecurity({ session: [], csrfToken: [] })
+  @ApiOperation({
+    summary: 'Create a new draft copied from the latest published version.',
+  })
+  @ApiCreatedResponse({
+    description:
+      'The new draft with editRevision 1, baseVersionId and copied steps that keep their logicalStepId values.',
+    type: DraftRevisionDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  @ApiForbiddenResponse({
+    description: 'The user is not a Planner or the CSRF token is invalid.',
+    type: ApiErrorDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'The plan does not exist.',
+    type: ApiErrorDto,
+  })
+  @ApiConflictResponse({
+    description:
+      'An open draft already exists or the plan has no published version. No draft was created.',
+    type: ApiErrorDto,
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Plan id.',
+  })
+  createDraft(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<DraftRevisionDto> {
+    return this.plansService.createDraft(id);
+  }
+
+  @Get(':id/versions')
+  @Header('Cache-Control', 'no-store')
+  @Roles(Role.PLANNER, Role.OPERATOR, Role.VIEWER)
+  @ApiSecurity('session')
+  @ApiOperation({
+    summary: 'List published versions for a plan, newest first.',
+  })
+  @ApiOkResponse({
+    description:
+      'Published version summaries including the publisher. A plan without published content is a 404 for Operator and Viewer.',
+    type: [PublishedVersionListItemDto],
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'The plan does not exist or has no published version for this role.',
+    type: ApiErrorDto,
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Plan id.',
+  })
+  listVersions(
+    @CurrentAuth() auth: AuthContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<PublishedVersionListItemDto[]> {
+    return this.plansService.listVersions(auth.user.role, id);
   }
 }

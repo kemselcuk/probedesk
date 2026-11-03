@@ -34,9 +34,13 @@ describe('OpenAPI document (e2e)', () => {
       '/api/device-profiles',
       '/api/health/live',
       '/api/health/ready',
+      '/api/plan-versions/{id}',
       '/api/plans',
       '/api/plans/{id}',
       '/api/plans/{id}/draft',
+      '/api/plans/{id}/draft/publish',
+      '/api/plans/{id}/drafts',
+      '/api/plans/{id}/versions',
     ]);
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
@@ -103,12 +107,39 @@ describe('OpenAPI document (e2e)', () => {
     expect(
       document.paths['/api/plans/{id}/draft']?.put?.security,
     ).toEqual([{ session: [], csrfToken: [] }]);
+    expect(
+      document.paths['/api/plans/{id}/draft/publish']?.post?.security,
+    ).toEqual([{ session: [], csrfToken: [] }]);
+    expect(
+      document.paths['/api/plans/{id}/drafts']?.post?.security,
+    ).toEqual([{ session: [], csrfToken: [] }]);
+    expect(document.paths['/api/plans/{id}/versions']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(document.paths['/api/plan-versions/{id}']?.get?.security).toEqual([
+      { session: [] },
+    ]);
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('201');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('400');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('403');
     expect(
       document.paths['/api/plans/{id}/draft']?.put?.responses,
     ).toHaveProperty('409');
+    expect(
+      document.paths['/api/plans/{id}/draft/publish']?.post?.responses,
+    ).toHaveProperty('201');
+    expect(
+      document.paths['/api/plans/{id}/draft/publish']?.post?.responses,
+    ).toHaveProperty('409');
+    expect(
+      document.paths['/api/plans/{id}/drafts']?.post?.responses,
+    ).toHaveProperty('201');
+    expect(
+      document.paths['/api/plans/{id}/drafts']?.post?.responses,
+    ).toHaveProperty('409');
+    expect(
+      document.paths['/api/plan-versions/{id}']?.get?.responses,
+    ).toHaveProperty('404');
     expect(document.paths['/api/plans/{id}']?.get?.responses).toHaveProperty(
       '404',
     );
@@ -137,6 +168,13 @@ describe('OpenAPI document (e2e)', () => {
     expect(document.components?.schemas).toHaveProperty('DraftRevisionDto');
     expect(document.components?.schemas).toHaveProperty('PublishedRevisionDto');
     expect(document.components?.schemas).toHaveProperty('PlanStepDto');
+    expect(document.components?.schemas).toHaveProperty('PublishDraftDto');
+    expect(document.components?.schemas).toHaveProperty(
+      'PublishedVersionListItemDto',
+    );
+    expect(document.components?.schemas).toHaveProperty(
+      'PublishedBySummaryDto',
+    );
     expect(document.components?.schemas).toHaveProperty('DeviceProfileDto');
     expect(document.components?.schemas?.AuthUserDto).toMatchObject({
       required: ['id', 'email', 'role'],
