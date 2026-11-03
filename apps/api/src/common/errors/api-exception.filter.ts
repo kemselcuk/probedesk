@@ -10,6 +10,7 @@ import type { Response } from 'express';
 import type { ApiErrorCode } from './api-error-code.js';
 import { ApiException } from './api.exception.js';
 import type { FieldError } from './field-error.js';
+import { isDatabaseInfrastructureError } from '../database/prisma-error.js';
 import {
   getRequestId,
   REQUEST_ID_HEADER,
@@ -97,6 +98,20 @@ function toErrorResponse(
     };
   }
 
+  // A database that cannot be reached or has not been migrated is an
+  // infrastructure condition, not an application defect. Keep every other
+  // unexpected error as INTERNAL_ERROR so programming bugs stay visible.
+  if (isDatabaseInfrastructureError(exception)) {
+    return {
+      status: HttpStatus.SERVICE_UNAVAILABLE,
+      body: {
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'The service is currently unavailable.',
+        requestId,
+      },
+    };
+  }
+
   return {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     body: {
@@ -127,6 +142,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     const requestId = getRequestId(request);
     response.setHeader(REQUEST_ID_HEADER, requestId);
+
+    if (
+      exception instanceof ApiException &&
+      exception.retryAfterSeconds !== undefined
+    ) {
+      response.setHeader('Retry-After', String(exception.retryAfterSeconds));
+    }
 
     const { status, body } = toErrorResponse(exception, requestId);
 

@@ -67,6 +67,19 @@ export const environmentSchema = z
       }),
     SESSION_COOKIE_SECURE: booleanStringSchema,
   })
+  .superRefine((value, context) => {
+    // The session cookie must never travel over plain HTTP in production. A
+    // local demonstration may keep the default, but a production deployment
+    // with an insecure cookie is a configuration error, not a choice.
+    if (value.NODE_ENV === 'production' && value.SESSION_COOKIE_SECURE !== true) {
+      context.addIssue({
+        code: 'custom',
+        path: ['SESSION_COOKIE_SECURE'],
+        message:
+          'SESSION_COOKIE_SECURE must be "true" when NODE_ENV is "production".',
+      });
+    }
+  })
   .transform((value) => ({
     nodeEnv: value.NODE_ENV,
     port: value.PORT,

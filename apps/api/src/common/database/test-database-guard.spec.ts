@@ -50,6 +50,26 @@ describe('test database guard', () => {
     ).toThrowError(/DATABASE_URL is not set/);
   });
 
+  it('rejects a non-reset test consumer when the development URL is unknown', () => {
+    expect(() =>
+      requireTestDatabaseUrl({
+        NODE_ENV: 'test',
+        TEST_DATABASE_URL: testUrl,
+      }),
+    ).toThrowError(/DATABASE_URL is not set/);
+  });
+
+  it('rejects a test URL that aliases the development database through the non-reset entry point', () => {
+    expect(() =>
+      requireTestDatabaseUrl({
+        NODE_ENV: 'test',
+        DATABASE_URL: developmentUrl,
+        TEST_DATABASE_URL:
+          'postgresql://someone:else@127.0.0.1:5432/probedesk?schema=public',
+      }),
+    ).toThrowError(/points at the development database/);
+  });
+
   it('rejects the same database even when localhost spellings differ', () => {
     expect(() =>
       requireSafeTestDatabaseReset({

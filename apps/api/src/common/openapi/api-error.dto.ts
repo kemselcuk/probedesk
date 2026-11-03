@@ -1,4 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  API_ERROR_CODES,
+  type ApiErrorCode,
+} from '../errors/api-error-code.js';
 
 export class ApiFieldErrorDto {
   @ApiProperty({
@@ -19,8 +23,13 @@ export class ApiFieldErrorDto {
 }
 
 export class ApiErrorDto {
-  @ApiProperty({ type: String, example: 'VALIDATION_ERROR' })
-  code!: string;
+  @ApiProperty({
+    enum: [...API_ERROR_CODES],
+    description:
+      'Stable application error code. This list matches the API contract.',
+    example: 'VALIDATION_ERROR',
+  })
+  code!: ApiErrorCode;
 
   @ApiProperty({
     type: String,

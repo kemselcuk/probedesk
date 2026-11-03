@@ -9,7 +9,8 @@ process.env.NODE_ENV = 'test';
 
 try {
   // Point the application under test at the isolated test database. The guard
-  // also rejects a TEST_DATABASE_URL that aliases the development database.
+  // requires both URLs and rejects a test URL that aliases the development
+  // database, so cleanup code can never target unverified data.
   const testUrl = requireTestDatabaseUrl(process.env);
   process.env.DATABASE_URL = testUrl.toString();
 } catch (error) {

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { API_ERROR_CODES } from '../src/common/errors/api-error-code.js';
 import { createOpenApiDocument } from '../src/common/openapi/openapi.js';
 import { createTestApplication } from './support/create-test-application.js';
 
@@ -38,11 +39,34 @@ describe('OpenAPI document (e2e)', () => {
       '200',
     );
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
+      '400',
+    );
+    expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
       '401',
+    );
+    expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
+      '403',
     );
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
       '429',
     );
+    expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
+      '503',
+    );
+    expect(
+      document.paths['/api/auth/login']?.post?.responses['403'],
+    ).toMatchObject({
+      description: 'The request Origin is not same-origin.',
+    });
+    expect(
+      document.paths['/api/auth/login']?.post?.responses['429'],
+    ).toMatchObject({
+      headers: {
+        'Retry-After': {
+          description: 'Seconds until another login attempt is allowed.',
+        },
+      },
+    });
     expect(document.paths['/api/auth/login']?.post?.security).toBeUndefined();
     expect(document.paths['/api/auth/me']?.get?.security).toEqual([
       { session: [] },
@@ -82,6 +106,13 @@ describe('OpenAPI document (e2e)', () => {
     expect(document.components?.schemas?.LoginDto).toMatchObject({
       required: ['email', 'password'],
     });
+
+    const errorCodeSchema = document.components?.schemas?.ApiErrorDto as {
+      properties?: { code?: { enum?: unknown[] } };
+    };
+    expect(errorCodeSchema.properties?.code?.enum).toEqual([
+      ...API_ERROR_CODES,
+    ]);
   });
 
   it('serves the JSON document from the application', async () => {

@@ -56,4 +56,21 @@ describe('application startup (e2e)', () => {
     expect(output).not.toContain('supersecret');
     expect(output).not.toContain('not-a-port');
   });
+
+  it('refuses to start production with an insecure session cookie', () => {
+    const { output, status } = startWithoutConfiguration({
+      NODE_ENV: 'production',
+      PORT: '3999',
+      DATABASE_URL:
+        'postgresql://probedesk:supersecret@127.0.0.1:5432/probedesk?schema=public',
+      SESSION_COOKIE_SECURE: 'false',
+    });
+
+    expect(status).not.toBe(0);
+    expect(output).toContain('Invalid environment configuration');
+    expect(output).toContain('SESSION_COOKIE_SECURE');
+    expect(output).toContain('production');
+    expect(output).not.toContain('supersecret');
+    expect(output).not.toContain('Listening');
+  });
 });

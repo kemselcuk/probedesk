@@ -79,7 +79,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Report whether the API can serve requests, including database access. */
+        /** Report whether the API can serve requests, including database access and applied migrations. */
         get: operations["HealthController_ready"];
         put?: never;
         post?: never;
@@ -105,8 +105,12 @@ export interface components {
             message: string;
         };
         ApiErrorDto: {
-            /** @example VALIDATION_ERROR */
-            code: string;
+            /**
+             * @description Stable application error code. This list matches the API contract.
+             * @example VALIDATION_ERROR
+             * @enum {string}
+             */
+            code: "VALIDATION_ERROR" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DRAFT_CONFLICT" | "RUN_ALREADY_ACTIVE" | "IDEMPOTENCY_CONFLICT" | "RUN_NOT_TERMINAL" | "COMPARISON_PLAN_MISMATCH" | "TOO_MANY_REQUESTS" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
             /** @example The request contains invalid fields. */
             message: string;
             /**
@@ -181,6 +185,15 @@ export interface operations {
                     "application/json": components["schemas"]["AuthUserDto"];
                 };
             };
+            /** @description The body is not JSON, or it contains missing, invalid or unknown fields. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
             /** @description Unknown email or wrong password. The message is generic. */
             401: {
                 headers: {
@@ -190,7 +203,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
-            /** @description The request is not JSON or its Origin is not same-origin. */
+            /** @description The request Origin is not same-origin. */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -201,6 +214,17 @@ export interface operations {
             };
             /** @description Too many failed attempts for this address and email. */
             429: {
+                headers: {
+                    /** @description Seconds until another login attempt is allowed. */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The database is unavailable; retry after it recovers. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -236,6 +260,15 @@ export interface operations {
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
+            /** @description The database is unavailable; retry after it recovers. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
         };
     };
     AuthController_logout: {
@@ -259,6 +292,15 @@ export interface operations {
             };
             /** @description The session exists but its CSRF header is missing or wrong. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The database is unavailable; retry after it recovers. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -300,7 +342,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The database answered a minimal query. */
+            /** @description The database is reachable and every registered migration has finished. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -311,12 +353,14 @@ export interface operations {
                         status: string;
                         checks: {
                             /** @example ok */
-                            database?: string;
+                            database: string;
+                            /** @example ok */
+                            migrations: string;
                         };
                     };
                 };
             };
-            /** @description The database is unavailable; retry after it recovers. */
+            /** @description The database is unavailable or its migrations are unfinished; retry after it recovers. */
             503: {
                 headers: {
                     [name: string]: unknown;

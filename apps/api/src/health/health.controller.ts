@@ -37,10 +37,11 @@ export class HealthController {
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
     summary:
-      'Report whether the API can serve requests, including database access.',
+      'Report whether the API can serve requests, including database access and applied migrations.',
   })
   @ApiOkResponse({
-    description: 'The database answered a minimal query.',
+    description:
+      'The database is reachable and every registered migration has finished.',
     schema: {
       type: 'object',
       required: ['status', 'checks'],
@@ -48,18 +49,24 @@ export class HealthController {
         status: { type: 'string', example: 'ok' },
         checks: {
           type: 'object',
+          required: ['database', 'migrations'],
           properties: {
             database: { type: 'string', example: 'ok' },
+            migrations: { type: 'string', example: 'ok' },
           },
         },
       },
     },
   })
   @ApiServiceUnavailableResponse({
-    description: 'The database is unavailable; retry after it recovers.',
+    description:
+      'The database is unavailable or its migrations are unfinished; retry after it recovers.',
     type: ApiErrorDto,
   })
-  ready(): Promise<{ status: 'ok'; checks: { database: 'ok' } }> {
+  ready(): Promise<{
+    status: 'ok';
+    checks: { database: 'ok'; migrations: 'ok' };
+  }> {
     return this.healthService.getReadiness();
   }
 }

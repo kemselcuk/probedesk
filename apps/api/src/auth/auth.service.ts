@@ -3,7 +3,10 @@ import type { Request } from 'express';
 import { ApiException } from '../common/errors/api.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { AuthenticatedUser, AuthContext } from './auth.types.js';
-import { SESSION_TTL_MS } from './auth.constants.js';
+import {
+  LOGIN_RATE_LIMIT_MAX_FAILURES_PER_ADDRESS,
+  SESSION_TTL_MS,
+} from './auth.constants.js';
 import { readSessionToken } from './cookie.js';
 import { assertCsrfRequest } from './csrf.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
@@ -34,12 +37,22 @@ export class AuthService {
     clientAddress: string,
   ): Promise<LoginResult> {
     const rateLimitKey = `${clientAddress}|${email}`;
+    const emailLimit = this.rateLimiter.check(rateLimitKey);
+    const addressLimit =
+      emailLimit.limited || !clientAddress
+        ? emailLimit
+        : this.rateLimiter.check(
+            clientAddress,
+            Date.now(),
+            LOGIN_RATE_LIMIT_MAX_FAILURES_PER_ADDRESS,
+          );
 
-    if (this.rateLimiter.check(rateLimitKey).limited) {
+    if (emailLimit.limited || addressLimit.limited) {
       throw new ApiException(
         HttpStatus.TOO_MANY_REQUESTS,
         'TOO_MANY_REQUESTS',
         'Too many login attempts. Try again later.',
+        { retryAfterSeconds: addressLimit.retryAfterSeconds },
       );
     }
 
@@ -50,6 +63,7 @@ export class AuthService {
 
     if (!user || !passwordMatches) {
       this.rateLimiter.recordFailure(rateLimitKey);
+      this.rateLimiter.recordFailure(clientAddress);
       throw new ApiException(
         HttpStatus.UNAUTHORIZED,
         'UNAUTHENTICATED',

@@ -87,6 +87,43 @@ describe('loadEnv', () => {
     }
   });
 
+  it('refuses production when the session cookie would not be Secure', () => {
+    const productionEnvironment = {
+      ...validEnvironment,
+      NODE_ENV: 'production',
+    };
+
+    for (const SESSION_COOKIE_SECURE of ['false', undefined] as const) {
+      const environment = { ...productionEnvironment, SESSION_COOKIE_SECURE };
+
+      expect(() => loadEnv(environment)).toThrowError(
+        EnvironmentValidationError,
+      );
+
+      try {
+        loadEnv(environment);
+        expect.unreachable('loadEnv should have thrown');
+      } catch (error) {
+        expect((error as Error).message).toContain('SESSION_COOKIE_SECURE');
+        expect((error as Error).message).toContain('production');
+        expect((error as Error).message).not.toContain('probedesk:probedesk');
+      }
+    }
+  });
+
+  it('accepts production with a Secure session cookie', () => {
+    const config = loadEnv({
+      NODE_ENV: 'production',
+      PORT: '8443',
+      DATABASE_URL:
+        'postgresql://deploy:secret@db.example.test:5432/probedesk?schema=public',
+      SESSION_COOKIE_SECURE: 'true',
+    });
+
+    expect(config.nodeEnv).toBe('production');
+    expect(config.sessionCookieSecure).toBe(true);
+  });
+
   it('rejects an unknown NODE_ENV', () => {
     expect(() =>
       loadEnv({ ...validEnvironment, NODE_ENV: 'staging' }),

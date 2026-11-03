@@ -22,6 +22,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiSecurity,
+  ApiServiceUnavailableResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -59,17 +60,33 @@ export class AuthController {
       'Session established. The response contains only the user summary; the raw tokens live in HttpOnly and XSRF cookies.',
     type: AuthUserDto,
   })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description:
+      'The body is not JSON, or it contains missing, invalid or unknown fields.',
+    type: ApiErrorDto,
+  })
   @ApiUnauthorizedResponse({
     description: 'Unknown email or wrong password. The message is generic.',
     type: ApiErrorDto,
   })
   @ApiForbiddenResponse({
-    description: 'The request is not JSON or its Origin is not same-origin.',
+    description: 'The request Origin is not same-origin.',
     type: ApiErrorDto,
   })
   @ApiResponse({
     status: HttpStatus.TOO_MANY_REQUESTS,
     description: 'Too many failed attempts for this address and email.',
+    type: ApiErrorDto,
+    headers: {
+      'Retry-After': {
+        description: 'Seconds until another login attempt is allowed.',
+        schema: { type: 'integer', minimum: 1 },
+      },
+    },
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'The database is unavailable; retry after it recovers.',
     type: ApiErrorDto,
   })
   async login(
@@ -99,6 +116,10 @@ export class AuthController {
   @ApiOkResponse({ type: AuthUserDto })
   @ApiUnauthorizedResponse({
     description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'The database is unavailable; retry after it recovers.',
     type: ApiErrorDto,
   })
   async me(
@@ -145,6 +166,10 @@ export class AuthController {
   })
   @ApiForbiddenResponse({
     description: 'The session exists but its CSRF header is missing or wrong.',
+    type: ApiErrorDto,
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'The database is unavailable; retry after it recovers.',
     type: ApiErrorDto,
   })
   async logout(

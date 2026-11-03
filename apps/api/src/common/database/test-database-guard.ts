@@ -39,7 +39,11 @@ function parseConnectionUrl(value: string, name: string): URL {
   return url;
 }
 
-function normaliseHost(hostname: string): string {
+/**
+ * Normalises loopback spellings so that `127.0.0.1`, `::1` and `localhost` are
+ * treated as the same database host without changing external hostnames.
+ */
+export function normaliseDatabaseHost(hostname: string): string {
   const host = hostname.toLowerCase();
   return host === '127.0.0.1' || host === '::1' || host === '[::1]'
     ? 'localhost'
@@ -54,12 +58,14 @@ export function databaseIdentity(connectionUrl: string): string {
   const port = url.port || '5432';
   const database = decodeURIComponent(url.pathname).replace(/\/+$/, '');
 
-  return `${normaliseHost(url.hostname)}:${port}${database}`;
+  return `${normaliseDatabaseHost(url.hostname)}:${port}${database}`;
 }
 
 /**
- * Returns the test database URL when the environment is clearly a test one.
- * Used by migration helpers that must never target the development database.
+ * Returns the test database URL only when the environment is clearly a test
+ * one. Both URLs are mandatory: the development URL identifies the database
+ * that must never be touched, so its absence is a rejection rather than a
+ * skipped check.
  */
 export function requireTestDatabaseUrl(
   environment: TestDatabaseEnvironment,
@@ -70,21 +76,30 @@ export function requireTestDatabaseUrl(
     );
   }
 
+  if (!environment.DATABASE_URL) {
+    throw new UnsafeTestDatabaseError(
+      'Refusing to use the test database because DATABASE_URL is not set; the development database cannot be identified.',
+    );
+  }
+
   if (!environment.TEST_DATABASE_URL) {
     throw new UnsafeTestDatabaseError(
       'Refusing to use the test database because TEST_DATABASE_URL is not set.',
     );
   }
 
+  const databaseUrl = parseConnectionUrl(
+    environment.DATABASE_URL,
+    'DATABASE_URL',
+  );
   const testUrl = parseConnectionUrl(
     environment.TEST_DATABASE_URL,
     'TEST_DATABASE_URL',
   );
 
   if (
-    environment.DATABASE_URL &&
-    databaseIdentity(environment.DATABASE_URL) ===
-      databaseIdentity(testUrl.toString())
+    databaseIdentity(databaseUrl.toString()) ===
+    databaseIdentity(testUrl.toString())
   ) {
     throw new UnsafeTestDatabaseError(
       'Refusing to use the test database because TEST_DATABASE_URL points at the development database.',
@@ -95,17 +110,12 @@ export function requireTestDatabaseUrl(
 }
 
 /**
- * Stricter variant for `prisma migrate reset`. The development URL must be
- * present so that the distinct-database check can actually be performed.
+ * Reset helper. It uses the same mandatory checks as every other test database
+ * consumer; the name is kept so destructive callers read clearly at the call
+ * site.
  */
 export function requireSafeTestDatabaseReset(
   environment: TestDatabaseEnvironment,
 ): URL {
-  if (!environment.DATABASE_URL) {
-    throw new UnsafeTestDatabaseError(
-      'Refusing to reset the test database because DATABASE_URL is not set; the development database cannot be identified.',
-    );
-  }
-
   return requireTestDatabaseUrl(environment);
 }

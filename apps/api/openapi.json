@@ -26,6 +26,16 @@
               }
             }
           },
+          "400": {
+            "description": "The body is not JSON, or it contains missing, invalid or unknown fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unknown email or wrong password. The message is generic.",
             "content": {
@@ -37,7 +47,7 @@
             }
           },
           "403": {
-            "description": "The request is not JSON or its Origin is not same-origin.",
+            "description": "The request Origin is not same-origin.",
             "content": {
               "application/json": {
                 "schema": {
@@ -48,6 +58,25 @@
           },
           "429": {
             "description": "Too many failed attempts for this address and email.",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until another login attempt is allowed.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable; retry after it recovers.",
             "content": {
               "application/json": {
                 "schema": {
@@ -80,6 +109,16 @@
           },
           "401": {
             "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable; retry after it recovers.",
             "content": {
               "application/json": {
                 "schema": {
@@ -120,6 +159,16 @@
           },
           "403": {
             "description": "The session exists but its CSRF header is missing or wrong.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable; retry after it recovers.",
             "content": {
               "application/json": {
                 "schema": {
@@ -178,7 +227,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The database answered a minimal query.",
+            "description": "The database is reachable and every registered migration has finished.",
             "content": {
               "application/json": {
                 "schema": {
@@ -194,8 +243,16 @@
                     },
                     "checks": {
                       "type": "object",
+                      "required": [
+                        "database",
+                        "migrations"
+                      ],
                       "properties": {
                         "database": {
+                          "type": "string",
+                          "example": "ok"
+                        },
+                        "migrations": {
                           "type": "string",
                           "example": "ok"
                         }
@@ -207,7 +264,7 @@
             }
           },
           "503": {
-            "description": "The database is unavailable; retry after it recovers.",
+            "description": "The database is unavailable or its migrations are unfinished; retry after it recovers.",
             "content": {
               "application/json": {
                 "schema": {
@@ -217,7 +274,7 @@
             }
           }
         },
-        "summary": "Report whether the API can serve requests, including database access.",
+        "summary": "Report whether the API can serve requests, including database access and applied migrations.",
         "tags": [
           "health"
         ]
@@ -285,6 +342,21 @@
         "properties": {
           "code": {
             "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "UNAUTHENTICATED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "DRAFT_CONFLICT",
+              "RUN_ALREADY_ACTIVE",
+              "IDEMPOTENCY_CONFLICT",
+              "RUN_NOT_TERMINAL",
+              "COMPARISON_PLAN_MISMATCH",
+              "TOO_MANY_REQUESTS",
+              "INTERNAL_ERROR",
+              "SERVICE_UNAVAILABLE"
+            ],
+            "description": "Stable application error code. This list matches the API contract.",
             "example": "VALIDATION_ERROR"
           },
           "message": {

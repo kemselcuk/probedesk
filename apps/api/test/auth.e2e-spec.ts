@@ -486,6 +486,11 @@ describe('authentication and authorization (e2e)', () => {
         message: 'Too many login attempts. Try again later.',
       });
       expect(response.headers['set-cookie']).toBeUndefined();
+
+      const retryAfter = Number(response.headers['retry-after']);
+      expect(Number.isInteger(retryAfter)).toBe(true);
+      expect(retryAfter).toBeGreaterThan(0);
+      expect(retryAfter).toBeLessThanOrEqual(15 * 60);
     }
 
     expect(withoutRequestId(unknownBlocked.body)).toEqual(
@@ -495,6 +500,36 @@ describe('authentication and authorization (e2e)', () => {
     const serialised = `${JSON.stringify(unknownBlocked.body)} ${JSON.stringify(knownBlocked.body)}`;
     expect(serialised).not.toContain(known.email);
     expect(serialised).not.toContain(unknownEmail);
+  });
+
+  it('throttles many different emails from one address and returns Retry-After', async () => {
+    const isolatedApp = await createTestApplication();
+
+    try {
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        await request(isolatedApp.getHttpServer())
+          .post('/api/auth/login')
+          .send({ email: uniqueAuthEmail(), password: 'wrong-password' })
+          .expect(401);
+      }
+
+      const blocked = await request(isolatedApp.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: uniqueAuthEmail(), password: 'wrong-password' })
+        .expect(429);
+
+      expect(blocked.body).toMatchObject({
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Too many login attempts. Try again later.',
+      });
+
+      const retryAfter = Number(blocked.headers['retry-after']);
+      expect(Number.isInteger(retryAfter)).toBe(true);
+      expect(retryAfter).toBeGreaterThan(0);
+      expect(retryAfter).toBeLessThanOrEqual(15 * 60);
+    } finally {
+      await isolatedApp.close();
+    }
   });
 
   it('rejects unknown login fields and keeps login JSON-only and same-origin', async () => {

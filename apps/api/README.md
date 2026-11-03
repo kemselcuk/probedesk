@@ -45,8 +45,9 @@ and `pretest:e2e` scripts regenerate it automatically.
 
 `db:migrate` runs `prisma migrate deploy` against `DATABASE_URL`.
 `db:migrate:test` applies registered migrations to the isolated test database
-and refuses to run when `TEST_DATABASE_URL` is missing or aliases
-`DATABASE_URL`.
+and refuses to run unless `NODE_ENV=test`, both `DATABASE_URL` and
+`TEST_DATABASE_URL` are present, and the test URL does not share the
+development database identity.
 
 ## Run
 
@@ -59,6 +60,10 @@ The API listens under `/api`. Health probes:
 - `GET http://127.0.0.1:3000/api/health/live`
 - `GET http://127.0.0.1:3000/api/health/ready`
 
+Readiness answers 503 until PostgreSQL is reachable and `_prisma_migrations`
+shows no unfinished or rolled-back migration. An empty database therefore
+reports `migrations: pending` instead of accepting traffic.
+
 Swagger UI is served at `/api/docs`; the JSON document is at `/api/docs-json`.
 
 ## Authentication and demo accounts
@@ -67,7 +72,9 @@ The API uses an opaque server-side session bound to an HttpOnly cookie named
 `probedesk_session`. The raw token is never stored: `sessions.tokenHash` holds a
 SHA-256 digest. A session lives for eight hours from login and is never extended
 by activity. The cookie is `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure`
-when `SESSION_COOKIE_SECURE=true`.
+when `SESSION_COOKIE_SECURE=true`. `NODE_ENV=production` requires that value to
+be `true`; the API refuses to start otherwise. The insecure default is only for
+the documented localhost demo.
 
 A readable `XSRF-TOKEN` cookie carries a session-bound CSRF token whose digest is
 stored in `sessions.csrfTokenHash`. Authenticated mutations must echo it in the
@@ -75,8 +82,10 @@ stored in `sessions.csrfTokenHash`. Authenticated mutations must echo it in the
 Missing or wrong tokens receive `403 FORBIDDEN`; missing or expired sessions
 receive `401 UNAUTHENTICATED`. Login accepts `application/json` only, checks a
 browser `Origin` header against the request host, and throttles failed attempts
-in-process (10 failures per 15 minutes per client address and email). Unknown
-emails and wrong passwords share one generic response.
+in-process: 10 failures per 15 minutes per client address and email, plus 50
+failures per 15 minutes for one client address across different emails. A 429
+response carries `Retry-After` in seconds. Unknown emails and wrong passwords
+share one generic response.
 
 Seed the three demo accounts (idempotent; existing accounts are never updated):
 
@@ -124,11 +133,16 @@ touches the development volume.
 To verify that a row survives recreation of the development container:
 
 ```bash
-npm run test:db:persistence --workspace apps/api
+NODE_ENV=development PROBEDESK_ALLOW_PERSISTENCE_CHECK=1 \
+  npm run test:db:persistence --workspace apps/api
 ```
 
 This check inserts a temporary `device_profiles` row, recreates the development
 `postgres` container with the same named volume, confirms the row, and removes it.
+It refuses to run unless `NODE_ENV=development` and
+`PROBEDESK_ALLOW_PERSISTENCE_CHECK=1` are set, `DATABASE_URL` points at a local
+database (`localhost`, `127.0.0.1` or `::1`), `TEST_DATABASE_URL` is present,
+and the two URLs have different database identities.
 
 ## OpenAPI
 

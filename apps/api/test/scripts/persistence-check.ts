@@ -3,7 +3,10 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { loadDotEnv } from '../../src/config/env.js';
-import { databaseIdentity } from '../../src/common/database/test-database-guard.js';
+import {
+  requirePersistenceCheckEnvironment,
+  UnsafePersistenceCheckError,
+} from '../../src/common/database/persistence-check-guard.js';
 import { PrismaClient } from '../../src/prisma/generated/client.js';
 
 const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url));
@@ -32,20 +35,20 @@ async function findCommittedRow(url: string, id: string): Promise<boolean> {
 
 loadDotEnv();
 
-const connectionString = process.env.DATABASE_URL;
+let connectionString: string;
 
-if (!connectionString) {
-  throw new Error('DATABASE_URL is required for the persistence check.');
-}
+try {
+  // The guard runs before any database write or container command. It requires
+  // NODE_ENV=development, an explicit opt-in, local PostgreSQL and a distinct
+  // integration-test database.
+  connectionString = requirePersistenceCheckEnvironment(process.env).toString();
+} catch (error) {
+  if (error instanceof UnsafePersistenceCheckError) {
+    console.error(error.message);
+    process.exit(1);
+  }
 
-if (
-  process.env.TEST_DATABASE_URL &&
-  databaseIdentity(connectionString) ===
-    databaseIdentity(process.env.TEST_DATABASE_URL)
-) {
-  throw new Error(
-    'The persistence check refuses to use the integration-test database; it verifies the development volume.',
-  );
+  throw error;
 }
 
 const client = createClient(connectionString);

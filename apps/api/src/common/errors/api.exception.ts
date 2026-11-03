@@ -5,6 +5,8 @@ import type { FieldError } from './field-error.js';
 export interface ApiExceptionOptions {
   fieldErrors?: readonly FieldError[];
   details?: Record<string, unknown>;
+  /** Sent as the standard Retry-After response header when present. */
+  retryAfterSeconds?: number;
 }
 
 /**
@@ -16,6 +18,7 @@ export class ApiException extends HttpException {
   readonly code: ApiErrorCode;
   readonly fieldErrors?: readonly FieldError[];
   readonly details?: Record<string, unknown>;
+  readonly retryAfterSeconds?: number;
 
   constructor(
     status: HttpStatus,
@@ -27,5 +30,6 @@ export class ApiException extends HttpException {
     this.code = code;
     this.fieldErrors = options.fieldErrors;
     this.details = options.details;
+    this.retryAfterSeconds = options.retryAfterSeconds;
   }
 }

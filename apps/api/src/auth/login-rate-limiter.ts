@@ -12,17 +12,23 @@ export interface LoginRateLimitStatus {
 /**
  * In-memory failed-login throttle. The application contract runs a single API
  * process, so a database-backed counter is intentionally unnecessary. Entries
- * are keyed by client address and normalised email; successful login clears the
- * key. Account existence is never reflected in the key or the response.
+ * are keyed by client address and normalised email, plus an aggregate key for
+ * the client address alone. Successful login clears only the address+email key;
+ * the aggregate key keeps rotating emails from bypassing the throttle. Account
+ * existence is never reflected in the key or the response.
  */
 @Injectable()
 export class LoginRateLimiter {
   private readonly failures = new Map<string, number[]>();
 
-  check(key: string, now = Date.now()): LoginRateLimitStatus {
+  check(
+    key: string,
+    now = Date.now(),
+    maxFailures = LOGIN_RATE_LIMIT_MAX_FAILURES,
+  ): LoginRateLimitStatus {
     const timestamps = this.activeTimestamps(key, now);
 
-    if (timestamps.length < LOGIN_RATE_LIMIT_MAX_FAILURES) {
+    if (timestamps.length < maxFailures) {
       return { limited: false, retryAfterSeconds: 0 };
     }
 

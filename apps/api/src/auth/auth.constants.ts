@@ -15,4 +15,9 @@ export const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;
 
 /** Per-process login throttle: failed attempts per IP and email. */
 export const LOGIN_RATE_LIMIT_MAX_FAILURES = 10;
+/**
+ * Aggregate per-address cap. Without it, rotating the email address would
+ * bypass the per-email throttle entirely.
+ */
+export const LOGIN_RATE_LIMIT_MAX_FAILURES_PER_ADDRESS = 50;
 export const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
