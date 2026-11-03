@@ -52,7 +52,6 @@ export const routes: Routes = [
       {
         path: 'runs/new',
         title: 'Start Run',
-        canActivate: [roleGuard(['OPERATOR'])],
         loadComponent: () =>
           import('./features/runs/start-run-page').then((module) => module.StartRunPage),
       },

@@ -152,7 +152,7 @@ describe('auth guards', () => {
     ).toBe('Start Run');
   });
 
-  it('redirects a Viewer away from Start Run', async () => {
+  it('lets a Viewer open Start Run without a role redirect', async () => {
     resolveSession('VIEWER');
 
     const harness = await RouterTestingHarness.create('/plans');
@@ -163,6 +163,9 @@ describe('auth guards', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(router.url).toBe('/not-authorized');
+    expect(router.url).toBe('/runs/new');
+    expect(
+      (harness.fixture.nativeElement as HTMLElement).querySelector('h1')?.textContent?.trim(),
+    ).toBe('Start Run');
   });
 });
