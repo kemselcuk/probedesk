@@ -202,29 +202,29 @@ enum RunEventType {
 /// At most one row may be RUNNING; that rule is a partial unique index added by
 /// the migration because the Prisma schema cannot express it.
 model TestRun {
-  id                    String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  planId                String     @db.Uuid
-  planRevisionId        String     @db.Uuid
+  id                    String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  planId                String      @db.Uuid
+  planRevisionId        String      @db.Uuid
   planNameSnapshot      String
   versionNumberSnapshot Int
   profileSnapshot       Json
-  status                RunStatus  @default(RUNNING)
+  status                RunStatus   @default(RUNNING)
   outcome               RunOutcome?
-  requestedById         String     @db.Uuid
+  requestedById         String      @db.Uuid
   scenario              RunScenario
   seed                  BigInt
-  errorProbability      Decimal?   @db.Decimal(8, 6)
-  failureStepId         String?    @db.Uuid
+  errorProbability      Decimal?    @db.Decimal(8, 6)
+  failureStepId         String?     @db.Uuid
   simulatorVersion      String
   evaluationVersion     String
   idempotencyKey        String
   requestHash           String
-  eventSequence         Int        @default(0)
+  eventSequence         Int         @default(0)
   expectedSampleCount   Int
-  recordedSampleCount   Int        @default(0)
-  startedAt             DateTime   @db.Timestamptz(6)
-  finishedAt            DateTime?  @db.Timestamptz(6)
-  cancelledById         String?    @db.Uuid
+  recordedSampleCount   Int         @default(0)
+  startedAt             DateTime    @db.Timestamptz(6)
+  finishedAt            DateTime?   @db.Timestamptz(6)
+  cancelledById         String?     @db.Uuid
   reasonCode            String?
 
   plan         TestPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
@@ -236,6 +236,7 @@ model TestRun {
 
   @@unique([requestedById, idempotencyKey])
   @@index([planId, startedAt, id])
+  @@index([startedAt(sort: Desc), id(sort: Desc)])
   @@index([status])
   @@index([planRevisionId])
   @@map("test_runs")

@@ -551,7 +551,7 @@ export interface components {
             /** @description Earliest failure by step position and sample index, or null when no recorded sample is out of tolerance. */
             firstFailure: components["schemas"]["RunFirstFailureDto"] | null;
             /**
-             * @description True when the run is not COMPLETED or its recorded sample count is below the expected count. Partial runs never hide their missing samples.
+             * @description True only when fewer samples were recorded than expected. A terminal CANCELLED, INTERRUPTED or ERROR run that recorded every expected sample is not partial; status and outcome communicate the stop.
              * @example false
              */
             partial: boolean;

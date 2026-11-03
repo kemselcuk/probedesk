@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ValidationFailedException } from '../common/errors/validation.exception.js';
-import { Prisma, RunStatus } from '../prisma/generated/client.js';
+import { Prisma } from '../prisma/generated/client.js';
 import type { TestRunGetPayload } from '../prisma/generated/models/TestRun.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { RunRequestedByDto } from './dto/run-snapshot.dto.js';
@@ -197,9 +197,11 @@ function toHistoryItem(run: HistoryRow): RunHistoryItemDto {
     recordedSampleCount,
     outOfToleranceCount,
     firstFailure,
-    partial:
-      run.status !== RunStatus.COMPLETED ||
-      recordedSampleCount < expectedSampleCount,
+    // `partial` describes missing measurement data only. A terminal run that
+    // recorded every expected sample is not partial even when it stopped
+    // before completion (cancel during finalization, interrupt, technical
+    // error); `status` and `outcome` already communicate that stop.
+    partial: recordedSampleCount < expectedSampleCount,
     requestedBy: toRequestedBy(run.requestedBy),
   };
 }

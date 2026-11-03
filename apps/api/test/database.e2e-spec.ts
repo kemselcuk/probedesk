@@ -73,6 +73,41 @@ describe('PostgreSQL schema and migrations (e2e)', () => {
     );
   });
 
+  it('provides the reviewed startedAt/id index for the default history query', async () => {
+    const indexes = await prisma.$queryRaw<
+      Array<{ indexname: string; indexdef: string }>
+    >`
+      SELECT indexname, indexdef
+      FROM pg_indexes
+      WHERE schemaname = current_schema() AND tablename = 'test_runs'
+      ORDER BY indexname
+    `;
+
+    const historyIndex = indexes.find(
+      (index) => index.indexname === 'test_runs_startedAt_id_idx',
+    );
+    expect(historyIndex).toBeDefined();
+    expect(historyIndex?.indexdef).toContain('"startedAt" DESC, id DESC');
+
+    // The test table is tiny, so the free plan is a sequential scan. Disable
+    // that choice to prove the reviewed index satisfies the exact default
+    // history ordering without a Sort node.
+    const plan = await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SET LOCAL enable_seqscan = off');
+      return tx.$queryRawUnsafe<Array<Record<string, string>>>(
+        'EXPLAIN (COSTS OFF) SELECT "id", "planId", "status", "startedAt" FROM "test_runs" ORDER BY "startedAt" DESC, "id" DESC LIMIT 20',
+      );
+    });
+    const planText = plan
+      .map((row) => Object.values(row)[0] ?? '')
+      .join('\n');
+
+    expect(planText).toContain(
+      'Index Scan using "test_runs_startedAt_id_idx"',
+    );
+    expect(planText).not.toContain('Sort');
+  });
+
   it('persists a device profile across independent connections', async () => {
     const suffix = randomUUID();
     const code = `${codePrefix}${suffix}`;

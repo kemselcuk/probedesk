@@ -350,6 +350,62 @@ describe('RunHistoryPage', () => {
     expect(tableText).not.toContain('Cancelled');
   });
 
+
+  it('shows an out-of-range page state instead of an empty history', async () => {
+    const harness = await openLoaded(
+      historyPage([], { page: 3, total: 2, totalPages: 1 }),
+      '/runs?page=3',
+    );
+    const root = rootOf(harness);
+
+    expect(root.textContent).toContain('This page is out of range');
+    expect(root.textContent).toContain('The history contains 2 runs across 1 page');
+    expect(root.textContent).not.toContain('No runs recorded yet');
+    expect(root.querySelector('#history-first-page')).not.toBeNull();
+    expect(root.querySelector('#history-last-page')).not.toBeNull();
+
+    root.querySelector<HTMLButtonElement>('#history-first-page')?.click();
+    await settle(harness);
+    const request = expectHistoryRequest();
+    expect(request.request.params.get('page')).toBe('1');
+    request.flush(historyPage([FAILED_ITEM]));
+    await settle(harness);
+    expect(root.textContent).toContain('Recorded runs');
+  });
+
+  it('does not label a stopped run with every sample as partial', async () => {
+    const cancelledWithoutMissingSamples = historyItem({
+      status: 'CANCELLED',
+      outcome: null,
+      partial: false,
+      recordedSampleCount: 10,
+      expectedSampleCount: 10,
+    });
+    const harness = await openLoaded(historyPage([cancelledWithoutMissingSamples]));
+    const root = rootOf(harness);
+
+    expect(root.textContent).toContain('Cancelled');
+    expect(root.textContent).not.toContain('Partial');
+
+  });
+
+  it('labels a stopped run with missing samples as partial', async () => {
+    const harness = await openLoaded(
+      historyPage([
+        historyItem({
+          status: 'CANCELLED',
+          outcome: null,
+          partial: true,
+          recordedSampleCount: 4,
+        }),
+      ]),
+    );
+    const root = rootOf(harness);
+
+    expect(root.textContent).toContain('Cancelled');
+    expect(root.textContent).toContain('Partial');
+  });
+
   it('shows a distinct loading state, empty state, and error state with retry', async () => {
     const harness = await open();
     const root = rootOf(harness);

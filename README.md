@@ -9,8 +9,8 @@ OpenAPI client and CI pipeline work (Phase 1). Phase 2 adds versioned measuremen
 Planner draft create/edit/reorder/save, publish v1/v2, immutable published versions and a
 read-only version view (accepted after independent review). Phase 3 adds the deterministic
 simulator, sequential execution, run snapshots, cancel/recovery and run screens (accepted after
-independent review). Live SSE updates are accepted after review; run history and charts are under review; comparison
-is still pending; the documents describe the intended product and its acceptance
+independent review). Live SSE updates, run history and charts are accepted after review; comparison is paused by
+user request; the documents describe the intended product and its acceptance
 criteria, not completed features.
 
 ## Start here

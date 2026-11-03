@@ -127,7 +127,31 @@ export class RunHistoryPage {
     Math.max(1, this.history.totalPages()),
   );
 
+  /**
+   * A page beyond the last one still has a non-zero total. That is not the same
+   * as an empty history, so it gets its own state and never says "no runs".
+   */
+  protected readonly isPageOutOfRange = computed(
+    () =>
+      this.history.status() === 'loaded' &&
+      this.history.total() > 0 &&
+      this.history.items().length === 0 &&
+      this.history.page() > this.displayTotalPages(),
+  );
+
+  protected readonly outOfRangeMessage = computed(() => {
+    const total = this.history.total();
+    const pages = this.displayTotalPages();
+    const runs = total === 1 ? 'run' : 'runs';
+    const pageLabel = pages === 1 ? 'page' : 'pages';
+    return `The history contains ${total} ${runs} across ${pages} ${pageLabel}, but page ${this.history.page()} does not exist. The selected filters are unchanged.`;
+  });
+
   protected readonly resultRange = computed(() => {
+    if (this.isPageOutOfRange()) {
+      return `Page ${this.history.page()} is outside 1-${this.displayTotalPages()}; ${this.history.total()} runs exist`;
+    }
+
     const items = this.history.items();
     if (items.length === 0) {
       return 'No runs on this page';

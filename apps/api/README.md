@@ -252,20 +252,22 @@ List items never contain step or measurement arrays. `expectedSampleCount` and
 run counters written at start and execution time. `outOfToleranceCount` is the
 sum of every step counter. `firstFailure` is the earliest failing step by
 `position`, then the stored `firstFailureSampleIndex`; it is null when no
-recorded sample is out of tolerance. `partial` is true when the run is not
-`COMPLETED` or recorded samples are below expected, so CANCELLED, INTERRUPTED,
-ERROR and active runs are never shown as complete. An empty measurements set
-does not fabricate statistics: the run snapshot reports null step statistics
-and the history row reports zero recorded samples with `firstFailure: null`.
+recorded sample is out of tolerance. `partial` is true only when recorded
+samples are below expected. A CANCELLED, INTERRUPTED or ERROR run that recorded
+every expected sample is not partial: `status` and `outcome` communicate the
+stop, and the details screen separately explains that all samples were recorded
+before finalization stopped. An empty measurements set does not fabricate
+statistics: the run snapshot reports null step statistics and the history row
+reports zero recorded samples with `firstFailure: null`.
 
 `totalPages` is zero when no run matches. A page beyond `totalPages` returns
 `200` with an empty `items` array and the unchanged total. Plan-scoped queries
-can use the existing `(planId, startedAt, id)` index for both filtering and
-ordering, and status filters can use the `status` index. No index currently
-starts with `startedAt`, so unfiltered, date-only and outcome-only queries sort
-their candidate rows. No extra index was added for this endpoint; a
-`startedAt`-leading index is the possible next optimization if history volume
-requires it.
+use the existing `(planId, startedAt, id)` index for filtering and ordering, and
+status filters use the `status` index. The reviewed
+`test_runs_startedAt_id_idx` on `("startedAt" DESC, id DESC)` serves the
+unfiltered and date-only history ordering without a full sort. A query filtered
+only by `outcome` still sorts its candidates: outcome has two values, so no
+separate low-selectivity index was added.
 
 ## Run comparison
 

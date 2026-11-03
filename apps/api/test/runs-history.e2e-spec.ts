@@ -476,6 +476,16 @@ describe('run history API (e2e)', () => {
     };
   }
 
+  /**
+   * Removes one fixture without touching the remaining history rows.
+   */
+  async function deleteSeededRun(runId: string): Promise<void> {
+    await prisma.measurement.deleteMany({ where: { runId } });
+    await prisma.runEvent.deleteMany({ where: { runId } });
+    await prisma.runStep.deleteMany({ where: { runId } });
+    await prisma.testRun.delete({ where: { id: runId } });
+  }
+
   function completedSteps(): StepSeed[] {
     return [
       {
@@ -542,6 +552,11 @@ describe('run history API (e2e)', () => {
       expectedOrder.map((run) => run.id),
     );
 
+    for (const item of page.items) {
+      expect(item.partial).toBe(
+        item.recordedSampleCount < item.expectedSampleCount,
+      );
+    }
     expect(
       page.items
         .filter((item) => item.status === RunStatus.COMPLETED)
@@ -841,9 +856,69 @@ describe('run history API (e2e)', () => {
         item.expectedSampleCount,
       );
       expect(item.partial).toBe(
-        item.status !== RunStatus.COMPLETED ||
-          item.recordedSampleCount < item.expectedSampleCount,
+        item.recordedSampleCount < item.expectedSampleCount,
       );
+    }
+  });
+
+  it('marks a stopped run partial only when samples are missing', async () => {
+    // Cancel during finalization: the run is terminal and has no outcome, but
+    // every expected sample was recorded. That is a stop, not missing data.
+    const fullyRecordedCancel = await seedRun({
+      fixture: planA,
+      requestedById: operatorUser.id,
+      status: RunStatus.CANCELLED,
+      outcome: null,
+      startedAt: '2026-11-07T10:00:00.000Z',
+      finishedAt: '2026-11-07T10:00:30.000Z',
+      planNameSnapshot: 'History plan alpha v1 snapshot',
+      seed: 1008,
+      steps: completedSteps(),
+    });
+
+    try {
+      const cancelled = (
+        await listAs(operator, {
+          status: RunStatus.CANCELLED,
+          limit: 100,
+        }).expect(200)
+      ).body as HistoryPageBody;
+
+      expect(cancelled.total).toBe(2);
+      const byId = new Map(cancelled.items.map((item) => [item.id, item]));
+
+      expect(byId.get(fullyRecordedCancel.id)).toMatchObject({
+        status: RunStatus.CANCELLED,
+        outcome: null,
+        expectedSampleCount: 6,
+        recordedSampleCount: 6,
+        outOfToleranceCount: 0,
+        firstFailure: null,
+        partial: false,
+      });
+
+      // The same terminal status with fewer recorded samples stays partial.
+      expect(byId.get(cancelledC.id)).toMatchObject({
+        status: RunStatus.CANCELLED,
+        outcome: null,
+        expectedSampleCount: 6,
+        recordedSampleCount: 1,
+        partial: true,
+      });
+
+      // Paging still describes all rows, including the stopped full run.
+      const firstPage = (
+        await listAs(operator, { page: 1, limit: 5 }).expect(200)
+      ).body as HistoryPageBody;
+      expect(firstPage).toMatchObject({
+        page: 1,
+        limit: 5,
+        total: 8,
+        totalPages: 2,
+      });
+      expect(firstPage.items).toHaveLength(5);
+    } finally {
+      await deleteSeededRun(fullyRecordedCancel.id);
     }
   });
 

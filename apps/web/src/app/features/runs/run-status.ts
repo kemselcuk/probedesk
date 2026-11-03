@@ -157,11 +157,24 @@ export function scenarioLabel(scenario: RunSnapshot['scenario']): string {
  * samples were recorded than expected. A stopped terminal run can still have
  * every sample (for example a cancel during finalization), and that case must
  * not be described as missing data. Missing samples are never presented as zero.
+ *
+ * This count-based rule is shared by History and Details so both screens use
+ * exactly one definition of a partial sample set. The history summary's
+ * `partial` flag is intentionally not the source of truth here.
  */
+export function isPartialSampleSet(
+  status: RunStatus,
+  recordedSampleCount: number,
+  expectedSampleCount: number,
+): boolean {
+  return status !== 'RUNNING' && recordedSampleCount < expectedSampleCount;
+}
+
 export function isPartialResult(snapshot: RunSnapshot): boolean {
-  return (
-    snapshot.status !== 'RUNNING' &&
-    snapshot.recordedSampleCount < snapshot.expectedSampleCount
+  return isPartialSampleSet(
+    snapshot.status,
+    snapshot.recordedSampleCount,
+    snapshot.expectedSampleCount,
   );
 }
 
@@ -170,12 +183,22 @@ export function isPartialResult(snapshot: RunSnapshot): boolean {
  * expected sample. The result is not presented as completed, so the screen
  * needs a separate, accurate explanation instead of the partial-results note.
  */
-export function isStoppedAfterAllSamples(snapshot: RunSnapshot): boolean {
+export function isStoppedWithAllSamples(
+  status: RunStatus,
+  recordedSampleCount: number,
+  expectedSampleCount: number,
+): boolean {
   return (
-    (snapshot.status === 'CANCELLED' ||
-      snapshot.status === 'INTERRUPTED' ||
-      snapshot.status === 'ERROR') &&
-    snapshot.recordedSampleCount >= snapshot.expectedSampleCount
+    (status === 'CANCELLED' || status === 'INTERRUPTED' || status === 'ERROR') &&
+    recordedSampleCount >= expectedSampleCount
+  );
+}
+
+export function isStoppedAfterAllSamples(snapshot: RunSnapshot): boolean {
+  return isStoppedWithAllSamples(
+    snapshot.status,
+    snapshot.recordedSampleCount,
+    snapshot.expectedSampleCount,
   );
 }
 

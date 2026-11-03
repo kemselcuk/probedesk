@@ -109,7 +109,7 @@ export class RunHistoryItemDto {
     type: Boolean,
     example: false,
     description:
-      'True when the run is not COMPLETED or its recorded sample count is below the expected count. Partial runs never hide their missing samples.',
+      'True only when fewer samples were recorded than expected. A terminal CANCELLED, INTERRUPTED or ERROR run that recorded every expected sample is not partial; status and outcome communicate the stop.',
   })
   partial!: boolean;
 

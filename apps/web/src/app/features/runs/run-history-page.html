@@ -109,7 +109,30 @@
 } @else {
   @switch (history.status()) {
     @case ('loaded') {
-      @if (history.items().length === 0) {
+      @if (isPageOutOfRange()) {
+        <section class="history-section" aria-labelledby="history-results-heading">
+          <div class="results-heading">
+            <h2 id="history-results-heading" tabindex="-1">Recorded runs</h2>
+            <p class="result-range" aria-live="polite">{{ resultRange() }}</p>
+          </div>
+          <app-empty-state
+            heading="This page is out of range"
+            [message]="outOfRangeMessage()"
+          >
+            <button mat-flat-button type="button" id="history-first-page" (click)="goToPage(1)">
+              Go to first page
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              id="history-last-page"
+              (click)="goToPage(displayTotalPages())"
+            >
+              Go to last page (page {{ displayTotalPages() }})
+            </button>
+          </app-empty-state>
+        </section>
+      } @else if (history.items().length === 0) {
         <app-empty-state
           [heading]="hasActiveFilters() ? 'No runs match these filters' : 'No runs recorded yet'"
           [message]="

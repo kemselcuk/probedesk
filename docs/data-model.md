@@ -86,7 +86,7 @@ Geçmiş listesi örnek dizilerini yüklemez. Tek run snapshot'ı ürün sınır
 
 ## İndeksler ve yaşam döngüsü
 
-History için planId/startedAt/id ve durum filtreleri; measurement için runStepId/sampleIndex; events için runId/sequence; session için tokenHash/expiresAt indeksleri planlanır. Gerçek sorgular incelenmeden ek indeksler rastgele çoğaltılmaz.
+History için planId/startedAt/id, global startedAt/id (azalan) ve durum filtreleri; measurement için runStepId/sampleIndex; events için runId/sequence; session için tokenHash/expiresAt indeksleri planlanır. Gerçek sorgular incelenmeden ek indeksler rastgele çoğaltılmaz. Filtresiz/tarih-only history sırası için `(startedAt DESC, id DESC)` indeksi ayrı, gerekçeli migration ile eklenir; `outcome` iki değerli olduğu için ayrı indeks yalnız ölçülen plan gerektirirse değerlendirilir.
 
 İlk sürümde plan/run silme ürünü yoktur. Süresi dolmuş oturumların temizliği geçmiş çalıştırmaları etkilemez. Demo seed idempotenttir; mevcut yayımlanmış sürümleri değiştirmez. Tam reset yalnızca açıkça seçilmiş demo/test ortamında mümkündür.
 
