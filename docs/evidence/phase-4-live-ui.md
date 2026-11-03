@@ -3,7 +3,7 @@
 - Tarih: 2026-11-03
 - Kapsam: Angular SSE taşıması, snapshot + canlı olay birleştirme, `/runs/:runId/live` ekranı, yeniden bağlanma, sonsuz reconnect sınırı, terminal sonrası final snapshot ve oturum kaybı. Gerçek API + iki Chrome sekmesi + SIGKILL edilen akış proxy'si ile gerçek upstream kapanışına dayanan yeniden bağlanma smoke'u dahil.
 - Ortam: macOS (arm64), Node.js 22.23.2, npm 11.6.2 (`packageManager`), Angular 22.2.4, RxJS 7.8.2, Vitest 5.1.0 + TestBed + `HttpTestingController`; gerçek koşuda Google Chrome headless, API `127.0.0.1:3100`, derlenmiş SPA'yı sunan `scripts/app-server.mjs` `127.0.0.1:4300`, SSE proxy `127.0.0.1:3200`.
-- Uygulama commit'i: Henüz yok. Çalışma ortak checkout'ta yapıldı; commit/push lead tarafından oluşturulacak. Bu belge bir commit hash'i iddia etmez. Bağımsız inceleme `b14209c` üzerinde yapıldı; düzeltmeler commit edilmedi.
+- Uygulama commit'i: H-01/M-03 ürün düzeltmeleri `b9134d6` (`feat(web): add measurement charts…`) içinde; kanıt/script/doküman `8f06f33` içinde. Geçmiş yeniden yazılmadı; `8f06f33` tek başına H-01/M-03 ürün kodunu içermez. Bağımsız inceleme `b14209c` üzerinde yapıldı; düzeltmelerin yeniden incelemesi `phase-4-review.md` içindeki Fix re-check bölümündedir.
 - Kapsam dışı: P4-01 backend SSE endpoint'inin kendi testleri, otomatik Playwright E2E (P7-01), P5 geçmiş/grafik çalışması, bağımsız teknik inceleme ve kullanıcı kabulü.
 
 ## Sonuç
@@ -176,7 +176,7 @@ Bu gözlemden bağımsız olarak kod incelemesi ve regresyon testleri, taşıma 
 
 Düzeltme sonrası son koşu (run `e50636ea-6f8f-487c-85a6-822801dd9855`): `app-server` 4300'de SPA'yı ve `/api` proxy'sini sundu, yapay hata gönderilmedi. `sse-proxy` SIGKILL edildikten `154 ms` sonra iki sekme de `Reconnecting` gösterdi; kesinti anında sekme A'da eski EventSource `readyState=2` (kapalı) ve yeni bir kaynak açılmamıştı. Proxy yeniden açıldıktan sonra iki sekme de yeniden bağlandı; run sunucuda ilerlemeye devam etti. Terminalde iki sekme de `Passed`, `90 of 90`, sekme A `Connection: Disconnected`, `Run finished`; `Runtime.exceptionThrown` yok. Kesinti sırasındaki `7` istek `502 UPSTREAM_UNAVAILABLE` döndü (beklenen gerçek kesinti); başka hata yanıtı yok.
 
-Not: Bu turdaki canlı koşuda terminal sonrası final snapshot `200` döndü; incelemede kaydedilen tek seferlik boş gövdeli `400` yeniden üretilmedi. Ekran artık final snapshot'ı üç kez dener, yine başarısız olursa terminal durumu korur ve kalan `RUNNING`/`PENDING` adımları “Unavailable” olarak işaretler; stale “In progress” göstermez. Gerçek 401 oturum sona erme (T16) ve erişilebilirlik turları hâlâ P7 kapsamındadır.
+Not: Bu turdaki canlı koşuda terminal sonrası final snapshot `200` döndü; incelemede kaydedilen tek seferlik boş gövdeli `400` yeniden üretilmedi. Ekran artık final snapshot'ı üç kez dener, yine başarısız olursa terminal durumu korur ve kalan `RUNNING`/`PENDING` adımları “Unavailable” olarak işaretler; stale “In progress” göstermez. Gerçek 401 oturum sona erme akışı `scripts/phase-4-lifecycle-check.mjs` ile kapatıldı ([phase-4-remaining-checks.md](phase-4-remaining-checks.md)); erişilebilirlik turları hâlâ P7 kapsamındadır.
 
 ## Kalan riskler ve ertelenen işler
 

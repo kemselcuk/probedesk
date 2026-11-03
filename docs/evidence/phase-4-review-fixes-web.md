@@ -3,8 +3,7 @@
 - Tarih: 2026-11-03
 - Kapsam: [phase-4-review.md](phase-4-review.md) içindeki **H-01 (High)**, **M-01 (Medium)**, **M-02 (Medium)** ve **M-03 (Medium)** bulgularının `apps/web` ve `scripts/` tarafı.
 - Ortam: macOS arm64, Node.js `22.23.2`, npm `11.6.2`, Angular 22.2.4, gerçek PostgreSQL 18 geliştirme veritabanı (`127.0.0.1:5434`), Google Chrome headless. API `127.0.0.1:3100`, akış proxy'si `127.0.0.1:3200`, statik uygulama sunucusu `127.0.0.1:4300`.
-- Taban: bağımsız inceleme `b14209c` üzerinde yapıldı. Bu düzeltmeler ortak checkout'ta commit edilmedi; commit/push lead tarafından yapılacak. Bu worker hiçbir git komutu çalıştırmadı.
-- Bu belge bir düzeltme kanıtıdır, ürün kabulü değildir. P4-02 … P4-07 kartları `In Review` durumunda bırakılmıştır; `Accepted` değildir. Düzeltmelerin bağımsız yeniden incelemesi gerekir.
+- Taban: bağımsız inceleme `b14209c` üzerinde yapıldı. H-01/M-03 ürün düzeltmeleri `b9134d6` (`feat(web): add measurement charts…`) commit'ine karışmış durumdadır; kanıt/script/doküman değişiklikleri `8f06f33` içindedir. Geçmiş yeniden yazılmadı; `8f06f33` tek başına H-01/M-03 ürün kodunu içermez. Bu belge bir düzeltme kanıtıdır, ürün kabulü değildir. P4-02 … P4-07 kartları `In Review` durumunda bırakılmıştır; `Accepted` değildir. Düzeltmelerin bağımsız yeniden incelemesi gerekir.
 - Kapsam dışı: `apps/api`, `packages/`, kök yapılandırma, P5 geçmiş/grafik çalışması ve P7 E2E/erişilebilirlik işleri. Ortak checkout'ta P5 dosyaları üzerinde eşzamanlı çalışma vardı; bu worker o dosyalara dokunmadı.
 
 ## Kapatılan bulgular

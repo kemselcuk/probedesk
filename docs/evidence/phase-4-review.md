@@ -241,3 +241,130 @@ Bu, “denemeler tükenince `disconnected` + görünür hata” sözleşmesinin 
 ## Sonuç
 
 Phase 4'ün sunucu tarafı SSE protokolü ve temel istemci birleştirmesi sağlam; gerçek HTTP/SSE, PostgreSQL ve iki Chrome sekmesiyle önemli davranışlar doğrulandı. Ancak **H-01 (sonsuz reconnect)** P4-05'in açık kabul ölçütünü ihlal ettiği için Phase 4 teknik kabul edilmemelidir. M-01 kanıtın gerçekliğini, M-02 görev kartlarının kabul edilebilirliğini, M-03 terminal adım tutarlılığını etkiler. Bu dosya bir bağımsız teknik incelemedir; ürün kabulü ve görev durumu değişikliği değildir.
+
+## Fix re-check — 2026-11-03, commit `8f06f33`
+
+> Bu bölüm, yukarıdaki `b14209c` incelemesinin düzeltme sonrası yeniden kontrolüdür. Önceki bölüm tarihsel kayıt olarak korunmuştur; H-01/M-01/M-02/M-03 için güncel sonuç aşağıdaki gibidir. Hiçbir görev bu inceleme nedeniyle `Accepted` yapılmadı.
+
+- Yeniden inceleme hedefi: `8f06f33` (`fix(web): bound live reconnects and harden terminal finalization`) ve bu commit'in üzerindeki ürün kodu.
+- Paylaşılan checkout'ta yeniden inceleme sırasında Phase 5'e ait commit edilmemiş `live-run.facade.ts` düzenlemesi vardı. Toplu doğrulama ve odaklı testler, `git archive HEAD` ile alınan temiz `8f06f33` kopyasında çalıştırıldı; paylaşılan checkout'taki geçici derleme hatası bu commit'e atfedilmedi.
+- **Commit atfı notu:** H-01 ve M-03'ün ürün kodu `8f06f33` içinde değil, `b9134d6` (`feat(web): add measurement charts...`) içinde. `8f06f33` yalnızca doküman, kanıt, script ve test/kanıt dosyalarını değiştiriyor. Bu, aşağıdaki N-01 bulgusudur.
+
+### Sonuç tablosu
+
+| Bulgu | Durum | Kanıt |
+|---|---|---|
+| H-01 | **KAPATILDI / PASS** | `handleOpen` artık `attempt` sıfırlamıyor; bütçe yalnız cursor'ı ilerleten domain olayında tazeleniyor (`run-events.service.ts:280-332`). Odaklı servis testleri 14/14. Gerçek Chrome'da 200 SSE açıp 20 ms sonra kapatan sunucu: 5 EventSource, 0 açık, tümü kapalı, `onopen`/`onerror` temiz, listener farkı 0, `Disconnected`, `#live-stream-warning` görünür, run `Running`, konsol hatası yok. |
+| M-01 | **KAPATILDI / PASS** | `scripts/app-server.mjs` derlenmiş SPA'yı sunuyor ve `/api`'yi gerçek SSE proxy'sine aktarıyor; `phase-4-live-check.mjs` yapay `Event('error')` göndermiyor. Gerçek koşu: `sse-proxy` SIGKILL sonrası `outageDetectedMs=158`, iki sekme de `Passed` 90/90, `exceptions: []`, yalnız 7 beklenen `502 UPSTREAM_UNAVAILABLE`. |
+| M-02 | **KISMEN KAPATILDI — PASS with Low finding** | P4 kartları, `phase-4-demo.md`, `phase-4-live-ui.md` ve roadmap gerçek kontrolleri yansıtıyor; P4-06'da bir, P4-07'de iki kabul ölçütü dürüstçe işaretsiz. Ancak kartlarda/kanıt dosyasında hâlâ “Uygulama commit'i: Henüz yok” / “commit edilmedi” yazıyor (N-01/N-03). |
+| M-03 | **KAPATILDI / PASS** | Final snapshot 3 kez deneniyor; üçü de başarısızsa `#live-final-steps-warning`, `UNAVAILABLE` rozeti ve `data-status="UNAVAILABLE"` gösteriliyor, stale `In progress`/`Pending` metni gösterilmiyor. Odaklı facade/page testleri 29/29. Stale 200 yanıtı için küçük bir residual var (N-02). |
+
+### Çalıştırılan komutlar
+
+```text
+$ npm run verify                    # temiz 8f06f33 kopyası
+EXIT: 0
+Found 0 warnings and 0 errors.      # üç workspace lint
+Test Files  16 passed (16)          # API birim
+Tests       118 passed (118)
+Test Files  31 passed (31)          # web
+Tests       314 passed (314)
+Application bundle generation complete.  # API + web
+OpenAPI contract is current.
+
+$ npm run test:e2e --workspace apps/api
+Test Files  18 passed (18)
+Tests       173 passed (173)
+Duration    21.46s
+EXIT: 0
+
+$ npm run openapi:check
+OpenAPI contract is current.
+EXIT: 0
+```
+
+Odaklı H-01/M-03 testleri:
+
+```text
+$ npx ng test --include=src/app/core/runs/run-events.service.spec.ts
+14/14 passed
+
+$ npx ng test --include=.../live-run.facade.spec.ts --include=.../live-run-page.spec.ts
+29/29 passed
+```
+
+### H-01 gerçek tarayıcı yeniden üretimi
+
+Test sunucusu `/api/runs/:id/events` için `200 text/event-stream` döndürüp 20 ms sonra bağlantıyı kapattı; hiç domain olayı göndermedi. Sonuç:
+
+```text
+sources: 5
+open: 0
+allClosed: true
+allHandlersCleared: true
+listenerDelta: [0, 0, 0, 0, 0]
+connection: Disconnected
+warning: Live updates are not flowing / Live updates stopped after several reconnect attempts...
+runStatus: Running
+errors: []
+```
+
+Bu, H-01'in kabul koşulunu karşılar: sınırlı deneme, görünür uyarı, `Disconnected` ve kaynak/listener temizliği.
+
+### M-01 gerçek kesinti yeniden üretimi
+
+`PROBEDESK_API_URL=http://127.0.0.1:3110 RUN_VERSION_ID=<published> node scripts/phase-4-live-check.mjs`:
+
+```text
+APP_URL=http://127.0.0.1:4300 (served by scripts/app-server.mjs)
+runId: 573d1e9f-e8f2-48df-b593-d2557c8302ec
+offlineLabel: Reconnecting
+outageDetectedMs: 158
+offlineSources: [ { url: .../events?after=7, readyState: 2 } ]
+finalA: Passed / Disconnected / 90
+finalB: Passed / 90
+exceptions: []
+failedResponseCount: 7   # tamamı kesinti sırasında 502 UPSTREAM_UNAVAILABLE
+```
+
+Script kaynağında `dispatchEvent(new Event('error'))` yok; `app-server` upstream kapanışını downstream'e taşıyor. M-01 kapanmıştır.
+
+### M-03 kod ve test doğrulaması
+
+- `live-run.facade.ts`: `FINAL_SNAPSHOT_ATTEMPTS = 3`; başarısız denemelerde aynı request kimliğiyle tekrar; tümü başarısızsa `finalStepStateUnavailable=true` ve açıklayıcı hata; başarılı denemede bayrak/hata temizleniyor.
+- `live-run-page.ts/html`: `finalStepStateUnavailable` iken `RUNNING`/`PENDING` adımlar `UNAVAILABLE` olarak etiketleniyor; “Final state unavailable” notu gösteriliyor; “In progress” metni bu adımlar için çıkmıyor. Terminal run durumu korunuyor.
+- Facade/page odaklı testleri 29/29 geçti; üç başarısız deneme, ikinci denemede başarı ve terminal geri dönmezliği senaryoları kapsanıyor.
+
+### Yeni bulgular
+
+#### N-01 — Medium (izlenebilirlik / commit hijyeni) — Düzeltme kodu `8f06f33`'te değil
+
+- `git show --stat 8f06f33` yalnızca `docs/`, `scripts/`, test/kanıt dosyalarını listeliyor; `apps/web/src/app/core/runs/run-events.service.ts` ve `apps/web/src/app/features/runs/live-run.facade.ts` bu commit'te yok.
+- `git log --oneline -- apps/web/src/app/core/runs/run-events.service.ts` ve `live-run.facade.ts` son değişikliği `b9134d6` (`feat(web): add measurement charts with tolerance and interactions`) olarak gösteriyor. H-01 ve M-03 kodu bu Phase 5 commit'ine karışmış durumda.
+- P4-02…P4-07 kartları hâlâ “Uygulama commit'i: Henüz yok…” diyor (`docs/tasks/P4-05.md:39` vd.); `docs/evidence/phase-4-review-fixes-web.md:6` “commit edilmedi” diyor; `docs/evidence/phase-4-demo.md` de uygulama commit'ini “Henüz yok” bırakıyor. P4-01 kartı da aynı durumda.
+- **Etki:** `8f06f33`'ü geri almak H-01/M-03 düzeltmesini geri almaz; düzeltme Phase 5 commit'iyle birlikte geri alınabilir ve inceleme/audit kaydı yanlış commit'i gösterir. Çalışma zamanı hatası değildir.
+- **Öneri:** Geçmişi yeniden yazmadan, yalnızca doküman düzelten bir takip commit'iyle doğru SHA'ları (`8f06f33` docs/scripts, `b9134d6` web kodu) kartlara ve kanıt dosyasına yaz; `8f06f33`'ün kapsamını “docs+scripts” olarak düzelt.
+
+#### N-02 — Low — Stale 200 final snapshot'da adım durumu yine “RUNNING” kalabilir
+
+- `live-run.facade.ts` başarılı final snapshot'ta `finalStepStateUnavailable=false` yapıyor. `mergeRunSnapshot` terminal run'ı RUNNING snapshot ile değiştirmiyor, ancak snapshot'taki adım satırları `RUNNING` ise bunlar korunuyor; `stepStateUnavailable` yalnızca **final snapshot hatasında** devreye giriyor.
+- Tek primary DB mimarisinde final snapshot terminal commit'ten sonra okunacağı için bu durum normalde oluşmaz; read-replica/stale cache eklenirse terminal ekranda “In progress” görülebilir. Gerçek koşuda gözlenmedi; düşük olasılıklı residual.
+- **Öneri:** Final snapshot başarılı olsa bile snapshot `RUNNING` ve current terminal ise, dönen adım satırlarını “doğrulanmamış” sayıp aynı `UNAVAILABLE` işaretini uygula; veya final snapshot'ın terminal olduğunu doğrula.
+
+#### N-03 — Low (doküman) — Kalan kabul ölçütleri ve commit alanları
+
+- P4-06'da “Snapshot sırasında gelen olay kaybolmaz” işaretsiz; P4-07'de “Ekrandan ayrılmak… dönüş yeni run başlatmaz” ve “Logout/expiry…” işaretsiz. Bu, gerçek T14/T16 ve SPA dönüş kanıtı P7'ye ertelendiği için dürüst bir kayıttır; ancak kartlar bu haliyle `Accepted` edilemez.
+- N-01'deki commit alanları da düzeltilmeli. Bu maddeler ürün davranışı değil, kabul/izlenebilirlik kaydıdır.
+
+### Fix re-check sonucu
+
+- H-01, M-01 ve M-03 **teknik olarak kapatıldı**; M-02'nin kanıt içeriği büyük ölçüde düzeltildi.
+- **Yeni Critical/High/Medium ürün bulgusu yok.** Tek yeni Medium bulgu N-01 (commit/izlenebilirlik); N-02/N-03 Low.
+- Phase 4'ün düzeltilen dört bulgu açısından teknik kabulü artık mümkündür; ancak **tam Phase 4 kabulü için** P4-06/P4-07'deki işaretsiz kabul ölçütleri (gerçek snapshot/olay yarışı, gerçek logout/expiry, gerçek SPA dönüşü) ve N-01'deki commit kaydı kapatılmalıdır. Hiçbir kart `Accepted` yapılmadı.
+
+## Takip kaydı — 2026-11-03 (N-01/N-03 kapanışı)
+
+> Bu bölüm yukarıdaki bağımsız inceleme bulgularını değiştirmez; yalnız takip maddelerinin nasıl kapatıldığını kaydeder.
+
+- **N-01 kapatıldı (doküman):** H-01/M-03 ürün kodu `b9134d6`, kanıt/script/doküman `8f06f33` olarak P4-01…P4-07 kartlarına ve üç kanıt dosyasına yazıldı. Git geçmişi yeniden yazılmadı, commit değiştirilmedi. Ayrıntı: [phase-4-remaining-checks.md](phase-4-remaining-checks.md).
+- **N-03 kalan ölçütler kapatıldı:** P4-06 snapshot/olay yarışı `scripts/phase-4-snapshot-race-check.mjs` ile 3/3; P4-07 SPA dönüşü, Sign out ve sunucu tarafı expiry `scripts/phase-4-lifecycle-check.mjs` ile gerçek Chrome'da geçti. P4-06 ve P4-07'nin dört kabul ölçütü de kanıtla işaretlendi; kartlar `In Review` durumunda ve bağımsız nihai kabul bekliyor.

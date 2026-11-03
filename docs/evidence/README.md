@@ -23,6 +23,9 @@ gerçekten üretildiğinde eklenir.
 - [Faz 4 inceleme düzeltmeleri — web](phase-4-review-fixes-web.md): H-01
   sonsuz reconnect, M-03 final snapshot, M-01 gerçek kesinti kanıtı ve M-02
   görev/kanıt güncellemeleri.
+- [Phase 4 kalan yeniden inceleme maddeleri](phase-4-remaining-checks.md): N-01
+  commit izlenebilirliği, P4-06 gerçek snapshot/olay yarışı ve P4-07 gerçek
+  SPA dönüşü, Sign out ve sunucu tarafı expiry kanıtı.
 
 ## Kayıt biçimi
 

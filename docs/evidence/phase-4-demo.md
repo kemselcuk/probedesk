@@ -9,8 +9,7 @@
 - Kapsam dışı: P5 geçmiş/grafik çalışması, P7 Playwright/erişilebilirlik,
   bağımsız yeniden inceleme ve ürün kabulü. Ortak checkout'ta P5 dosyaları
   üzerinde eşzamanlı çalışma vardı; bu demo o dosyaları kapsamaz.
-- Uygulama commit'i: Henüz yok. Çalışma ortak checkout'ta yapıldı; commit/push
-  lead tarafından oluşturulacak.
+- Uygulama commit'i: Phase 4 web uygulaması ve H-01/M-03 düzeltmeleri `b9134d6` (`feat(web): add measurement charts…`) içinde; kanıt/script/doküman `8f06f33` içinde. İlk SSE demosu `b14209c`. Geçmiş yeniden yazılmadı; `8f06f33` tek başına H-01/M-03 ürün kodunu içermez.
 
 ## SSE protokolü — gerçek sonuçlar
 
