@@ -81,6 +81,14 @@ const EVENT_SOURCE_CLOSED = 2;
  * so a malformed or unknown payload becomes a controlled `error` update rather
  * than an exception inside a DOM event handler.
  *
+ * The requested cursor is authoritative. The session advances when it delivers
+ * an event, but a consumer may reject that event (for example the facade
+ * detects a gap and reconciles with a fresh snapshot). If a later `connect`
+ * asks for a different cursor, the session is restarted at that exact cursor
+ * instead of reusing a transport cursor that is ahead of what the consumer
+ * applied. A restart closes the previous EventSource first, so no two sources
+ * remain open for the same run.
+ *
  * Transport never computes a verdict, tolerance flag, or statistic. It only
  * carries the backend fields to the reducer.
  */
@@ -92,24 +100,40 @@ export class RunEventsService {
   private readonly sessions = new Map<string, RunEventSession>();
 
   /**
-   * Opens (or joins) the live event stream for one run. `afterSequence` is the
-   * snapshot cursor for a new session; an already open session keeps its own
-   * cursor so reconnect replay cannot skip or repeat a committed event.
+   * Opens the live event stream for one run at exactly `afterSequence`.
+   *
+   * A matching open session is shared. When the cursor differs (the facade
+   * reconciled a gap, reconnected, or a different consumer loads a snapshot)
+   * the session restarts at the requested cursor. This guarantees replay
+   * starts after the last sequence the consumer actually applied.
    */
   connect(runId: string, afterSequence: number): Observable<RunStreamUpdate> {
     let session = this.sessions.get(runId);
+
+    if (session !== undefined && session.isClosed) {
+      if (this.sessions.get(runId) === session) {
+        this.sessions.delete(runId);
+      }
+      session = undefined;
+    }
+
     if (session === undefined) {
-      session = new RunEventSession(runId, afterSequence, {
+      const created = new RunEventSession(runId, afterSequence, {
         factory: this.factory,
         reconnectDelays: this.reconnectDelays,
         probeSession: () => this.sessionProbe.probe(),
         onIdle: () => {
-          if (this.sessions.get(runId) === session) {
+          if (this.sessions.get(runId) === created) {
             this.sessions.delete(runId);
           }
         },
       });
-      this.sessions.set(runId, session);
+      this.sessions.set(runId, created);
+      return created.updates;
+    }
+
+    if (session.cursor !== afterSequence) {
+      session.restartAt(afterSequence);
     }
 
     return session.updates;
@@ -158,6 +182,40 @@ class RunEventSession {
         this.release();
       };
     });
+  }
+
+  /** Last sequence this session delivered to its consumers. */
+  get cursor(): number {
+    return this.lastSequence;
+  }
+
+  get isClosed(): boolean {
+    return this.closed;
+  }
+
+  /**
+   * Replaces the open source with one that resumes at exactly `afterSequence`.
+   *
+   * The old source is closed and its listeners removed before the replacement
+   * opens. Existing subscribers stay attached and may see already applied
+   * sequences again; the reducer ignores those duplicates. This is the
+   * supported recovery path when the consumer's applied cursor is behind the
+   * session's delivered cursor.
+   */
+  restartAt(afterSequence: number): void {
+    if (this.closed || this.lastSequence === afterSequence) {
+      return;
+    }
+
+    this.clearTimer();
+    this.closeSource();
+    this.lastSequence = afterSequence;
+    this.attempt = 0;
+    this.setState('connecting');
+
+    if (this.consumers > 0) {
+      this.open();
+    }
   }
 
   private acquire(): void {

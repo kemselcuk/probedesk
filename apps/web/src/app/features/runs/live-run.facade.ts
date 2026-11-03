@@ -346,7 +346,10 @@ export class LiveRunFacade {
           this.snapshotState.set(
             mergeRunSnapshot(this.snapshot(), snapshot),
           );
-          this.cursor = snapshot.lastEventSequence;
+          // Never move the applied cursor backwards. A snapshot read can race
+          // the stream; resuming from the higher applied cursor replays only
+          // events the reducer has not seen (duplicates are ignored).
+          this.cursor = Math.max(this.cursor, snapshot.lastEventSequence);
           this.streamErrorState.set(null);
 
           if (isTerminalRunStatus(snapshot.status)) {
@@ -355,8 +358,9 @@ export class LiveRunFacade {
             return;
           }
 
-          // With the stream stopped and the cursor advanced to the snapshot,
-          // replay resumes exactly after the reconciled sequence.
+          // The stream was stopped before the snapshot request. Reopening with
+          // the applied cursor restarts the transport at exactly this cursor,
+          // even if another consumer kept a session with a further cursor.
           this.openStream();
         },
         error: (error: unknown) => {
@@ -451,7 +455,7 @@ export class LiveRunFacade {
 
           this.reconciling = false;
           this.snapshotState.set(mergeRunSnapshot(this.snapshot(), snapshot));
-          this.cursor = snapshot.lastEventSequence;
+          this.cursor = Math.max(this.cursor, snapshot.lastEventSequence);
 
           if (isTerminalRunStatus(snapshot.status)) {
             this.terminalHandled = true;

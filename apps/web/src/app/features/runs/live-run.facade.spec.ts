@@ -6,11 +6,14 @@ import {
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   RUN_EVENT_RECONNECT_DELAYS,
   RUN_EVENT_SOURCE_FACTORY,
+  RunEventsService,
 } from '../../core/runs/run-events.service';
+import type { RunStreamUpdate } from '../../core/runs/run-events.service';
 import {
   FakeEventSource,
   eventData,
@@ -29,6 +32,7 @@ import {
 
 describe('LiveRunFacade', () => {
   let http: HttpTestingController;
+  let extraSubscription: Subscription | null;
 
   beforeEach(() => {
     FakeEventSource.reset();
@@ -53,9 +57,12 @@ describe('LiveRunFacade', () => {
       ],
     });
     http = TestBed.inject(HttpTestingController);
+    extraSubscription = null;
   });
 
   afterEach(() => {
+    extraSubscription?.unsubscribe();
+    extraSubscription = null;
     http.verify();
   });
 
@@ -167,6 +174,78 @@ describe('LiveRunFacade', () => {
     expect(reopened.url).toBe(`/api/runs/${RUN_ID}/events?after=6`);
     expect(facade.snapshot()?.recordedSampleCount).toBe(2);
     expect(facade.snapshot()?.steps[0]?.measurements).toHaveLength(2);
+  });
+
+  it('reconciles a gap without reusing a session whose cursor is ahead', async () => {
+    const events = TestBed.inject(RunEventsService);
+    const shadowUpdates: RunStreamUpdate[] = [];
+    extraSubscription = events
+      .connect(RUN_ID, 3)
+      .subscribe((update) => shadowUpdates.push(update));
+
+    const { facade, source } = await loadRunning();
+    expect(FakeEventSource.instances).toHaveLength(1);
+
+    // The transport delivers sequence 15 while the facade is still at 3. The
+    // facade rejects it as a gap, but the shadow consumer keeps the session
+    // (and its cursor at 15) alive across the reconcile.
+    emit(source, measurementEvent(15, 0, true));
+    expect(facade.connection()).toBe('reconnecting');
+    expect(source.closed).toBe(false);
+
+    const reconcile = http.expectOne(`/api/runs/${RUN_ID}`);
+    reconcile.flush(
+      runSnapshot({
+        lastEventSequence: 10,
+        recordedSampleCount: 2,
+        steps: [
+          runningStep({
+            recordedCount: 2,
+            measurements: [
+              {
+                sampleIndex: 0,
+                value: '5.000000',
+                isWithinTolerance: true,
+                recordedAt: '2026-11-03T10:00:01.000Z',
+                elapsedMs: 500,
+              },
+              {
+                sampleIndex: 1,
+                value: '5.000000',
+                isWithinTolerance: true,
+                recordedAt: '2026-11-03T10:00:02.000Z',
+                elapsedMs: 1000,
+              },
+            ],
+          }),
+        ],
+      }),
+    );
+
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
+    const reopened = FakeEventSource.latest();
+    expect(source.closed).toBe(true);
+    expect(reopened.url).toBe(`/api/runs/${RUN_ID}/events?after=10`);
+    expect(FakeEventSource.instances.filter((item) => !item.closed)).toEqual([
+      reopened,
+    ]);
+
+    reopened.open();
+    for (let sampleIndex = 2; sampleIndex <= 6; sampleIndex += 1) {
+      emit(reopened, measurementEvent(9 + sampleIndex, sampleIndex, true));
+    }
+
+    // Sequences 11..15 are replayed exactly once after the snapshot at 10;
+    // the event 15 that triggered the gap is not counted twice or skipped.
+    expect(facade.snapshot()?.lastEventSequence).toBe(15);
+    expect(facade.snapshot()?.recordedSampleCount).toBe(7);
+    const measurements = facade.snapshot()?.steps[0]?.measurements ?? [];
+    expect(measurements.map((measurement) => measurement.sampleIndex)).toEqual([
+      0, 1, 2, 3, 4, 5, 6,
+    ]);
+    expect(FakeEventSource.instances).toHaveLength(2);
+    http.expectNone(`/api/runs/${RUN_ID}`);
+    expect(shadowUpdates.length).toBeGreaterThan(0);
   });
 
   it('applies a terminal event, closes the stream, and fills final step states once', async () => {

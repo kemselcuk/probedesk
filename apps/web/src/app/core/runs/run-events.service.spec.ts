@@ -207,6 +207,125 @@ describe('RunEventsService', () => {
     expect(sequences).toEqual([4, 4, 5]);
   });
 
+  it('restarts an open session at the applied cursor when it delivered a gap event', () => {
+    const service = TestBed.inject(RunEventsService);
+    const firstUpdates: RunStreamUpdate[] = [];
+    const firstSubscription = service
+      .connect(RUN_ID, 3)
+      .subscribe((update) => firstUpdates.push(update));
+
+    const first = FakeEventSource.latest();
+    first.open();
+
+    // The transport parses and delivers sequence 5. A facade would reject it
+    // as a forward gap and keep its applied cursor at 3, so the session cursor
+    // is now ahead of what the consumer committed.
+    first.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 5, measurementPayload(5)),
+      '5',
+    );
+    expect(
+      firstUpdates.flatMap((update) =>
+        update.type === 'event' ? [update.event.sequence] : [],
+      ),
+    ).toEqual([5]);
+
+    const reopenedUpdates: RunStreamUpdate[] = [];
+    const reopenedSubscription = service
+      .connect(RUN_ID, 3)
+      .subscribe((update) => reopenedUpdates.push(update));
+
+    const reopened = FakeEventSource.latest();
+    expect(reopened).not.toBe(first);
+    expect(first.closed).toBe(true);
+    expect(first.listenerCount()).toBe(0);
+    expect(reopened.url).toBe(`/api/runs/${RUN_ID}/events?after=3`);
+    expect(FakeEventSource.instances.filter((source) => !source.closed)).toEqual([
+      reopened,
+    ]);
+
+    reopened.open();
+    for (const sequence of [4, 5, 6]) {
+      reopened.emit(
+        'measurement.recorded',
+        eventData(
+          'measurement.recorded',
+          RUN_ID,
+          sequence,
+          measurementPayload(sequence),
+        ),
+        String(sequence),
+      );
+    }
+
+    const reopenedSequences = reopenedUpdates.flatMap((update) =>
+      update.type === 'event' ? [update.event.sequence] : [],
+    );
+    expect(reopenedSequences).toEqual([4, 5, 6]);
+
+    firstSubscription.unsubscribe();
+    reopenedSubscription.unsubscribe();
+    expect(reopened.closed).toBe(true);
+    expect(reopened.listenerCount()).toBe(0);
+  });
+
+  it('cancels an ahead reconnect and resumes from a lower requested cursor', async () => {
+    const service = TestBed.inject(RunEventsService);
+    const first = service.connect(RUN_ID, 3).subscribe();
+    const source = FakeEventSource.latest();
+    source.open();
+
+    source.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 4, measurementPayload(4)),
+      '4',
+    );
+    source.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 5, measurementPayload(5)),
+      '5',
+    );
+    source.fail(0);
+
+    const reopenedUpdates: RunStreamUpdate[] = [];
+    const reopenedSubscription = service
+      .connect(RUN_ID, 3)
+      .subscribe((update) => reopenedUpdates.push(update));
+
+    const reopened = FakeEventSource.latest();
+    expect(reopened.url).toBe(`/api/runs/${RUN_ID}/events?after=3`);
+    expect(source.closed).toBe(true);
+
+    // The pending reconnect timer from the failed source must not open a
+    // second source at after=5.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(FakeEventSource.instances).toHaveLength(2);
+    expect(FakeEventSource.instances.filter((item) => !item.closed)).toEqual([
+      reopened,
+    ]);
+
+    reopened.open();
+    reopened.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 4, measurementPayload(4)),
+      '4',
+    );
+    reopened.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 5, measurementPayload(5)),
+      '5',
+    );
+
+    const sequences = reopenedUpdates.flatMap((update) =>
+      update.type === 'event' ? [update.event.sequence] : [],
+    );
+    expect(sequences).toEqual([4, 5]);
+
+    first.unsubscribe();
+    reopenedSubscription.unsubscribe();
+  });
+
   it('asks /auth/me on a fatal close and reconnects when the session is alive', async () => {
     const http = TestBed.inject(HttpTestingController);
     connect(3);
