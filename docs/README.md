@@ -1,6 +1,6 @@
 # ProbeDesk belgeleri
 
-Bu belge paketi, kullanıcı tarafından seçilen ürün yaklaşımını ve ayrıntılı uygulama planını repository içinde saklar. Uygulama kodu henüz yoktur. Hazırlanma tarihi: **2026-11-03**.
+Bu belge paketi, kullanıcı tarafından seçilen ürün yaklaşımını ve ayrıntılı uygulama planını repository içinde saklar. Phase 1 uygulaması (iskelet, kimlik doğrulama, ortak API davranışları, CI) başlamıştır; ürün akışları henüz tamamlanmamıştır. Hazırlanma tarihi: **2026-11-03**.
 
 ## Okuma sırası
 
@@ -40,7 +40,7 @@ Bir sözleşme değiştiğinde bu tablodaki birincil belge önce güncellenir; i
 - Teknik varsayılanlar ayrıntılı plandan aktarılmıştır; kurulumla doğrulanmış değildir.
 - P0 belgeleri incelemeye hazırdır; görev kartlarında `In Review` durumundadır. Bu, ürün kabulü verildiği anlamına gelmez.
 - P1–P8 uygulama görevleri `Planned` durumundadır.
-- Gerçek test çalıştırması, CI sonucu ve video henüz yoktur.
+- Phase 1 testleri ve GitHub Actions CI koşuları gerçek çıktılarla kaydedilmiştir; ürün demosu ve video henüz yoktur.
 - Nihai kapsam, aşama ve ürün kabulü kullanıcıya aittir.
 
 README İngilizcedir; diğer plan belgeleri Türkçedir. Uygulama metinleri, kullanıcıya dönük API mesajları ve örnek plan/adım adları İngilizce olacaktır.

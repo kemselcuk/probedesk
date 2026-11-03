@@ -1,6 +1,6 @@
 # Test, inceleme ve teslim sözleşmesi
 
-Durum: Plan. Aşağıdaki uygulama testleri henüz çalıştırılmadı. Gereksinimler: REQ-23–27.
+Durum: Kısmen uygulandı. Phase 1 testleri (P1) gerçek PostgreSQL ve Angular TestBed ile çalışıyor; P2–P8 davranış testleri henüz yazılmadı. Gereksinimler: REQ-23–27.
 
 ## Test katmanları
 
@@ -59,7 +59,7 @@ P3-01 golden değerleri algoritmadan bağımsız sabit beklentilerle kaydeder. R
 
 ## Planlanan komutlar
 
-Bu komutlar henüz mevcut değildir. Oluşturulduklarında her biri doğru çıkış kodu vermeli ve README'ye ancak gerçek çalıştırma sonrasında kullanım olarak eklenmelidir.
+Phase 1 itibarıyla `npm ci`, `npm run lint`, `typecheck`, `build`, `test:api:unit`, `test:api:integration`, `test:web`, `openapi:check`, `db:migrate`, `demo:seed` ve `verify` mevcuttur ve çalıştırılmıştır. `dev` ve `test:e2e` (Playwright) P2/P7 kapsamında tamamlanacaktır. Her komut doğru çıkış kodu vermeli; README'ye yalnızca gerçek çalıştırma sonrasında kullanım olarak eklenmelidir.
 
 | Komut | Sözleşme |
 |---|---|

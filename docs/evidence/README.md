@@ -6,8 +6,10 @@ gerçekten üretildiğinde eklenir.
 
 ## Kayıtlar
 
-- [P1-08 — İlk CI kontrolü](p1-08-ci.md): yerel doğrulama tamamlandı; gerçek
-  GitHub Actions koşusu ve kontrollü başarısız kontrol gösterimi bekliyor.
+- [P1-08 — İlk CI kontrolü](p1-08-ci.md): gerçek GitHub Actions koşuları
+  kaydedildi; yeşil koşu ve kontrollü başarısız kontrol gösterimi tamamlandı.
+- [Phase 1 bağımsız teknik incelemesi](phase-1-review.md): P1-01–P1-07
+  verdict'leri ve bulgular; B1 yüksek önemli cookie bulgusu dahil.
 
 ## Kayıt biçimi
 

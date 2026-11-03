@@ -12,7 +12,8 @@
   },
   "scripts": {
     "generate": "openapi-typescript ../../apps/api/openapi.json -o src/schema.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "oxlint src"
   },
   "devDependencies": {
     "openapi-typescript": "7.13.0",

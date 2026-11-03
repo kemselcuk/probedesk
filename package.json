@@ -25,7 +25,7 @@
     "openapi:check": "node scripts/openapi-check.mjs",
     "db:migrate": "npm run db:migrate --workspace apps/api",
     "demo:seed": "npm run demo:seed --workspace apps/api",
-    "verify": "npm run lint && npm run typecheck && npm run test:api:unit && npm run test:web && npm run build",
+    "verify": "npm run lint && npm run typecheck && npm run test:api:unit && npm run test:web && npm run build && npm run openapi:check",
     "openapi:generate": "npm run generate --workspace packages/api-client"
   },
   "devDependencies": {

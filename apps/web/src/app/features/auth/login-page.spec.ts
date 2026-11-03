@@ -27,7 +27,7 @@ const ACCOUNT = {
 
 const INVALID_CREDENTIALS = {
   code: 'UNAUTHENTICATED',
-  message: 'The email or password is incorrect.',
+  message: 'Invalid email or password.',
   requestId: 'req-login-1',
 };
 

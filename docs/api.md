@@ -19,7 +19,7 @@ P=Planner, O=Operator, V=Viewer. Public yalnızca oturumsuz temel uçları belir
 | Yöntem | Yol | İzin | Başarı | Davranış |
 |---|---|---|---|---|
 | POST | /auth/login | Public | 200 | oturum cookie ve CSRF düzeni; kullanıcı özeti |
-| POST | /auth/logout | P/O/V | 204 | oturum revocation ve cookie temizliği |
+| POST | /auth/logout | P/O/V | 204 | oturum revocation ve cookie temizliği; oturum zaten yoksa da 204 (idempotent) |
 | GET | /auth/me | P/O/V | 200 | id, email, role; CSRF cookie yenileme gerekiyorsa sağlar |
 | GET | /device-profiles | P/O/V | 200 | tek profil |
 | GET | /plans | P/O/V | 200 | role uygun liste; P dışına taslak içerik sızmaz |

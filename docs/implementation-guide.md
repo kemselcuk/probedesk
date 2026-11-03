@@ -1,6 +1,6 @@
 # Uygulamaya başlangıç rehberi
 
-Bu repository şu anda bir uygulama sözleşmesi ve görev paketi içerir. Çalışan uygulama, paket kurulumu ve test kanıtı yoktur. Bu belgenin varlığı kendi başına geliştirme başlatma veya ücretli hizmet kullanma talimatı değildir.
+Bu repository bir uygulama sözleşmesi, görev paketi ve Phase 1 iskeletini içerir. npm workspace kurulumu, Angular kabuğu, NestJS API, PostgreSQL/Prisma temeli, oturum/CSRF/rol yetkilendirmesi, OpenAPI istemcisi ve ilk CI pipeline'ı çalışır durumdadır; plan editörü ve sonraki ürün akışları henüz yoktur. Bu belgenin varlığı kendi başına ücretli hizmet kullanma talimatı değildir.
 
 ## Önce okunacaklar
 

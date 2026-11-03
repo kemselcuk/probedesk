@@ -61,7 +61,7 @@ export class LoginPage {
       return 'Too many sign-in attempts. Wait a moment and try again.';
     }
 
-    if (error.status === 401 && error.code === 'HTTP_ERROR') {
+    if (error.code === 'UNAUTHENTICATED') {
       return 'The email or password is incorrect. Please try again.';
     }
 
