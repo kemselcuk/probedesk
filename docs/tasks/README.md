@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2 In Review; P3–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
+Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 Accepted (teknik kabul, 2026-11-03); P3–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -40,14 +40,14 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P2-01 — Plan ve sürüm veri modeli](P2-01.md) | Backend | In Review |
-| [P2-02 — Taslak oluşturma ve kaydetme API'si](P2-02.md) | Backend | In Review |
-| [P2-03 — Test Plans ekranı](P2-03.md) | Frontend | In Review |
-| [P2-04 — Typed dinamik adım formu](P2-04.md) | Frontend | In Review |
-| [P2-05 — Adım sıralama ve düzenleme güvenliği](P2-05.md) | Frontend | In Review |
-| [P2-06 — Publish ve yeni sürüm taslağı](P2-06.md) | Backend | In Review |
-| [P2-07 — Frontend sürüm akışı](P2-07.md) | Frontend | In Review |
-| [P2-08 — Plan yaşam döngüsü entegrasyonu](P2-08.md) | Entegrasyon | In Review |
+| [P2-01 — Plan ve sürüm veri modeli](P2-01.md) | Backend | Accepted |
+| [P2-02 — Taslak oluşturma ve kaydetme API'si](P2-02.md) | Backend | Accepted |
+| [P2-03 — Test Plans ekranı](P2-03.md) | Frontend | Accepted |
+| [P2-04 — Typed dinamik adım formu](P2-04.md) | Frontend | Accepted |
+| [P2-05 — Adım sıralama ve düzenleme güvenliği](P2-05.md) | Frontend | Accepted |
+| [P2-06 — Publish ve yeni sürüm taslağı](P2-06.md) | Backend | Accepted |
+| [P2-07 — Frontend sürüm akışı](P2-07.md) | Frontend | Accepted |
+| [P2-08 — Plan yaşam döngüsü entegrasyonu](P2-08.md) | Entegrasyon | Accepted |
 
 ## Aşama 3 — Simülasyon ve yürütme
 

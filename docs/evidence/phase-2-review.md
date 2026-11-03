@@ -230,3 +230,47 @@ Headless Chrome DevTools protokolüyle gerçek Angular dev sunucusu (`:4201`) ve
 - Geçici PostgreSQL veritabanları (`probedesk_review_empty_*`, `probedesk_review_upgrade_*`) inceleme sonunda silindi.
 - Geliştirme veritabanında yalnız bu inceleme için oluşturulan 17 plan, adımları, revision'ları ve step identity'leri temizlendi; mevcut demo planlarına (`Power Supply Validation`) dokunulmadı. Temizlik sırasında trigger'lar kısa süre devre dışı bırakıldı ve yeniden etkinleştirildi; `pg_trigger.tgenabled = 'O'` ile doğrulandı.
 - Ürün kodu, `apps/`, `packages/`, `scripts/` veya kök konfigürasyon değiştirilmedi; git write komutu çalıştırılmadı. `git status` inceleme sonunda temiz.
+
+## Fix re-check — 2026-11-03
+
+Kapsam: `f03e76f`, `e799edc`, `5cc7e11`. Bu bölüm önceki incelemenin bağımsız yeniden kontrolüdür; ürün kabulü değildir. Ürün kodu değiştirilmedi.
+
+### Durum
+
+| Bulgu | Durum | Bağımsız doğrulama |
+|---|---|---|
+| H-01 — boş/geçersiz ad publish | **CLOSED** | CHECK doğrudan boş/boşluklu/101 karakter adı reddetti. CHECK geçici kaldırılarak eski bozuk satır simüle edildi: `POST /draft/publish` **400** ve `fieldErrors[0].path='name'`; aynı anda Planner/Operator/Viewer liste ve detay **200** (Planner draft-only için `Untitled plan`, yayımlanmış adı olan plan için yayımlanmış ad). CHECK geri eklendikten sonra doğrudan SQL boş ad reddedildi; normal v2 publish **201**. |
+| H-02 — elle yanıt modeli | **CLOSED** | `plans-api.types.ts` yalnız generated `components['schemas']` takma adları; `plans-api.ts` tüm yanıtlarda generated tip + zorunlu alan doğrulaması. `{ items }`, `{ plan }`, `openDraft`, `logicalStepIds` ve `'0'`/`''` fallback'leri yok. Eksik/zorunlu alan `MalformedApiResponseError` → `MALFORMED_API_RESPONSE` görünür hata. `npm run test:web` 17 dosya/125 test geçti. |
+| M-03 — 0 adımlı publish | **CLOSED** | Gerçek Chrome: 0 adımlı kaydedilmiş draftta `#publish-button.disabled=true`, hint `Add at least one step before publishing.`; Save draft hâlâ etkin. |
+| M-04 — sürüm/plan bağlama | **CLOSED** | Gerçek Chrome: başka planın sürüm ID'siyle açılan sayfa `Published version not found`, sürüm başlığı yok, `Start new draft` yok. Ana planın v1'i (v2 varken) açıldığında düğme yok; "older published version ... latest" açıklaması ve v2 bağlantısı var. |
+| M-05 — baseVersion sahipliği | **CLOSED** | Geçici gerçek PG: çapraz plan `baseVersionId` kompozit FK ile reddedildi; draft'ın kendisini base göstermesi state trigger'ı ile reddedildi; aynı planın yayımlanmış sürümüne base kabul edildi. |
+| M-06 — published DB koruması | **CLOSED (istenen dört senaryo)** | Geçici PG: doğrudan `PUBLISHED` INSERT, `TRUNCATE plan_steps`, `TRUNCATE plan_revisions CASCADE`, adımsız DRAFT→PUBLISHED ve Viewer publisher reddedildi; satırlar DRAFT kaldı. Bir adım + Planner publisher geçişi ve normal API v1/v2 publish **201** geçti. Kalan R-01 aşağıda. |
+| M-07 — kirli editörde sign out | **CLOSED** | Gerçek Chrome: form dirty iken Sign out `Leave without saving?` açtı; `Keep editing` sonrası URL editörde, yerel ad `Unsaved fix recheck` korundu ve oturum açık kaldı. `POST /api/auth/logout` çağrılmadı. |
+| İki sekme stale revision | **CLOSED** | `scripts/phase-2-two-tab-check.mjs` gerçek API/web ile: `initialRevision=1`; sekme A rev 2'ye kaydetti; sekme B eski rev 1 ile 409 `This draft changed in another session` aldı; sunucu revision **2**, A'nın değeri **0.650000** kaldı, B'nin yerel **5.300000** değeri korundu ve sunucuya yazılmadı. Konsol istisnası yok. |
+
+### Yeni / kalan bulgular
+
+**R-01 — Low (açık, savunma katmanı):** Doğrudan SQL ile DRAFT→PUBLISHED geçişi hâlâ 31 adımlı veya plan toplam limitlerini aşan bir draft'ı yayımlayabiliyor. `20261103180000_plan_revision_integrity/migration.sql:115-141` yalnız "en az bir adım + Planner publisher" kontrol ediyor; API'nin `assertPublishableSteps` 1–30 adım ve toplam limit kontrolü doğrudan SQL geçişini kapsamıyor. Ayrıca `versionNumber`'ın DB seviyesinde `max+1` olması zorlanmıyor; fix kanıtı bunu açıkça kabul ediyor. Geçici PG'de 31 adımlı DRAFT→PUBLISHED geçişi **kabul edildi**. Ürün API yolu 31 adımı reddettiği ve bu yol yalnız schema-owner/doğrudan SQL olduğu için Low; yine de DB "hard boundary" sayılacaksa Medium'a yükseltilmelidir. **Kritik/Yüksek/Medium yeni bulgu yok.**
+
+**R-02 — Low (deployment notu):** `plan_revisions_name_check` migration'ı, eski hatadan kalmış boş/boşluklu bir satır varsa bilinçli olarak hata verip durur; read fallback'i ancak şema açılabildiğinde devreye girer. Bu "sessiz temizleme yok" tercihiyle uyumlu, fakat böyle bir legacy DB için migration öncesi manuel düzeltme gerekir. Normal API verisinde bu satır oluşamaz.
+
+### Yeniden çalıştırma ve temizlik
+
+```text
+$ npm run verify
+API: 9 dosya / 43 test; Web: 17 dosya / 125 test; iki build; OpenAPI kontrolü
+EXIT: 0
+
+$ npm run test:e2e --workspace apps/api
+10 dosya / 93 test; 14.29s
+EXIT: 0
+
+$ npm run openapi:check
+OpenAPI contract is current: apps/api/openapi.json and packages/api-client/src/schema.ts match the application.
+```
+
+Boş geçici PostgreSQL veritabanına beş migration'ın tamamı uygulandı; geliştirme ve test veritabanlarında beş migration `finished_at` dolu. Beş migration, `plan_revisions_name_check` ve kompozit `baseVersionId` FK'si ile yedi kullanıcı trigger'ı etkin doğrulandı. Geçici DB silindi; dört inceleme planı (zero/main/other/two-tab) ve alt kayıtları temizlendi; trigger'lar `tgenabled='O'` ile yeniden etkinleştirildi; demo planlarına dokunulmadı; API/web süreçleri kapatıldı.
+
+### Teknik kabul durumu
+
+İstenen H-01, H-02, M-03, M-04, M-05, M-06 (dört senaryo), M-07 ve iki-sekme kontrolleri **geçti**. Ürün/API/UI yolları açısından Phase 2 **teknik olarak kabul edilebilir**; bununla birlikte R-01 doğrudan SQL/schema-owner savunma katmanında açık bir Low risktir ve açıkça ertelenmeden "tam kapalı" sayılmamalıdır. Hiçbir görev kartı `Accepted` yapılmadı; ürün kabulü kullanıcıdadır.

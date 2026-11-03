@@ -4,10 +4,10 @@
 
 ProbeDesk is a planned application for creating versioned test plans for electronic devices, running a deterministic software simulator, inspecting measurements against tolerances, and comparing test runs.
 
-**Status: Phase 1 accepted; Phase 2 under review.** The workspace, authentication, sessions,
+**Status: Phases 1 and 2 accepted.** The workspace, authentication, sessions,
 OpenAPI client and CI pipeline work (Phase 1). Phase 2 adds versioned measurement plans:
 Planner draft create/edit/reorder/save, publish v1/v2, immutable published versions and a
-read-only version view (under independent review). Simulation, runs, live updates and
+read-only version view (accepted after independent review). Simulation, runs, live updates and
 comparison are still pending; the documents describe the intended product and its acceptance
 criteria, not completed features.
 

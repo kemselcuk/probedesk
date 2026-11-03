@@ -1,6 +1,6 @@
 # Ayrıntılı uygulama yol haritası
 
-Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2 görevleri In Review; P3–P8 Planned. Phase 1 iskeleti ve kimlik doğrulama ile Phase 2 plan yaşam döngüsü çalışır durumda; simülasyon, canlı akış, karşılaştırma ve video henüz yoktur.
+Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 Accepted (teknik kabul, 2026-11-03); P3–P8 Planned. Phase 1 iskeleti ve kimlik doğrulama ile Phase 2 plan yaşam döngüsü çalışır durumda; simülasyon, canlı akış, karşılaştırma ve video henüz yoktur.
 
 ## Sıra ve sahiplik
 
