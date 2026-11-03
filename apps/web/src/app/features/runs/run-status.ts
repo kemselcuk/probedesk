@@ -153,18 +153,29 @@ export function scenarioLabel(scenario: RunSnapshot['scenario']): string {
 }
 
 /**
- * A RUNNING snapshot is provisional; a terminal run is partial when it stopped
- * early or when fewer samples were recorded than expected. Missing samples are
- * never presented as zero.
+ * A RUNNING snapshot is provisional; a terminal run is partial only when fewer
+ * samples were recorded than expected. A stopped terminal run can still have
+ * every sample (for example a cancel during finalization), and that case must
+ * not be described as missing data. Missing samples are never presented as zero.
  */
 export function isPartialResult(snapshot: RunSnapshot): boolean {
-  if (snapshot.status === 'RUNNING') {
-    return false;
-  }
-
   return (
-    snapshot.status !== 'COMPLETED' ||
+    snapshot.status !== 'RUNNING' &&
     snapshot.recordedSampleCount < snapshot.expectedSampleCount
+  );
+}
+
+/**
+ * A CANCELLED, INTERRUPTED, or ERROR run that nevertheless recorded every
+ * expected sample. The result is not presented as completed, so the screen
+ * needs a separate, accurate explanation instead of the partial-results note.
+ */
+export function isStoppedAfterAllSamples(snapshot: RunSnapshot): boolean {
+  return (
+    (snapshot.status === 'CANCELLED' ||
+      snapshot.status === 'INTERRUPTED' ||
+      snapshot.status === 'ERROR') &&
+    snapshot.recordedSampleCount >= snapshot.expectedSampleCount
   );
 }
 

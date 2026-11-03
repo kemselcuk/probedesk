@@ -206,6 +206,12 @@
               The run stopped before every expected sample was recorded. Missing samples are shown
               as not recorded, never as zero.
             </p>
+          } @else if (stoppedAfterAllSamples()) {
+            <p class="partial-note" role="note">
+              <strong>All expected samples were recorded.</strong>
+              The run stopped during finalization or because of a technical error, so it is not
+              presented as a completed result.
+            </p>
           }
 
           @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
@@ -411,7 +417,7 @@
 
               @if (isActiveRunConflict()) {
                 @if (activeRunId(); as id) {
-                  <a mat-flat-button [routerLink]="['/runs', id, 'live']">Open active run</a>
+                  <a mat-flat-button [routerLink]="['/runs', id]">Open active run</a>
                 } @else {
                   <p class="detail-note">
                     The response did not include an active run id. Open Run History to find the

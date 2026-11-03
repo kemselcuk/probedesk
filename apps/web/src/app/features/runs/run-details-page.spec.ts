@@ -288,6 +288,25 @@ const ERROR_SNAPSHOT = {
   ],
 };
 
+/**
+ * A run stopped by an operator or a technical error after the last sample was
+ * written but before the completion transaction committed. Every sample and
+ * step result is present; the screen must not claim that data is missing.
+ */
+const FULLY_RECORDED_CANCELLED_SNAPSHOT = {
+  ...PASSED_SNAPSHOT,
+  status: 'CANCELLED',
+  outcome: null,
+  reasonCode: 'RUN_CANCELLED',
+};
+
+const FULLY_RECORDED_ERROR_SNAPSHOT = {
+  ...PASSED_SNAPSHOT,
+  status: 'ERROR',
+  outcome: null,
+  reasonCode: 'EXECUTION_FAILED',
+};
+
 const FAILED_FORCED_SNAPSHOT = {
   ...FAILED_SNAPSHOT,
   scenario: 'FORCED_FAILURE',
@@ -483,6 +502,28 @@ describe('RunDetailsPage', () => {
     expect(root.textContent).toContain('Partial results.');
     expect(root.querySelector('#run-again-button')).not.toBeNull();
   });
+
+  it.each([
+    ['CANCELLED' as const, FULLY_RECORDED_CANCELLED_SNAPSHOT, 'RUN_CANCELLED'],
+    ['ERROR' as const, FULLY_RECORDED_ERROR_SNAPSHOT, 'EXECUTION_FAILED'],
+  ])(
+    'does not claim missing samples for a fully recorded %s run',
+    async (_kind, snapshot, reason) => {
+      const harness = await openLoaded(snapshot);
+      const root = rootOf(harness);
+
+      expect(root.textContent).toContain('4 of 4 samples recorded (100%)');
+      expect(root.textContent).toContain(reason);
+      expect(root.textContent).not.toContain('Partial results.');
+      expect(root.textContent).not.toContain('stopped before every expected sample');
+      expect(root.textContent).toContain('All expected samples were recorded.');
+      expect(root.textContent).toContain(
+        'stopped during finalization or because of a technical error',
+      );
+      expect(root.querySelectorAll('.step-card')).toHaveLength(2);
+      expect(root.querySelector('#run-again-button')).not.toBeNull();
+    },
+  );
 
   it('shows a completed run without an outcome without inferring one', async () => {
     const harness = await openLoaded({ ...PASSED_SNAPSHOT, outcome: null });
@@ -695,7 +736,22 @@ describe('RunDetailsPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(router.url).toBe(`/runs/${NEW_RUN_ID}/live`);
+    expect(router.url).toBe(`/runs/${NEW_RUN_ID}`);
+
+    const detailsRequest = http.expectOne(`/api/runs/${NEW_RUN_ID}`);
+    expect(detailsRequest.request.method).toBe('GET');
+    detailsRequest.flush(
+      {
+        code: 'NOT_FOUND',
+        message: 'The run was not found.',
+        requestId: 'req-rerun-details-404',
+      },
+      { status: 404, statusText: 'Not Found' },
+    );
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Run Details');
   });
 
   it('runs again with the stored RANDOM probability as decimal text', async () => {
@@ -730,6 +786,19 @@ describe('RunDetailsPage', () => {
         eventsUrl: `/api/runs/${NEW_RUN_ID}/events`,
       },
       { status: 202, statusText: 'Accepted' },
+    );
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(TestBed.inject(Router).url).toBe(`/runs/${NEW_RUN_ID}`);
+    const detailsRequest = http.expectOne(`/api/runs/${NEW_RUN_ID}`);
+    detailsRequest.flush(
+      {
+        code: 'NOT_FOUND',
+        message: 'The run was not found.',
+        requestId: 'req-rerun-random-details-404',
+      },
+      { status: 404, statusText: 'Not Found' },
     );
     await harness.fixture.whenStable();
   });
@@ -810,7 +879,7 @@ describe('RunDetailsPage', () => {
     expect(root.textContent).toContain('Another run is already active');
     expect(root.textContent).toContain('req-rerun-active');
     expect(
-      root.querySelector<HTMLAnchorElement>(`a[href="/runs/${ACTIVE_RUN_ID}/live"]`)?.textContent,
+      root.querySelector<HTMLAnchorElement>(`a[href="/runs/${ACTIVE_RUN_ID}"]`)?.textContent,
     ).toContain('Open active run');
     expect(router.url).toBe(`/runs/${RUN_ID}`);
     expect(root.querySelector('.status-badge')?.textContent).toContain('Passed');

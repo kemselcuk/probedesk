@@ -6,13 +6,15 @@
 - Uygulama commit'i: Bu çalışma ortak checkout'ta yapıldı; commit/push lead tarafından oluşturulacak. Bu belge bir commit hash'i iddia etmez.
 - Kapsam dışı: Live Run SSE ekranı (P4-04), Run History listesi (P5-02), Compare Runs (P6-02), gerçek tarayıcı E2E testi (P7-01).
 
+> **Durum notu — 2026-11-03, B1/B2 düzeltmesi sonrası:** Bu belge P3-10'un ilk teslimini kaydeder ve tarihseldir. Bağımsız inceleme ([phase-3-review.md](phase-3-review.md)) B1, B2 ve B6 bulgularını açtı. Aşağıdaki navigasyon hedefleri ve "gerçek API/tarayıcı smoke yapılmadı" ifadeleri ilk teslim anını anlatır. Gerçek API/Chrome smoke daha sonra yapıldı ve [phase-3-demo.md](phase-3-demo.md) ile [phase-3-review.md](phase-3-review.md) içinde kaydedildi; B1/B2 düzeltmesinin güncel kanıtı [phase-3-review-fixes-web.md](phase-3-review-fixes-web.md) dosyasındadır. Bu belge ürün kabulü değildir.
+
 ## Sonuç
 
 `/runs/:runId` ekranı artık `GET /api/runs/:id` snapshot'ını yüklüyor; loading, boş adım listesi, genel hata ve 404 durumlarını ayırıyor. Plan adı/sürümü, sunucudan gelen status/outcome etiketi (metin + ikon), senaryo/seed/ayarlar, simülatör ve değerlendirme sürümleri, beklenen/kaydedilen örnek sayıları, yüzde ilerleme, UTC başlangıç/bitiş zamanları, isteyen kullanıcı, reasonCode, adım kuralları, sayaçlar, istatistikler ve ölçüm tabloları gösteriliyor. Frontend hiçbir verdict, tolerans bayrağı veya istatistik üretmiyor; null istatistik "Not available", ölçümü olmayan adım "No samples recorded" olarak görünüyor. Eksik veri sıfırla doldurulmuyor.
 
 İptal yalnızca Operator'a ve yalnızca `RUNNING` snapshot'ta sunuluyor. Onay dialog'u "Keep running" düğümüne odaklanıyor; onaydan sonra ekran iyimser olarak Cancelled göstermiyor, `POST /api/runs/:id/cancel` yanıtını bekliyor. Başarılı yanıttaki terminal snapshot gösterilip ardından snapshot yeniden okunuyor. İstek başarısızsa gerçek sunucu durumu korunuyor ve güvenli bir hata paneli gösteriliyor.
 
-Run Again yalnızca Operator'a ve terminal çalıştırmada sunuluyor. Snapshot'taki `planVersionId`, `scenario`, `seed` ve senaryoya ait `errorProbability` veya `failureStepId` aynen yeni isteğe dönüşüyor. İlk tıklamada yeni bir `Idempotency-Key` üretiliyor; ağ hatasında aynı anahtar korunuyor, `IDEMPOTENCY_CONFLICT` sonrasında kullanıcı yeniden tıkladığında yeni anahtar üretiliyor. Başarılı yanıttaki gerçek `runId` ile `/runs/:runId/live` adresine gidiliyor. Eski kayıt değiştirilmiyor ve bu metin ekranda açıkça yazıyor.
+Run Again yalnızca Operator'a ve terminal çalıştırmada sunuluyor. Snapshot'taki `planVersionId`, `scenario`, `seed` ve senaryoya ait `errorProbability` veya `failureStepId` aynen yeni isteğe dönüşüyor. İlk tıklamada yeni bir `Idempotency-Key` üretiliyor; ağ hatasında aynı anahtar korunuyor, `IDEMPOTENCY_CONFLICT` sonrasında kullanıcı yeniden tıkladığında yeni anahtar üretiliyor. Başarılı yanıttaki gerçek `runId` ile ilk teslimde `/runs/:runId/live` adresine gidiliyordu; B1 düzeltmesiyle hedef artık `/runs/:runId` detay ekranıdır. Eski kayıt değiştirilmiyor ve bu metin ekranda açıkça yazıyor.
 
 Yayımlanmış sürüm ekranında Operator'a `/runs/new?versionId=...` bağlantısı eklendi. App Shell'deki Operator "Start run" aksiyonu artık devre dışı değil; yayımlanmış bir sürüm seçilebilen `/plans` ekranına gidiyor. Global bir sürüm seçici olmadığı için bu, uydurma bir doğrudan başlatma yerine dürüst akış olarak seçildi.
 
@@ -24,7 +26,7 @@ Yayımlanmış sürüm ekranında Operator'a `/runs/new?versionId=...` bağlant�
 - `apps/web/src/app/features/runs/cancel-run-dialog.ts`: erişilebilir iptal onayı; "Keep running" başlangıç odağı ve Escape/backdrop ile iptal etmeme.
 - `apps/web/src/app/features/runs/run-status.ts`: status/outcome etiketleri, ikonları, senaryo etiketleri, kısmi sonuç ve ilerleme metni. Renk tek gösterge değil.
 - `apps/web/src/app/features/runs/run-rerun.ts`: snapshot'tan tam `StartRunDto` üretimi; eksik senaryo ayarında değer uydurmak yerine hata.
-- `apps/web/src/app/features/runs/run-details-page.spec.ts` (24 test): PASSED/FAILED/CANCELLED/INTERRUPTED/ERROR, terminal-null outcome, boş adım, null istatistik, ölçüm tablosu, 404/503, refresh, eski yanıtın yeni seçimi ezmemesi, iptal dialog'u/odak/iyimser olmama/başarılı iptal + GET refresh/başarısız iptal/already-terminal, rol görünürlüğü, Run Again FORCED_FAILURE ve RANDOM payload'ları, yeni anahtar, ağ hatasında anahtar tekrarı, conflict sonrası yenileme, RUN_ALREADY_ACTIVE ve 400 fieldErrors.
+- `apps/web/src/app/features/runs/run-details-page.spec.ts` (24 test): PASSED/FAILED/CANCELLED/INTERRUPTED/ERROR, terminal-null outcome, boş adım, null istatistik, ölçüm tablosu, 404/503, refresh, eski yanıtın yeni seçimi ezmemesi, iptal dialog'u/odak/iyimser olmama/başarılı iptal + GET refresh/başarısız iptal/already-terminal, rol görünürlüğü, Run Again FORCED_FAILURE ve RANDOM payload'ları, yeni anahtar, ağ hatasında anahtar tekrarı, conflict sonrası yenileme, RUN_ALREADY_ACTIVE ve 400 fieldErrors. B2 düzeltmesiyle tam örnekli CANCELLED/ERROR senaryoları eklendi (güncel: 26 test).
 - `docs/evidence/phase-3-run-summary.md`: bu dosya.
 
 ### Değişen
@@ -52,7 +54,7 @@ Yayımlanmış sürüm ekranında Operator'a `/runs/new?versionId=...` bağlant�
 - `CANCELLED` → "Cancelled" + neden kodu varsa gösterim; kaydedilmiş örneklerin ve tamamlanan adımların korunduğu açıklaması.
 - `INTERRUPTED` → "Interrupted" + sunucu kesintisi açıklaması.
 - `ERROR` → "Error" + teknik hatanın tolerans ihlali olmadığı açıklaması.
-- Terminal ve beklenen örnekten az kayıt varsa "Partial results" notu; `RUNNING` için ayrı "Provisional snapshot" notu. Her iki durumda da eksik örneklerin sıfır olarak gösterilmediği yazıyor.
+- Terminal ve beklenen örnekten az kayıt varsa "Partial results" notu; `RUNNING` için ayrı "Provisional snapshot" notu. Her iki durumda da eksik örneklerin sıfır olarak gösterilmediği yazıyor. B2 düzeltmesiyle bu not yalnız `recordedSampleCount < expectedSampleCount` için gösteriliyor; tüm örnekleri kaydedilmiş `CANCELLED`/`ERROR`/`INTERRUPTED` çalıştırmada "All expected samples were recorded..." açıklaması kullanılıyor.
 - İstatistikler `minimum`, `maximum`, `average`, `sampleCount`; null olan her alan "Not available". Adım ölçümü yoksa tablo yerine "No samples were recorded for this step.".
 - Ölçüm tablosu altı sütun: sample index, değer, birim, tolerans (ikon + "Within tolerance"/"Outside tolerance"), elapsed ms, UTC zaman. `caption` ve `th scope="col"` mevcut.
 - Adım özeti ayrıca snapshot minimum/maksimum, örnek sayısı, interval; kaydedilen/beklenen; tolerans dışı sayısı; ilk ihlal indeksi; sunucu istatistikleri gösteriyor.
@@ -79,8 +81,8 @@ Yayımlanmış sürüm ekranında Operator'a `/runs/new?versionId=...` bağlant�
 - Plan sürümü, senaryo, seed ve varsa error probability/failing step değerleri kartta salt okunur gösteriliyor. "Run again starts a new run… The recorded run on this page stays in history unchanged." ve "This creates a new run. The existing run is not modified." metinleri var.
 - İstek gövdesi senaryoya göre tam: NORMAL `{planVersionId, scenario, seed}`, FORCED_FAILURE `+failureStepId`, RANDOM `+errorProbability` (kanonik ondalık metin aynen).
 - `RunStartAttempt` yeni bir anahtar üretiyor; aynı isteğin ağ hatası retry'ında anahtar korunuyor. `IDEMPOTENCY_CONFLICT` sonrası kullanıcı yeniden tıkladığında anahtar sıfırlanıp yeni deneme üretiliyor.
-- `RUN_ALREADY_ACTIVE` → mevcut çalışma bağlantısı (`details.activeRunId` doğrulanmışsa `/runs/:id/live`, yoksa Run History). `IDEMPOTENCY_CONFLICT` ve 400 `fieldErrors` güvenli biçimde gösteriliyor; kayıtlı run değişmiyor.
-- Başarılı 202/200 yanıtındaki gerçek `runId` ile `/runs/:runId/live` adresine gidiliyor; tahmini kimlik kullanılmıyor.
+- `RUN_ALREADY_ACTIVE` → mevcut çalışma bağlantısı (`details.activeRunId` doğrulanmışsa `/runs/:id/live`, yoksa Run History). B1 düzeltmesiyle bağlantı `/runs/:id` detay ekranına gidiyor. `IDEMPOTENCY_CONFLICT` ve 400 `fieldErrors` güvenli biçimde gösteriliyor; kayıtlı run değişmiyor.
+- Başarılı 202/200 yanıtındaki gerçek `runId` ile ilk teslimde `/runs/:runId/live` adresine gidiliyordu; B1 düzeltmesiyle `/runs/:runId` adresine gidiliyor. Tahmini kimlik kullanılmıyor.
 
 ### Giriş noktaları
 
@@ -112,6 +114,8 @@ Duration    4.47s
 
 Önceki taban 154 test (20 dosya) korunmuştur. Yeni testler: `run-details-page.spec.ts` 24, `runs-api.spec.ts` +5, `plan-version-page.spec.ts` +3; App Shell'de bir test güncellendi. Toplam 186 test.
 
+Bu sayılar ilk teslim turuna aittir. B1/B2 düzeltme turunda `live-run-page.spec.ts` ve `run-status.spec.ts` eklendi, B2 senaryoları `run-details-page.spec.ts` içine eklendi: güncel sonuç `Test Files 23 passed (23)`, `Tests 199 passed (199)`. Düzeltme turunun güncel build sonucu `Initial total 326.26 kB | 91.13 kB`; ayrıntılar [phase-3-review-fixes-web.md](phase-3-review-fixes-web.md).
+
 ```text
 $ npm run build --workspace apps/web
 Application bundle generation complete. [2.213 seconds]
@@ -123,18 +127,18 @@ Not: İlk build'de `run-details-page.scss` 6 kB component style uyarı bütçesi
 
 ## Gerçek API / tarayıcı smoke
 
-Bu oturumda API, PostgreSQL veya tarayıcı başlatılmadı. Tüm HTTP davranışı `HttpTestingController` ile sözleşme biçiminde doğrulandı; gerçek `GET /api/runs/:id`, `POST /api/runs/:id/cancel`, `POST /api/runs` çağrıları ve gerçek tarayıcı görsel/klavye kontrolü bu belgede iddia edilmez.
+Bu belgenin ilk yazımında API, PostgreSQL veya tarayıcı başlatılmadı. Tüm HTTP davranışı `HttpTestingController` ile sözleşme biçiminde doğrulandı; gerçek `GET /api/runs/:id`, `POST /api/runs/:id/cancel`, `POST /api/runs` çağrıları ve gerçek tarayıcı görsel/klavye kontrolü bu ilk teslimde iddia edilmedi. İlk teslim bu nedenle **mock-tested** durumundaydı.
 
-Sonuç: bu görev **mock-tested** durumundadır. `crypto.randomUUID` anahtar üretimi, Angular form/DOM etkileşimi ve HTTP sözleşmesi test edildi; gerçek ağ, DB veya ekran okuyucu testi yapılmadı.
+Daha sonra ayrı bir oturumda gerçek API (geçici izole veritabanı, `127.0.0.1:3101`) ve gerçek Chrome ile smoke yapıldı; sonuçlar [phase-3-demo.md](phase-3-demo.md) ve [phase-3-review.md](phase-3-review.md) içinde kaydedildi. O smoke, B1 nedeniyle start/Run Again/aktif bağlantılarının `/runs/:runId/live` placeholder'ına gittiğini ve detay ekranının yalnız elle URL değiştirilerek görüldüğünü doğruladı. B1/B2 düzeltmesi sonrası başlat → detay → iptal → Run Again akışı gerçek tarayıcıda henüz yeniden çalıştırılmadı; güncel düzeltme kanıtı [phase-3-review-fixes-web.md](phase-3-review-fixes-web.md) dosyasındadır.
 
 ## Kalan riskler ve ertelenen işler
 
-1. **Gerçek API/tarayıcı smoke yapılmadı.** İptal ve Run Again yalnızca mock HTTP ile doğrulandı. Gerçek API'nin 200/409/400 yanıtları ve terminal snapshot içeriği bu oturumda yeniden çalıştırılmadı.
-2. **Aşama 3 demosu yapılmadı.** Başlat → canlı → iptal/kesinti → özet akışı gerçek tarayıcıda gösterilmedi; P3-10 doğrulama maddesi açık kaldı.
-3. **Live Run hâlâ P4-04 placeholder'ı.** Run Again başarısında `/runs/:runId/live` adresine gidiliyor; gerçek canlı ekran gelene kadar kullanıcı orada placeholder görür. Bu kartın kapsamı dışındadır.
+1. **B1/B2 düzeltmesi gerçek tarayıcıda yeniden doğrulanmadı.** Düzeltme Angular TestBed/`HttpTestingController` ve build ile doğrulandı; gerçek API'ye karşı start → detay → iptal → Run Again turu ve görsel/klavye kontrolü yapılmadı.
+2. **Aşama 3 demosu düzeltme sonrası yapılmadı.** İlk gerçek API/Chrome smoke `phase-3-demo.md` ve `phase-3-review.md` içinde kayıtlıdır; ancak B1 nedeniyle akış uygulamanın kendi yönlendirmesiyle tamamlanamamıştı. P3-10 demo maddesi bu nedenle açık kaldı.
+3. **Live Run hâlâ P4-04 placeholder'ı.** İlk teslimde Run Again başarısında `/runs/:runId/live` adresine gidiliyordu; B1 düzeltmesiyle `/runs/:runId` detayına gidiliyor. `/live` placeholder'ı çalıştırma kimliğini rotadan okuyup "View run details" bağlantısı sunuyor; gerçek canlı ekran P4-04 kapsamındadır.
 4. **Run Again yalnızca terminal çalıştırmada gösteriliyor.** `RUNNING` sırasında düğme yerine ne zaman açılacağını söyleyen bir not var; bu, her tıklamada `RUN_ALREADY_ACTIVE` üretecek bir aksiyondan kaçınmak için bilinçli bir tercihtir.
 5. **App Shell aksiyonu `/plans`'a gidiyor.** Yayımlanmış sürüm seçimi Test Plans ekranında yapılıyor; global sürüm seçici eklenmedi.
 6. **Ortak test dosyası güncellendi.** `app.routes.ts` değişmediği halde `routes.spec.ts` Run Details placeholder beklentisini ve gerçek ekranın `/api/runs/:id` isteğini yansıtacak şekilde güncellendi. Bu, sahiplik alanı dışındaki zorunlu test güncellemesidir.
 7. **Erişilebilirlik gerçek tarayıcıda denenmedi.** Tablo caption/scope, dialog `autoFocus`, canlı bölge ve metin+ikon durum etiketleri uygulandı; klavye/ekran okuyucu doğrulaması P7-04 kapsamındadır.
-8. **Bağımsız teknik inceleme ve kullanıcı kabulü yapılmadı.** Kart `In Review`; `Accepted` değil.
+8. **Bağımsız teknik inceleme yapıldı; yeniden inceleme bekliyor.** [phase-3-review.md](phase-3-review.md) P3-10'u B1/B2/B6 nedeniyle FAIL kaydetti. B1/B2 düzeltildi; B6 doküman çelişkisi bu dosyanın durum notu ve `phase-3-review-fixes-web.md` ile ele alındı. Kart `In Review`; `Accepted` değil ve kullanıcı kabulü yapılmadı.
 9. **`docs/tasks/README.md` ve `docs/roadmap.md` güncellenmedi.** Bu dosyalar görev sahipliği dışında bırakıldı; durum değişikliği lead commit'inde işlenmelidir. Commit/push da bu worker tarafından yapılmadı.

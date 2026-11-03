@@ -136,7 +136,10 @@ export function buildStartRunRequest(
 
   if (value.scenario === 'RANDOM') {
     const errorProbability = value.errorProbability.trim();
-    if (validateProbability(errorProbability) !== null) {
+    if (
+      errorProbability.length === 0 ||
+      validateProbability(errorProbability) !== null
+    ) {
       throw new Error('A decimal error probability between 0 and 1 is required.');
     }
 

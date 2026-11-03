@@ -17,6 +17,9 @@ import { PageHeader } from '../page-header/page-header';
       <p class="placeholder-task">
         Planned delivery task: <strong>{{ task() }}</strong>
       </p>
+      <div class="placeholder-actions">
+        <ng-content />
+      </div>
     </section>
   `,
   styleUrl: './placeholder-page.scss',

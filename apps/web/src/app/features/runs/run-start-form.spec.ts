@@ -156,6 +156,24 @@ describe('start run payload', () => {
         errorProbability: '2',
       }),
     ).toThrow();
+
+    expect(() =>
+      buildStartRunRequest(VERSION_ID, {
+        scenario: 'RANDOM',
+        seed: '1',
+        failureStepId: '',
+        errorProbability: '',
+      }),
+    ).toThrow();
+
+    expect(() =>
+      buildStartRunRequest(VERSION_ID, {
+        scenario: 'RANDOM',
+        seed: '1',
+        failureStepId: '',
+        errorProbability: '   ',
+      }),
+    ).toThrow();
   });
 });
 

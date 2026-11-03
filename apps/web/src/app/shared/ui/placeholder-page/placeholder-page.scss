@@ -34,3 +34,14 @@ h2 {
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-body-medium);
 }
+
+.placeholder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.placeholder-actions:empty {
+  display: none;
+}

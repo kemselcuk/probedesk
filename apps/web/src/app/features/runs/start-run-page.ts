@@ -198,7 +198,7 @@ export class StartRunPage {
       .subscribe({
         next: (result) => {
           this.attempt.reset();
-          void this.router.navigate(['/runs', result.runId, 'live']);
+          void this.router.navigate(['/runs', result.runId]);
         },
         error: () => {
           this.applyFieldErrors();

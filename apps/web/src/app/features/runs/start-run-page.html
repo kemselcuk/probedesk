@@ -287,7 +287,7 @@
 
             @if (isActiveRunConflict()) {
               @if (activeRunId(); as runId) {
-                <a mat-flat-button [routerLink]="['/runs', runId, 'live']">Open active run</a>
+                <a mat-flat-button [routerLink]="['/runs', runId]">Open active run</a>
               } @else {
                 <p class="detail-note">
                   The response did not include an active run id. Open Run History to find the

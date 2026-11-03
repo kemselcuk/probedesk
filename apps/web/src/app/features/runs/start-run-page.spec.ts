@@ -153,6 +153,29 @@ describe('StartRunPage', () => {
     return key;
   }
 
+  /**
+   * A successful start navigates to the real run details route, so the screen
+   * immediately issues GET /api/runs/:id. Answering it proves the navigation
+   * lands on Run Details and leaves no request open for the next test.
+   */
+  async function flushRunDetailsNavigation(
+    harness: RouterTestingHarness,
+    runId: string,
+  ): Promise<void> {
+    const request = TestBed.inject(HttpTestingController).expectOne(`/api/runs/${runId}`);
+    expect(request.request.method).toBe('GET');
+    request.flush(
+      {
+        code: 'NOT_FOUND',
+        message: 'The run was not found.',
+        requestId: 'req-start-details-404',
+      },
+      { status: 404, statusText: 'Not Found' },
+    );
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+  }
+
   it('loads the published version and renders ordered steps and nominal totals', async () => {
     const harness = await open('OPERATOR');
     const root = rootOf(harness);
@@ -218,7 +241,9 @@ describe('StartRunPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(router.url).toBe(`/runs/${CREATED_RUN_ID}/live`);
+    expect(router.url).toBe(`/runs/${CREATED_RUN_ID}`);
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Run Details');
+    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
   });
 
   it('navigates with the replayed runId on a 200 response', async () => {
@@ -242,7 +267,8 @@ describe('StartRunPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(router.url).toBe(`/runs/${CREATED_RUN_ID}/live`);
+    expect(router.url).toBe(`/runs/${CREATED_RUN_ID}`);
+    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
   });
 
   it('switches scenario fields and sends the selected force-failure step only', async () => {
@@ -290,6 +316,7 @@ describe('StartRunPage', () => {
 
     request.flush(CREATED_RUN_RESPONSE, { status: 202, statusText: 'Accepted' });
     await harness.fixture.whenStable();
+    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
   });
 
   it('sends the RANDOM probability as decimal text', async () => {
@@ -318,6 +345,7 @@ describe('StartRunPage', () => {
 
     request.flush(CREATED_RUN_RESPONSE, { status: 202, statusText: 'Accepted' });
     await harness.fixture.whenStable();
+    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
   });
 
   it('validates the uint32 seed and the 0..1 probability before submitting', async () => {
@@ -414,6 +442,7 @@ describe('StartRunPage', () => {
     expect(idempotencyKey(changed)).not.toBe(firstKey);
     changed.flush(CREATED_RUN_RESPONSE, { status: 202, statusText: 'Accepted' });
     await harness.fixture.whenStable();
+    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
   });
 
   it('links to the active run on 409 RUN_ALREADY_ACTIVE', async () => {
@@ -440,7 +469,7 @@ describe('StartRunPage', () => {
     expect(root.textContent).toContain('Another run is already active');
     expect(root.textContent).toContain('req-active-1');
     const link = root.querySelector<HTMLAnchorElement>(
-      `a[href="/runs/${ACTIVE_RUN_ID}/live"]`,
+      `a[href="/runs/${ACTIVE_RUN_ID}"]`,
     );
     expect(link?.textContent).toContain('Open active run');
     expect(TestBed.inject(Router).url).toContain('/runs/new');
@@ -468,7 +497,7 @@ describe('StartRunPage', () => {
 
     expect(root.textContent).toContain('This start attempt was already used');
     expect(root.textContent).toContain('Change the scenario or settings to start a new attempt');
-    expect(root.querySelector(`a[href="/runs/${ACTIVE_RUN_ID}/live"]`)).toBeNull();
+    expect(root.querySelector(`a[href="/runs/${ACTIVE_RUN_ID}"]`)).toBeNull();
     expect(TestBed.inject(Router).url).toContain('/runs/new');
   });
 

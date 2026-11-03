@@ -25,6 +25,7 @@ import { buildRerunRequest } from './run-rerun';
 import { RunStartAttempt } from './run-start-form';
 import {
   isPartialResult,
+  isStoppedAfterAllSamples,
   progressLabel,
   runStatusLabel,
   runStatusView,
@@ -95,6 +96,11 @@ export class RunDetailsPage {
   protected readonly partialResults = computed(() => {
     const run = this.snapshot();
     return run !== null && isPartialResult(run);
+  });
+
+  protected readonly stoppedAfterAllSamples = computed(() => {
+    const run = this.snapshot();
+    return run !== null && isStoppedAfterAllSamples(run);
   });
 
   protected readonly progressPercent = computed(() => {
@@ -364,7 +370,7 @@ export class RunDetailsPage {
       .subscribe({
         next: (result) => {
           this.attempt.reset();
-          void this.router.navigate(['/runs', result.runId, 'live']);
+          void this.router.navigate(['/runs', result.runId]);
         },
         error: () => {
           if (this.runs.startError()?.error.code === 'IDEMPOTENCY_CONFLICT') {
