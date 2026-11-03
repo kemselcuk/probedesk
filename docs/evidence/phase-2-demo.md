@@ -43,6 +43,17 @@ Ekran görüntüleri:
 - [phase-2-v1.png](phase-2-v1.png) — salt okunur v1
 - [phase-2-editor.png](phase-2-editor.png) — yeni taslak editörü
 
+## İki sekmeli stale revision kontrolü
+
+`scripts/phase-2-two-tab-check.mjs` ile iki fiziksel Chrome sekmesi aynı editörü açtı:
+
+- İki sekme de draft revizyon 1'i yükledi.
+- Sekme A `Current Draw` maksimumunu `0.650000` yapıp kaydetti; sunucu revizyon 2 oldu.
+- Sekme B eski revizyon 1 ile `Output Voltage` maksimumunu `5.300000` yapıp kaydetti.
+- Sekme B'de **409** çakışma paneli göründü (`This draft changed in another session`), yerel `5.300000` girdisi korundu.
+- Sunucuda A'nın değerleri kaldı: revizyon 2, `5.250000` ve `0.650000`; sekme B'nin değeri yazılmadı.
+- Konsol istisnası yok. Kanıt: [phase-2-two-tab-conflict.png](phase-2-two-tab-conflict.png).
+
 ## Kapsam notları
 
 - Gerçek fare sürükle-bırak hareketi bu turda denenmedi; CDK drag-drop

@@ -13,7 +13,9 @@ gerçekten üretildiğinde eklenir.
 - [Phase 1 çalışan uygulama demosu](phase-1-demo.md): gerçek Chrome'da
   klavye turu, login/yenileme/logout ve ekran görüntüsü.
 - [Phase 2 plan yaşam döngüsü demosu](phase-2-demo.md): API yaşam döngüsü,
-  gerçek Chrome'da salt okunur v1 ve yeni taslak editörü.
+  gerçek Chrome'da salt okunur v1, yeni taslak editörü ve iki sekmeli stale-revision kontrolü.
+- [Faz 2 inceleme düzeltmeleri](phase-2-review-fixes-api.md) ve
+  [web düzeltmeleri](phase-2-review-fixes-web.md).
 
 ## Kayıt biçimi
 
