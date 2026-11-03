@@ -35,9 +35,45 @@ The initial device profile is **DC Power Module**. The planned product has three
 
 Version candidates and compatibility checks are recorded in [architecture](docs/architecture.md). They have not been validated by installing or building this project.
 
-## Local setup and evidence
+## Local development (Phase 1)
 
-Runnable setup commands will be added after implementation and clean-install verification. Planned command names are listed in the [testing and delivery contract](docs/testing.md#planlanan-komutlar).
+Prerequisites: Node.js 22.23.2 (see `.nvmrc`), npm 11.6.2 and Docker.
+
+```bash
+npx npm@11.6.2 ci
+docker compose up -d
+cp .env.example .env
+npm run db:migrate
+npm run demo:seed
+npm run dev
+```
+
+Open `http://localhost:4200`. The Angular dev server proxies `/api` to
+`http://127.0.0.1:3000`. If port 5432 is already used on your machine, set both
+`PROBEDESK_DEV_DB_PORT` and the port inside `DATABASE_URL` in `.env` (for example
+`5434`) before starting Compose.
+
+Demo accounts (local demo data only):
+
+| Role | Email | Password |
+|---|---|---|
+| Planner | `planner@probedesk.local` | `PlannerDemo!2026` |
+| Operator | `operator@probedesk.local` | `OperatorDemo!2026` |
+| Viewer | `viewer@probedesk.local` | `ViewerDemo!2026` |
+
+Quality checks:
+
+```bash
+npm run verify                 # lint, typecheck, unit tests, web tests, build
+docker compose -f compose.test.yaml up -d
+npm run db:migrate:test --workspace apps/api
+npm run test:api:integration   # real PostgreSQL integration/E2E tests
+npm run openapi:check          # contract + generated client drift
+```
+
+These commands were run against this repository during Phase 1. The full
+delivery flow (Compose for the whole application, seeded demo data and the demo
+video) is still pending Phases 4-8.
 
 The additional infrastructure cost target is **€0**, using a local environment and applicable free CI allowances. See [cost constraints](docs/architecture.md#maliyet-ve-teslim-sinirlari).
 
