@@ -1,0 +1,424 @@
+<app-page-header title="Live Run" [subtitle]="headerSubtitle()">
+  <a mat-stroked-button routerLink="/runs">Back to Run History</a>
+  @if (runId().length > 0) {
+    <a
+      mat-stroked-button
+      id="live-run-details-link"
+      [routerLink]="['/runs', runId()]"
+    >
+      View run details
+    </a>
+  }
+  @if (showCancelAction()) {
+    <button
+      mat-flat-button
+      type="button"
+      id="cancel-run-button"
+      class="cancel-run-button"
+      [disabled]="!canCancel()"
+      [attr.aria-busy]="live.cancelPending()"
+      (click)="requestCancel()"
+    >
+      {{ live.cancelPending() ? 'Cancelling…' : 'Cancel run' }}
+    </button>
+  }
+</app-page-header>
+
+<p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
+
+@if (missingRunId()) {
+  <section class="not-found" role="alert" aria-labelledby="missing-live-run-heading">
+    <h2 id="missing-live-run-heading">Choose a run</h2>
+    <p>
+      This address does not include a run id, so no live run can be loaded. Open Run History to
+      choose a run.
+    </p>
+    <a mat-flat-button routerLink="/runs">Open Run History</a>
+  </section>
+} @else {
+  @switch (live.loadStatus()) {
+    @case ('loaded') {
+      @if (live.snapshot(); as run) {
+        @if (live.streamError(); as streamError) {
+          <section
+            id="live-stream-warning"
+            class="inline-error"
+            role="alert"
+            aria-labelledby="live-stream-warning-heading"
+          >
+            <h2 id="live-stream-warning-heading">Live updates are not flowing</h2>
+            <p>{{ streamError }}</p>
+            <p>
+              The run on the server is not cancelled by a lost connection. The last received state
+              and connection warning stay visible.
+            </p>
+            <div class="error-actions">
+              <button mat-stroked-button type="button" (click)="retry()">
+                Reconnect live updates
+              </button>
+              <button mat-stroked-button type="button" (click)="reload()">
+                Reload snapshot
+              </button>
+            </div>
+          </section>
+        }
+
+        @if (live.cancelError(); as failure) {
+          <section
+            id="cancel-error-panel"
+            class="inline-error"
+            role="alert"
+            aria-labelledby="cancel-error-heading"
+          >
+            <h2 id="cancel-error-heading">The cancellation was not confirmed</h2>
+            <p>{{ cancelErrorMessage() }}</p>
+            @if (failure.requestId; as requestId) {
+              <p class="request-id">
+                Request ID: <code>{{ requestId }}</code>
+              </p>
+            }
+            <div class="error-actions">
+              <button mat-stroked-button type="button" (click)="reload()">
+                Reload snapshot
+              </button>
+              @if (failure.status === 401) {
+                <a mat-stroked-button routerLink="/login">Sign in again</a>
+              }
+            </div>
+          </section>
+        }
+
+        <section
+          id="live-run-summary"
+          class="run-summary"
+          aria-labelledby="live-run-summary-heading"
+        >
+          <div class="run-heading">
+            <div class="run-heading-text">
+              <h2 id="live-run-summary-heading">{{ run.planName }}</h2>
+              <p class="run-meta-line">
+                Version {{ run.versionNumber }} · {{ scenario(run.scenario) }} · Run ID
+                <code>{{ run.id }}</code>
+              </p>
+            </div>
+
+            @if (statusView(); as status) {
+              <span [class]="'status-badge status-badge--' + status.tone">
+                <span class="status-label">{{ status.label }}</span>
+              </span>
+            }
+          </div>
+
+          @if (statusView(); as status) {
+            <p class="status-detail">{{ status.detail }}</p>
+          }
+
+          <section
+            class="connection-panel"
+            [attr.data-connection]="live.connection()"
+            aria-labelledby="connection-heading"
+          >
+            <span [class]="'connection-badge connection-badge--' + connection().tone">
+              Connection: {{ connection().label }}
+            </span>
+            <p id="connection-heading" class="connection-detail">{{ connection().detail }}</p>
+          </section>
+
+          @if (run.status === 'RUNNING') {
+            <p class="partial-note partial-note--running" role="note">
+              <strong>Provisional snapshot.</strong>
+              The run is still in progress. Counts and samples can still change.
+            </p>
+          } @else if (partialResults()) {
+            <p class="partial-note" role="note">
+              <strong>Partial results.</strong>
+              The run stopped before every expected sample was recorded. Missing samples are shown
+              as not recorded, never as zero.
+            </p>
+          } @else if (stoppedAfterAllSamples()) {
+            <p class="partial-note" role="note">
+              <strong>All expected samples were recorded.</strong>
+              The run stopped during finalization or because of a technical error, so it is not
+              presented as a completed result.
+            </p>
+          }
+
+          @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
+            <p class="reason-code">
+              @if (run.reasonCode) {
+                Reason code: <code>{{ run.reasonCode }}</code>
+              } @else {
+                No reason code was recorded.
+              }
+            </p>
+          }
+
+          <div class="progress-block">
+            <p class="progress-label">
+              {{ progress(run.recordedSampleCount, run.expectedSampleCount) }}
+            </p>
+            @if (progressPercent() !== null) {
+              <div
+                class="progress-track"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="progressPercent()"
+                [attr.aria-label]="progress(run.recordedSampleCount, run.expectedSampleCount)"
+              >
+                <span class="progress-fill" [style.width.%]="progressPercent() ?? 0"></span>
+              </div>
+            }
+          </div>
+
+          @if (live.finalizing()) {
+            <p class="finalizing" role="status">Loading the final step snapshot…</p>
+          }
+
+          @if (terminalSummary(); as summary) {
+            <section class="terminal-summary" role="status" aria-labelledby="terminal-summary-heading">
+              <h3 id="terminal-summary-heading">Run finished</h3>
+              <p>{{ summary }}</p>
+              <p class="terminal-stream-note">
+                No further live updates will be received for this run.
+              </p>
+            </section>
+          }
+
+          <dl class="run-metadata">
+            <div>
+              <dt>Plan version</dt>
+              <dd>{{ run.planName }} · Version {{ run.versionNumber }}</dd>
+            </div>
+            <div>
+              <dt>Scenario</dt>
+              <dd>{{ scenario(run.scenario) }} ({{ run.scenario }})</dd>
+            </div>
+            <div>
+              <dt>Seed</dt>
+              <dd class="mono">{{ run.seed }}</dd>
+            </div>
+            <div>
+              <dt>Recorded samples</dt>
+              <dd>{{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}</dd>
+            </div>
+            <div>
+              <dt>Snapshot event sequence</dt>
+              <dd class="mono">{{ run.lastEventSequence }}</dd>
+            </div>
+            <div>
+              <dt>Started at (UTC)</dt>
+              <dd>
+                <time [attr.datetime]="run.startedAt">
+                  {{ run.startedAt | date: 'medium' : 'UTC' }} UTC
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt>Finished at (UTC)</dt>
+              <dd>
+                @if (run.finishedAt !== null) {
+                  <time [attr.datetime]="run.finishedAt">
+                    {{ run.finishedAt | date: 'medium' : 'UTC' }} UTC
+                  </time>
+                } @else if (run.status === 'RUNNING') {
+                  Still running
+                } @else {
+                  Not recorded
+                }
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        @if (!isOperator()) {
+          <p class="role-note" role="note">
+            Cancelling a running run is an Operator action. Your role can follow this run and review
+            its measurements.
+          </p>
+        }
+
+        <section class="steps-section" aria-labelledby="live-steps-heading">
+          <h2 id="live-steps-heading" class="section-heading">Live steps</h2>
+          <p class="section-hint">
+            Steps run in order. Counts and tolerance markers come from backend events; this screen
+            does not recalculate a verdict.
+          </p>
+
+          @if (run.steps.length === 0) {
+            <app-empty-state
+              heading="This run has no steps"
+              message="The snapshot contains no step rows, so no live progress is shown. Nothing is inferred from the missing data."
+            />
+          } @else {
+            <ol class="step-list">
+              @for (step of run.steps; track step.runStepId) {
+                <li class="step-row" [attr.data-status]="step.status">
+                  <div class="step-main">
+                    <h3 class="step-title">Step {{ step.position }}: {{ step.name }}</h3>
+                    <p class="step-subtitle">
+                      Unit {{ step.unit }} · {{ step.recordedCount }} of {{ step.sampleCount }}
+                      samples · interval {{ step.intervalMs | number }} ms
+                    </p>
+
+                    @if (step.status === 'NOT_RUN') {
+                      <p class="step-note">
+                        This step did not start. No samples were recorded for it.
+                      </p>
+                    } @else if (step.status === 'RUNNING') {
+                      <p class="step-note">
+                        In progress: {{ step.recordedCount }} of {{ step.sampleCount }} samples
+                        recorded.
+                      </p>
+                    } @else if (step.recordedCount < step.sampleCount) {
+                      <p class="step-note">
+                        Partial step: {{ step.recordedCount }} of {{ step.sampleCount }} samples
+                        were recorded. Missing samples are not shown as zero.
+                      </p>
+                    }
+
+                    @if (isFirstViolation(step)) {
+                      <p class="violation" data-first-violation>
+                        <strong>Out-of-tolerance sample recorded.</strong>
+                        @if (step.firstFailureSampleIndex !== null) {
+                          First failing sample:
+                          <span class="mono">{{ step.firstFailureSampleIndex }}</span
+                          >.
+                        } @else {
+                          The first failing sample index was not reported.
+                        }
+                        This marker is kept even if later samples are within tolerance.
+                      </p>
+                    }
+                  </div>
+
+                  <div class="step-badges">
+                    <span class="step-status" [attr.data-status]="step.status">
+                      {{ stepStatus(step.status) }}
+                    </span>
+                    @if (stepOutcome(step.outcome); as outcome) {
+                      <span class="step-outcome" [attr.data-outcome]="step.outcome">
+                        {{ outcome }}
+                      </span>
+                    }
+                  </div>
+
+                  <dl class="step-counters">
+                    <div>
+                      <dt>Recorded</dt>
+                      <dd>{{ step.recordedCount }} of {{ step.sampleCount }}</dd>
+                    </div>
+                    <div>
+                      <dt>Out of tolerance</dt>
+                      <dd>{{ step.outOfToleranceCount }}</dd>
+                    </div>
+                    <div>
+                      <dt>First failure index</dt>
+                      <dd>
+                        @if (step.firstFailureSampleIndex !== null) {
+                          {{ step.firstFailureSampleIndex }}
+                        } @else if (step.hasOutOfTolerance) {
+                          Not recorded
+                        } @else {
+                          None
+                        }
+                      </dd>
+                    </div>
+                  </dl>
+                </li>
+              }
+            </ol>
+          }
+        </section>
+
+        <section class="measurements-section" aria-labelledby="recent-measurements-heading">
+          <h2 id="recent-measurements-heading" class="section-heading">Recent measurements</h2>
+          @if (live.recentMeasurements().length === 0) {
+            <p class="empty-note">No samples have been recorded for this run yet.</p>
+          } @else {
+            <div class="table-scroll">
+              <table>
+                <caption>
+                  Recent recorded measurements across all steps, newest first. The table shows the
+                  last 20 samples; every sample remains in the run record.
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Step</th>
+                    <th scope="col">Sample index</th>
+                    <th scope="col">Value</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col">Tolerance</th>
+                    <th scope="col">Elapsed (ms)</th>
+                    <th scope="col">Recorded at (UTC)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of live.recentMeasurements(); track row.stepPosition + ':' + row.sampleIndex) {
+                    <tr>
+                      <td>{{ row.stepPosition }}: {{ row.stepName }}</td>
+                      <td>{{ row.sampleIndex }}</td>
+                      <td class="mono">{{ row.value }}</td>
+                      <td>{{ row.unit }}</td>
+                      <td>
+                        @if (row.isWithinTolerance) {
+                          <span class="tolerance tolerance--within">Within tolerance</span>
+                        } @else {
+                          <span class="tolerance tolerance--outside">Outside tolerance</span>
+                        }
+                      </td>
+                      <td>{{ row.elapsedMs | number }}</td>
+                      <td>
+                        <time [attr.datetime]="row.recordedAt">
+                          {{ row.recordedAt | date: 'medium' : 'UTC' }} UTC
+                        </time>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      } @else {
+        <app-empty-state
+          heading="No run snapshot"
+          message="The server returned no run snapshot to display. No status or result is assumed."
+        />
+      }
+    }
+    @case ('error') {
+      @if (live.loadError()?.status === 404) {
+        <section class="not-found" role="alert" aria-labelledby="live-run-not-found-heading">
+          <h2 id="live-run-not-found-heading">Run not found</h2>
+          <p>
+            This run does not exist or is not available to your role. No status, outcome, or
+            measurements are assumed.
+          </p>
+          <p class="request-id">Run ID: <code>{{ runId() }}</code></p>
+          @if (live.loadError()?.requestId; as requestId) {
+            <p class="request-id">
+              Request ID: <code>{{ requestId }}</code>
+            </p>
+          }
+          <div class="error-actions">
+            <a mat-flat-button routerLink="/runs">Back to Run History</a>
+            <button mat-stroked-button type="button" (click)="retry()">Try again</button>
+          </div>
+        </section>
+      } @else {
+        <app-error-state
+          heading="The live run snapshot could not be loaded"
+          [message]="live.loadError()?.message ?? 'The live run snapshot could not be loaded.'"
+          [requestId]="live.loadError()?.requestId ?? null"
+          [retryable]="true"
+          retryLabel="Try again"
+          (retry)="retry()"
+        />
+      }
+    }
+    @default {
+      <app-loading-state message="Loading live run snapshot…" />
+    }
+  }
+}

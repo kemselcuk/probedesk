@@ -64,7 +64,6 @@ const routeCases: readonly RouteCase[] = [
     title: 'Live Run',
     heading: 'Live Run',
     role: 'VIEWER',
-    task: 'P4-04',
   },
   {
     url: `/runs/${RUN_ID}`,
