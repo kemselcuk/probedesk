@@ -102,6 +102,17 @@ describe('test database guard', () => {
     ).toThrowError(UnsafeTestDatabaseError);
   });
 
+  it('rejects a distinct database whose name does not end with _test', () => {
+    expect(() =>
+      requireTestDatabaseUrl({
+        NODE_ENV: 'test',
+        DATABASE_URL: developmentUrl,
+        TEST_DATABASE_URL:
+          'postgresql://probedesk:probedesk@127.0.0.1:5433/shared_measurements?schema=public',
+      }),
+    ).toThrowError(/must end with "_test"/);
+  });
+
   it('normalises database identity without credentials', () => {
     expect(databaseIdentity(developmentUrl)).toBe('localhost:5432/probedesk');
   });

@@ -202,3 +202,73 @@ Ek olarak:
 - P1-01/P1-04 kartlarındaki test sayıları (1/2, 7/17) kartın yazıldığı andaki sayılardır; güncel ağaçta 5/22 ve 11/58'dir. Bu bir yanlışlık iddiası değil, kanıtın tarihsel kaldığının göstergesidir; kabul öncesi güncel sayılarla yenilenmeli.
 - `docs/roadmap.md`, `docs/tasks/README.md`, `docs/testing.md` ve `docs/implementation-guide.md` durum/komut bilgisi bakımından güncel değildir (B14).
 - Bu incelemede ürün kodu, test fixture'ları veya task kartları değiştirilmedi; yalnızca bu rapor yazıldı. Geçici oturumlar temizlendi.
+
+---
+
+## Fix re-check — 2026-11-03
+
+- İncelenen ürün kodu: `d1020be` (`fix(api): close phase 1 security and readiness findings`). Güncel HEAD `faa7753`; aradaki `e35efdf` ve `faa7753` yalnızca doküman/demo kanıtı değiştiriyor, ürün kodu değiştirmiyor.
+- Yöntem: Kaynak kod ve yeni testler okundu; API yeniden derlendi; gerçek geçici PostgreSQL veritabanları ve gerçek HTTP istekleriyle davranış yeniden üretildi. Ürün kodu değiştirilmedi; geçici DB'ler, süreçler ve oluşturulan session temizlendi.
+- **Kural:** Bu bölüm de bağımsız teknik incelemedir; task kartları `Accepted` yapılmadı.
+
+### Fix re-check tablosu
+
+| Bulgu | Durum | Bağımsız kanıt |
+|---|---|---|
+| **B1** — production'da `Secure` olmayan cookie | **Kapandı** | `NODE_ENV=production SESSION_COOKIE_SECURE=false` ile süreç exit 1; mesaj yalnızca `SESSION_COOKIE_SECURE must be "true" when NODE_ENV is "production".`; çıktıda DSN/parola/port yok. `NODE_ENV=production SESSION_COOKIE_SECURE=true` ile login 200; `probedesk_session` ve `XSRF-TOKEN` cookie'lerinde `Secure` var. |
+| **B2** — readiness migration kontrolü | **Kısmen kapandı; R1 açık** | Boş geçici DB: `/api/health/ready` **503** `details.checks={database:"ok",migrations:"pending"}`. `prisma migrate deploy` sonrası aynı DB: **200** `{database:"ok",migrations:"ok"}`. Ancak yalnızca ilk migration uygulanmış DB'de (ikinci migration yok) readiness hâlâ **200** (R1). |
+| **B3** — DB yokken login 500 | **Kapandı** | `DATABASE_URL=…:59999`: readiness 503 `database=unavailable`; login **503** `{"code":"SERVICE_UNAVAILABLE","message":"The service is currently unavailable.","requestId":"…"}`. Gövde ve sunucu logunda DSN, SQL, `P1001`, stack veya parola yok. |
+| **B4** — persistence-check ortam koruması | **Kapandı** | Gerçek script beş senaryoda da exit 1 ve ilk mesajla durdu: production; opt-in yok; uzak `DATABASE_URL`; `TEST_DATABASE_URL` yok; aynı DB kimliği. Hiçbiri DB/container komutuna ulaşmadı. |
+| **B5** — test setup alias koruması | **Kapandı** | `test/setup-env.ts` ve `migrate-test-database.ts`: `DATABASE_URL` yok → exit 1; development ile aynı kimlik → exit 1. Mesajlar veriye dokunmadan üretildi. |
+| **B7** — login 400/403 OpenAPI | **Kapandı** | `apps/api/openapi.json` login `400` yanıtını içeriyor; `403` açıklaması `The request Origin is not same-origin.`; `openapi:check` yeşil. |
+| **B8** — `ApiErrorDto.code` enum | **Kapandı** | `packages/api-client/src/schema.ts` içinde `code` 12 değerli union (`VALIDATION_ERROR` … `SERVICE_UNAVAILABLE`); `openapi:check` yeşil. |
+
+### Yeni/kalan bulgular
+
+#### R1 — Medium — B2 kısmi migration durumunda hâlâ 200 dönüyor
+
+- Dosya: `apps/api/src/prisma/prisma.service.ts:55-70`
+- Gözlenen: `assertMigrationsApplied()` yalnızca `_prisma_migrations` içinde `applied > 0` ve `unfinished === 0` olmasına bakıyor. Kayıtlı migration listesiyle karşılaştırma yapmıyor. Gerçek geçici DB'de yalnızca `20261103120000_init` migration'ı uygulandı, `_prisma_migrations` içine tamamlanmış tek satır eklendi; ikinci migration (`20261103130000_session_csrf_token_optional`) uygulanmamış olmasına rağmen `/api/health/ready` **200** `migrations:"ok"` döndü.
+- Beklenen: `docs/api.md:41` readiness "DB + migration/startup recovery hazır" olmalı; eksik kayıtlı migration varsa 503. Mevcut e2e testi yalnızca "bir applied + bir unfinished" ve "unfinished'i tamamla" senaryosunu kurguluyor; hiç uygulanmamış bir kayıtlı migration'ı test etmiyor.
+- Etki: Deployment eski şemayla trafik alabilir; sonraki migration'ların eklediği tablo/kolonlar yokken readiness yeşil kalır.
+- Öneri: Beklenen migration adlarını/kimliğini derlenmiş bir manifest olarak tutup `_prisma_migrations` ile karşılaştır; en azından son migration adını zorunlu kıl. Testte gerçekten yalnızca ilk migration uygulanmış geçici DB ile 503 doğrula. Bu kapanmadan P1-03/B2 tam kapatılmış sayılmamalı.
+
+#### R2 — Low — Test setup hâlâ `NODE_ENV=test`'i kendisi atıyor
+
+- Dosyalar: `apps/api/test/setup-env.ts:8`, `apps/api/test/scripts/migrate-test-database.ts:15`
+- Gözlenen: guard'ın `NODE_ENV==='test'` kontrolü, çağıran script bu değeri kendisi atadığı için bağımsız bir ortam kanıtı değil. İstenen "eksik DATABASE_URL" ve "aynı kimlik" senaryoları artık reddediliyor; ancak iki farklı üretim DB'si URL olarak verilirse test temizliği yine de o DB'ye gidebilir.
+- Öneri: Test komutlarında `NODE_ENV` dışarıdan doğrulansın veya test DB adı/host'u için ayrı allowlist kullanılsın. Bu, istenen B5 senaryolarını etkilemez; düşük öncelikli sertleştirmedir.
+
+#### R3 — Low — B6 süreç-global cap ve B12 CSRF kurtarma akışı kapsam dışı
+
+- B6'nın IP başına 50/15 dk toplu limiti ve `Retry-After` eklendi; süreç-global cap yok (fix kaydında açıkça belirtilmiş). B12 (CSRF cookie kaybı) bilinçli olarak uygulanmadı. İkisi de önceki incelemede Low idi; yeni Critical/High değil.
+
+#### R4 — Low — B14 doküman durumu kısmen güncel
+
+- `docs/roadmap.md:3` hâlâ "P1-08 In Progress" diyor; `docs/tasks/P1-08.md:3` ise In Review. B13'ün P1-04 klavye maddesi `e35efdf` ile kapatılmış görünüyor; bu demo kanıtı bağımsız tarayıcı turuyla yeniden üretilmedi. B9/B10/B11/B12/B14 düşük öncelikli açık konular olarak kalıyor.
+
+### Fix re-check komutları
+
+| Komut | Sonuç |
+|---|---|
+| `npm run build --workspace apps/api` | `nest build` başarılı. |
+| `npm run verify` | Çıkış **0**; lint, typecheck, API unit, web unit, build ve `openapi:check` dahil. |
+| `npm run test:api:unit` | 7 dosya, **38 test** geçti. |
+| `npm run test:web` | 11 dosya, **58 test** geçti. |
+| `npm run test:e2e --workspace apps/api` | 7 dosya, **42 test** geçti (6.89s). |
+| `npm run openapi:check` | `OpenAPI contract is current…`; çıkış 0. |
+| B1 production+false başlangıç | exit **1**; secret/DSN sızıntısı yok. |
+| B1 production+true login | 200; session ve CSRF cookie'lerinde `Secure` var; session sonra silindi. |
+| B2 boş DB → migrate → readiness | **503** (`migrations:"pending"`) → **200** (`migrations:"ok"`). |
+| B2 ilk migration only → readiness | **200** (`migrations:"ok"`) — R1. |
+| B3 DB kapalı login/readiness | login **503**, readiness **503**; sızıntı yok. |
+| B4 beş guard senaryosu | hepsi exit **1**, veriye dokunmadan. |
+| B5 setup/migrate eksik ve aynı kimlik | hepsi exit **1**, veriye dokunmadan. |
+| Temizlik | Geçici `pd_rereview_*` DB'leri ve süreçleri kaldırıldı; oluşturulan B1 session'ı `tokenHash` ile silindi. |
+
+### Sonuç
+
+- **B1 (High) kapandı.** Phase 1'de açık **Critical veya High** bulgu yoktur.
+- **Açık tek Medium: R1 (B2 kısmi migration).** P1-03/B2 tam kapanışı için kapatılmalıdır.
+- B3, B4, B5, B7, B8 kapandı. Kalanlar Low: R2, B6 global cap, B12, B9/B10/B11/B14.
+- P1-06'nın eski **FAIL** gerekçesi olan B1 ortadan kalktı; ancak P1-06 hâlâ `In Review`'dur ve bu inceleme hiçbir görevi `Accepted` yapmaz.

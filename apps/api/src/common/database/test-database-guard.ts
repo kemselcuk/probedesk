@@ -106,6 +106,16 @@ export function requireTestDatabaseUrl(
     );
   }
 
+  const testDatabaseName = decodeURIComponent(testUrl.pathname)
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '');
+
+  if (!/_test$/i.test(testDatabaseName)) {
+    throw new UnsafeTestDatabaseError(
+      'Refusing to use the test database because the TEST_DATABASE_URL database name must end with "_test".',
+    );
+  }
+
   return testUrl;
 }
 

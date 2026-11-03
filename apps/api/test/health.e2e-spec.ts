@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { Client } from 'pg';
 import request from 'supertest';
+import { EXPECTED_MIGRATIONS } from '../src/prisma/migration-manifest.js';
 import { createTestApplication } from './support/create-test-application.js';
 
 describe('health endpoints (e2e)', () => {
@@ -207,7 +208,7 @@ describe('health endpoints (e2e)', () => {
       expect(serialised).not.toContain('stack');
     });
 
-    it('returns 503 while a migration is unfinished and 200 once it finishes', async () => {
+    it('returns 503 until every registered migration is applied, then 200', async () => {
       const client = new Client({
         connectionString: emptyDatabaseUrl,
         application_name: 'probedesk-readiness-test',
@@ -217,22 +218,42 @@ describe('health endpoints (e2e)', () => {
       try {
         await client.query(`
           CREATE TABLE "_prisma_migrations" (
+            "migration_name" text,
             "finished_at" timestamptz,
             "rolled_back_at" timestamptz
           )
         `);
-        await client.query(`
-          INSERT INTO "_prisma_migrations" ("finished_at", "rolled_back_at")
-          VALUES (now(), NULL), (NULL, NULL)
-        `);
+        await client.query(
+          `INSERT INTO "_prisma_migrations" ("migration_name", "finished_at", "rolled_back_at")
+           VALUES ($1, now(), NULL)`,
+          [EXPECTED_MIGRATIONS[0]],
+        );
 
-        const pending = await request(app!.getHttpServer())
+        // Only the first registered migration is applied: not ready.
+        const missingMigration = await request(app!.getHttpServer())
           .get('/api/health/ready')
           .expect(503);
 
-        expect(pending.body).toMatchObject({
+        expect(missingMigration.body).toMatchObject({
           code: 'SERVICE_UNAVAILABLE',
           message: 'The service is not ready.',
+          details: {
+            checks: { database: 'ok', migrations: 'pending' },
+          },
+        });
+
+        // The remaining migration exists but has not finished: still not ready.
+        await client.query(
+          `INSERT INTO "_prisma_migrations" ("migration_name", "finished_at", "rolled_back_at")
+           VALUES ($1, NULL, NULL)`,
+          [EXPECTED_MIGRATIONS[1]],
+        );
+
+        const unfinished = await request(app!.getHttpServer())
+          .get('/api/health/ready')
+          .expect(503);
+
+        expect(unfinished.body).toMatchObject({
           details: {
             checks: { database: 'ok', migrations: 'pending' },
           },

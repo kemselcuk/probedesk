@@ -307,3 +307,11 @@ Ek doğrulamalar:
    davranışı Supertest ve ortam doğrulaması ile kanıtlandı.
 6. **Bağımsız yeniden inceleme** yapılmadı. Bu dosya yalnızca düzeltme kanıtıdır; görev kartları
    `In Review` kalır ve `Accepted` yapılmaz.
+
+## Yeniden inceleme sonrası ek düzeltmeler (R1, R2)
+
+- **R1 (Medium) kapandı:** Readiness artık `_prisma_migrations` içindeki kayıtları ada göre `apps/api/src/prisma/migration-manifest.ts` ile karşılaştırıyor. Yalnızca ilk migration'ı uygulamış gerçek bir geçici veritabanında (`probedesk_manifest_check_test`, ikinci migration satırı silinmiş) `GET /api/health/ready` → `503 {"checks":{"database":"ok","migrations":"pending"}}`. Geçici DB silindi.
+- Manifest, `prisma/migrations` klasörüyle eşleşmediğinde unit test düşer (`migration-manifest.spec.ts`).
+- E2E testi artık üç durumu kapsıyor: yalnızca ilk migration uygulanmış → 503; ikinci migration bitmemiş → 503; tümü tamamlanmış → 200.
+- **R2 (Low) kısmen kapandı:** `TEST_DATABASE_URL` veritabanı adı `_test` ile bitmek zorunda; iki farklı üretim veritabanı verilse bile test temizliği bu adlandırmayı geçemez. `NODE_ENV`'i test script'inin kendisi atadığı için tam bağımsız ortam kanıtı yoktur; bu kalan risk olarak belgelenmiştir.
+- Gerçek komutlar: `npm run verify` (lint, typecheck, 38 unit, 58 web testi, build, openapi:check) ve `npm run test:e2e --workspace apps/api` (42 test) yeşil.

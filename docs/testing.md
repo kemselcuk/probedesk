@@ -51,7 +51,7 @@ Ek sınırlar: sıfır adımlı draft, tek adımlı/tek örnekli plan, eşit min
 
 ## Test verisi ve zaman
 
-Her test kendi kullanıcı/plan/run fixture'ına sahip olur veya kontrollü seri koşar. Uygulama genelindeki tek aktif çalışma kuralı test paralelliğiyle ihlal edilmez. Farklı DB/schema kullanımı açıkça yapılandırılır. Temizlik yalnızca test/demo olarak doğrulanmış bağlantıda çalışır.
+Her test kendi kullanıcı/plan/run fixture'ına sahip olur veya kontrollü seri koşar. Uygulama genelindeki tek aktif çalışma kuralı test paralelliğiyle ihlal edilmez. Farklı DB/schema kullanımı açıkça yapılandırılır; `TEST_DATABASE_URL` veritabanı adı `_test` ile biter ve geliştirme veritabanından farklı olmak zorundadır. Temizlik yalnızca test/demo olarak doğrulanmış bağlantıda çalışır.
 
 Saf simülasyon ve scheduler testlerinde sahte saat kullanılabilir. Gerçek SSE/HTTP akışı ve Docker proxy en az bir gerçek zamanlı kontrolden geçer. Üretim koduna testleri hızlandırmak için gizli doğrulama/sonuç bypass'ı eklenmez.
 

@@ -2,10 +2,12 @@ import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { APP_CONFIG, type AppConfig } from '../config/env.js';
 import { PrismaClient } from './generated/client.js';
+import { EXPECTED_MIGRATIONS } from './migration-manifest.js';
 
-interface MigrationStatus {
-  applied: number;
-  unfinished: number;
+interface AppliedMigrationRow {
+  migration_name: string;
+  finished_at: Date | string | null;
+  rolled_back_at: Date | string | null;
 }
 
 /**
@@ -51,21 +53,32 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
    * Verifies that every registered migration finished successfully. A missing
    * `_prisma_migrations` table (an empty database) propagates its query error so
    * readiness reports the schema as not migrated.
+   *
+   * The comparison is by migration name against the checked-in manifest, not by
+   * count: a database with only the first of two migrations applied is not
+   * ready. Any unfinished or rolled-back row also counts as not applied.
    */
   async assertMigrationsApplied(): Promise<void> {
-    const rows = await this.$queryRaw<MigrationStatus[]>`
-      SELECT
-        COUNT(*) FILTER (
-          WHERE "finished_at" IS NOT NULL AND "rolled_back_at" IS NULL
-        )::int AS "applied",
-        COUNT(*) FILTER (
-          WHERE "finished_at" IS NULL OR "rolled_back_at" IS NOT NULL
-        )::int AS "unfinished"
+    const rows = await this.$queryRaw<AppliedMigrationRow[]>`
+      SELECT "migration_name", "finished_at", "rolled_back_at"
       FROM "_prisma_migrations"
     `;
 
-    const status = rows[0];
-    if (!status || status.applied === 0 || status.unfinished > 0) {
+    const applied = new Set(
+      rows
+        .filter(
+          (row) => row.finished_at !== null && row.rolled_back_at === null,
+        )
+        .map((row) => row.migration_name),
+    );
+    const hasUnfinished = rows.some(
+      (row) => row.finished_at === null || row.rolled_back_at !== null,
+    );
+
+    if (
+      hasUnfinished ||
+      EXPECTED_MIGRATIONS.some((name) => !applied.has(name))
+    ) {
       throw new MigrationsNotAppliedError();
     }
   }
