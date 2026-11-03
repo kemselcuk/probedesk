@@ -1,8 +1,8 @@
 /**
- * Placeholder for the generated OpenAPI surface.
+ * The single contract boundary between the API and the Angular application.
  *
- * P1-05 replaces this file with types generated from `apps/api/openapi.json`
- * and adds the `openapi:check` drift guard. Nothing in the app may import
- * NestJS or Prisma types directly; this package is the only contract boundary.
+ * `schema.ts` is generated from `apps/api/openapi.json` by
+ * `npm run openapi:generate`. Do not edit it by hand. Never import NestJS or
+ * Prisma types in the frontend; import these generated types instead.
  */
-export {};
+export type { components, operations, paths } from './schema.js';

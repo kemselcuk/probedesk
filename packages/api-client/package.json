@@ -11,9 +11,11 @@
     }
   },
   "scripts": {
+    "generate": "openapi-typescript ../../apps/api/openapi.json -o src/schema.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
+    "openapi-typescript": "7.13.0",
     "typescript": "6.0.3"
   }
 }
