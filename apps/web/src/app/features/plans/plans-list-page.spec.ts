@@ -193,6 +193,24 @@ describe('PlansListPage', () => {
     expect(newPlan).toBeUndefined();
   });
 
+  it('turns a malformed list response into the normal error state', async () => {
+    const harness = await open('VIEWER');
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+
+    http.expectOne('/api/plans').flush([
+      { id: PLAN_ID, profile: PROFILE, latestPublishedVersion: null },
+    ]);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain(
+      'did not match the API contract',
+    );
+    expect(root.querySelector('[role="alert"]')?.textContent).toContain('name');
+    expect(root.querySelector('table')).toBeNull();
+  });
+
   it('shows an API error with the request id and retries the list', async () => {
     const harness = await open('VIEWER');
     const root = rootOf(harness);
@@ -307,7 +325,23 @@ describe('PlansListPage', () => {
     expect(submitButton?.disabled).toBe(true);
 
     request.flush(
-      { id: NEW_PLAN_ID, name: 'Thermal check' },
+      {
+        id: NEW_PLAN_ID,
+        name: 'Thermal check',
+        profile: PROFILE,
+        createdAt: '2026-11-03T09:00:00.000Z',
+        latestPublishedVersion: null,
+        draft: {
+          id: 'draft-new',
+          editRevision: 1,
+          planId: NEW_PLAN_ID,
+          state: 'DRAFT',
+          name: 'Thermal check',
+          versionNumber: null,
+          steps: [],
+        },
+        published: null,
+      },
       {
         status: 201,
         statusText: 'Created',
@@ -319,7 +353,19 @@ describe('PlansListPage', () => {
     http.expectOne(`/api/plans/${NEW_PLAN_ID}`).flush({
       id: NEW_PLAN_ID,
       name: 'Thermal check',
-      draft: null,
+      profile: PROFILE,
+      createdAt: '2026-11-03T09:00:00.000Z',
+      latestPublishedVersion: null,
+      draft: {
+        id: 'draft-new',
+        editRevision: 1,
+        planId: NEW_PLAN_ID,
+        state: 'DRAFT',
+        name: 'Thermal check',
+        versionNumber: null,
+        steps: [],
+      },
+      published: null,
     });
     http.expectOne(`/api/plans/${NEW_PLAN_ID}/versions`).flush([]);
     await harness.fixture.whenStable();

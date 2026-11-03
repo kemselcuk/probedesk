@@ -160,7 +160,7 @@ export class PlansFacade {
     );
   }
 
-  createPlan(request: CreatePlanRequest): Observable<string> {
+  createPlan(request: CreatePlanRequest): Observable<PlanDetail> {
     if (this.createPendingState()) {
       return EMPTY;
     }
@@ -212,21 +212,15 @@ export class PlansFacade {
 
     return this.api.saveDraft(planId, request).pipe(
       tap((result) => {
-        this.planState.update((plan) => {
-          if (plan === null || plan.draft === null) {
-            return plan;
-          }
-
-          return {
-            ...plan,
-            draft: {
-              ...plan.draft,
-              editRevision: result.editRevision,
-              name: request.name,
-              steps: result.steps ?? plan.draft.steps,
-            },
-          };
-        });
+        this.planState.update((plan) =>
+          plan === null
+            ? plan
+            : {
+                ...plan,
+                name: result.name,
+                draft: result,
+              },
+        );
       }),
       catchError((error: unknown) => {
         this.saveErrorState.set(this.errorNormalizer.normalize(error));
@@ -327,27 +321,19 @@ export class PlansFacade {
 
     return this.api.publishDraft(planId, { expectedRevision }).pipe(
       tap((published) => {
-        const summary = {
-          id: published.id,
-          versionNumber: published.versionNumber,
-          publishedAt: published.publishedAt,
-        };
-
         this.planState.update((plan) =>
           plan === null
             ? plan
             : {
                 ...plan,
                 name: published.name,
-                latestPublishedVersion: summary,
-                versions: [
-                  summary,
-                  ...plan.versions.filter((version) => version.id !== published.id),
-                ],
+                latestPublishedVersion: {
+                  id: published.id,
+                  versionNumber: published.versionNumber,
+                  publishedAt: published.publishedAt,
+                },
+                published,
                 draft: null,
-                hasDraft: false,
-                draftKnown: true,
-                draftRevision: null,
               },
         );
       }),
@@ -382,9 +368,6 @@ export class PlansFacade {
                 ...plan,
                 name: draft.name,
                 draft,
-                hasDraft: true,
-                draftKnown: true,
-                draftRevision: draft.editRevision,
               },
         );
       }),

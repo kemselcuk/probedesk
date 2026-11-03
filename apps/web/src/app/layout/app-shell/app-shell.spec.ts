@@ -21,6 +21,31 @@ const notifications = {
   error: vi.fn(),
 };
 
+const PLAN_ID = '11111111-1111-4111-8111-111111111111';
+const PROFILE = {
+  id: '33333333-3333-4333-8333-333333333333',
+  code: 'DC-POWER',
+  name: 'DC Power Module',
+  description: null,
+};
+const EDITOR_PLAN = {
+  id: PLAN_ID,
+  name: 'Thermal check',
+  profile: PROFILE,
+  createdAt: '2026-11-03T09:00:00.000Z',
+  latestPublishedVersion: null,
+  draft: {
+    id: 'draft-1',
+    editRevision: 4,
+    planId: PLAN_ID,
+    state: 'DRAFT',
+    name: 'Thermal check',
+    versionNumber: null,
+    steps: [],
+  },
+  published: null,
+};
+
 describe('AppShell', () => {
   beforeEach(async () => {
     notifications.success.mockReset();
@@ -177,6 +202,72 @@ describe('AppShell', () => {
     await vi.waitFor(() => {
       expect(notifications.success).toHaveBeenCalledWith('You have signed out.');
     });
+  });
+
+  it('prompts before sign out discards unsaved editor changes', async () => {
+    resolveSession('PLANNER');
+    const harness = await RouterTestingHarness.create(`/plans/${PLAN_ID}/edit`);
+    const auth = TestBed.inject(AuthFacade);
+    const router = TestBed.inject(Router);
+    const http = TestBed.inject(HttpTestingController);
+    harness.detectChanges();
+
+    http.expectOne(`/api/plans/${PLAN_ID}`).flush(EDITOR_PLAN);
+    http.expectOne(`/api/plans/${PLAN_ID}/versions`).flush([]);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    const root = rootOf(harness);
+    const nameInput = root.querySelector<HTMLInputElement>('#plan-name');
+    if (nameInput === null) {
+      throw new Error('Editor plan name input not found');
+    }
+
+    nameInput.value = 'Unsaved sign-out change';
+    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+    harness.detectChanges();
+
+    root.querySelector<HTMLButtonElement>('.sign-out-action')?.click();
+    harness.detectChanges();
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain('Leave without saving?');
+    });
+
+    const keepEditing = Array.from(document.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Keep editing'),
+    );
+    keepEditing?.click();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(http.match('/api/auth/logout')).toHaveLength(0);
+    expect(auth.status()).toBe('authenticated');
+    expect(router.url).toContain(`/plans/${PLAN_ID}/edit`);
+    expect(nameInput.value).toBe('Unsaved sign-out change');
+
+    root.querySelector<HTMLButtonElement>('.sign-out-action')?.click();
+    harness.detectChanges();
+    await vi.waitFor(() => {
+      expect(document.body.textContent).toContain('Leave without saving?');
+    });
+
+    const discard = Array.from(document.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Discard changes'),
+    );
+    discard?.click();
+    await vi.waitFor(() => {
+      expect(document.body.textContent).not.toContain('Leave without saving?');
+    });
+
+    const request = http.expectOne('/api/auth/logout');
+    expect(request.request.method).toBe('POST');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(auth.status()).toBe('anonymous');
+    expect(router.url).toBe('/login');
   });
 
   it('keeps the session and reports an error when sign-out fails', async () => {

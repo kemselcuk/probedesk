@@ -8,7 +8,16 @@
 
 @switch (facade.versionStatus()) {
   @case ('loaded') {
-    @if (facade.version(); as version) {
+    @if (versionPlanMismatch()) {
+      <section class="not-found" role="alert" aria-labelledby="version-not-found-heading">
+        <h2 id="version-not-found-heading">Published version not found</h2>
+        <p>
+          This version does not belong to the plan in the address. It was not rendered. Check the
+          plan and version links and try again.
+        </p>
+        <a mat-stroked-button routerLink="/plans">Back to plans</a>
+      </section>
+    } @else if (facade.version(); as version) {
       <section class="version-summary" aria-labelledby="version-title">
         <div class="version-heading">
           <div>
@@ -148,6 +157,34 @@
                 <a mat-flat-button [routerLink]="['/plans', planId, 'edit']">
                   Continue editing draft
                 </a>
+              } @else if (facade.versionsStatus() === 'error') {
+                <p class="status-note" role="status">
+                  The published version list could not be loaded, so a new draft cannot be started
+                  safely.
+                </p>
+                <button mat-stroked-button type="button" (click)="retryVersions()">
+                  Retry version list
+                </button>
+              } @else if (facade.versionsStatus() !== 'loaded') {
+                <p class="status-note" role="status">Checking the published version list…</p>
+              } @else if (!isLatestPublishedVersion()) {
+                @if (latestPublishedVersion(); as latest) {
+                  <p>
+                    This is an older published version. A new draft always copies the latest
+                    published version, not this older version.
+                  </p>
+                  <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', latest.id]">
+                    Open version {{ latest.versionNumber }}
+                  </a>
+                } @else {
+                  <p class="status-note" role="status">
+                    The latest published version could not be confirmed, so a new draft cannot be
+                    started safely.
+                  </p>
+                  <button mat-stroked-button type="button" (click)="retryVersions()">
+                    Retry version list
+                  </button>
+                }
               } @else {
                 <p>
                   This version cannot be edited. Start a new draft to copy its ordered steps and

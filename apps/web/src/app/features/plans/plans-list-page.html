@@ -171,28 +171,22 @@
                       <a [routerLink]="['/plans', plan.id, 'versions', version.id]">
                         Version {{ version.versionNumber }}
                       </a>
-                    } @else if (plan.versionsKnown) {
-                      <span class="muted">Not published yet</span>
                     } @else {
-                      <span class="muted">Unavailable</span>
+                      <span class="muted">Not published yet</span>
                     }
                   </td>
                   @if (isPlanner()) {
                     <td>
-                      @if (plan.hasDraft) {
+                      @if (plan.draft; as draft) {
                         <span class="draft-badge">Draft in progress</span>
-                        @if (plan.draftRevision !== null) {
-                          <span class="draft-revision"> Revision {{ plan.draftRevision }} </span>
-                        }
-                      } @else if (plan.draftKnown) {
-                        <span class="muted">No open draft</span>
+                        <span class="draft-revision"> Revision {{ draft.editRevision }} </span>
                       } @else {
-                        <span class="muted">Unavailable</span>
+                        <span class="muted">No open draft</span>
                       }
                     </td>
                     <td>
                       <a mat-button [routerLink]="['/plans', plan.id, 'edit']">
-                        {{ plan.hasDraft ? 'Edit draft' : 'Open editor' }}
+                        {{ plan.draft ? 'Edit draft' : 'Open editor' }}
                       </a>
                     </td>
                   }

@@ -30,6 +30,7 @@ import { MatInputModule } from '@angular/material/input';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable, map } from 'rxjs';
 import type { ApiErrorView } from '../../core/http/http-error-normalizer';
+import { UnsavedChangesService } from '../../core/navigation/unsaved-changes.service';
 import { NotificationService } from '../../shared/notifications/notification.service';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
@@ -120,6 +121,7 @@ export class PlanEditorPage implements PendingChangesAware {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly formBuilder = inject(NonNullableFormBuilder);
+  private readonly unsavedChanges = inject(UnsavedChangesService);
 
   protected readonly planId = this.route.snapshot.paramMap.get('planId') ?? '';
   protected readonly maxSteps = MAX_DRAFT_STEPS;
@@ -253,6 +255,11 @@ export class PlanEditorPage implements PendingChangesAware {
 
   protected readonly publishedVersion = signal<PublishedRevision | null>(null);
 
+  /** Step count of the persisted draft; local edits never change this value. */
+  protected readonly savedStepCount = computed(
+    () => this.facade.plan()?.draft?.steps.length ?? 0,
+  );
+
   /**
    * Publish is allowed only for the exact revision on the server. Any local
    * edit blocks it with an explicit explanation; the request never contains
@@ -270,6 +277,10 @@ export class PlanEditorPage implements PendingChangesAware {
 
     if (this.form.dirty || this.dirty()) {
       return 'Save your changes before publishing';
+    }
+
+    if (this.savedStepCount() === 0) {
+      return 'Add at least one step before publishing.';
     }
 
     if (this.expectedRevision() === null) {
@@ -316,7 +327,7 @@ export class PlanEditorPage implements PendingChangesAware {
   protected readonly canStartNewDraft = computed(
     () =>
       this.facade.planStatus() === 'loaded' &&
-      this.facade.plan()?.draft === null &&
+      (this.facade.plan()?.draft ?? null) === null &&
       this.latestVersion() !== null &&
       this.facade.createDraftError() === null &&
       !this.facade.createDraftPending(),
@@ -349,6 +360,8 @@ export class PlanEditorPage implements PendingChangesAware {
   );
 
   constructor() {
+    this.destroyRef.onDestroy(this.unsavedChanges.register(() => this.canLeave()));
+
     this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.formRevision.update((revision) => revision + 1);
       this.dirty.set(this.form.dirty);
@@ -466,7 +479,12 @@ export class PlanEditorPage implements PendingChangesAware {
   protected publish(): void {
     const revision = this.expectedRevision();
     const plan = this.facade.plan();
-    if (revision === null || plan === null || plan.draft === null || this.publishDisabled()) {
+    if (
+      revision === null ||
+      plan === null ||
+      (plan.draft ?? null) === null ||
+      this.publishDisabled()
+    ) {
       return;
     }
 
@@ -753,7 +771,7 @@ export class PlanEditorPage implements PendingChangesAware {
     submittedClientIds: readonly string[],
     submittedFingerprint: string,
   ): void {
-    const ids = result.steps?.map((step) => step.logicalStepId) ?? result.logicalStepIds ?? [];
+    const ids = result.steps.map((step) => step.logicalStepId);
 
     ids.forEach((logicalStepId, index) => {
       if (logicalStepId.length === 0) {

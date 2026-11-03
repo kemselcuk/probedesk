@@ -164,10 +164,10 @@ export class PlansListPage {
       .createPlan({ name: value.name.trim(), profileId: value.profileId })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (planId) => {
+        next: (plan) => {
           this.notifications.success('Plan created. Add the first measurement step.');
           this.createOpen.set(false);
-          void this.router.navigate(['/plans', planId, 'edit']);
+          void this.router.navigate(['/plans', plan.id, 'edit']);
         },
         error: () => this.applyCreateFieldErrors(),
       });

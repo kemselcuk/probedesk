@@ -35,6 +35,7 @@ const PROFILE = {
 
 const STEP_A = {
   logicalStepId: 'step-a',
+  position: 1,
   name: 'Voltage',
   unit: 'V',
   minimum: '4.75',
@@ -45,6 +46,7 @@ const STEP_A = {
 
 const STEP_B = {
   logicalStepId: 'step-b',
+  position: 2,
   name: 'Current',
   unit: 'A',
   minimum: '0.1',
@@ -57,6 +59,7 @@ const PLAN_DETAIL = {
   id: PLAN_ID,
   name: 'Thermal check',
   profile: PROFILE,
+  createdAt: '2026-11-03T09:00:00.000Z',
   latestPublishedVersion: {
     id: VERSION_ID,
     versionNumber: 1,
@@ -65,10 +68,21 @@ const PLAN_DETAIL = {
   draft: {
     id: 'draft-1',
     editRevision: 4,
+    planId: PLAN_ID,
+    state: 'DRAFT',
     name: 'Thermal check',
+    versionNumber: null,
     steps: [STEP_A, STEP_B],
   },
+  published: null,
 };
+
+function savedDraft(
+  editRevision: number,
+  steps: readonly object[] = [STEP_A, STEP_B],
+): object {
+  return { ...PLAN_DETAIL.draft, editRevision, steps };
+}
 
 const PUBLISHED_REVISION = {
   id: VERSION_ID,
@@ -236,6 +250,7 @@ describe('PlanEditorPage', () => {
     const harness = await openEditor({
       ...PLAN_DETAIL,
       draft: {
+        ...PLAN_DETAIL.draft,
         id: 'draft-empty',
         editRevision: 2,
         name: 'Empty plan',
@@ -250,6 +265,10 @@ describe('PlanEditorPage', () => {
       'A draft can be saved with zero steps. Publishing requires at least one valid step.',
     );
     expect(buttonByText('Save draft', root)?.disabled).toBe(false);
+    expect(root.querySelector<HTMLButtonElement>('#publish-button')?.disabled).toBe(true);
+    expect(root.querySelector('#publish-availability')?.textContent).toContain(
+      'Add at least one step before publishing.',
+    );
 
     submit(root);
     const request = http.expectOne(`/api/plans/${PLAN_ID}/draft`);
@@ -258,12 +277,16 @@ describe('PlanEditorPage', () => {
       expectedRevision: 2,
       steps: [],
     });
-    request.flush({ editRevision: 3, steps: [] });
+    request.flush(savedDraft(3, []));
     await harness.fixture.whenStable();
     harness.detectChanges();
 
     expect(notifications.success).toHaveBeenCalledWith('Draft saved.');
     expect(metaValues(root)).toContain('3');
+    expect(root.querySelector<HTMLButtonElement>('#publish-button')?.disabled).toBe(true);
+    expect(root.querySelector('#publish-availability')?.textContent).toContain(
+      'Add at least one step before publishing.',
+    );
   });
 
   it('saves the visual order, trims the name, and reuses the new revision', async () => {
@@ -309,10 +332,7 @@ describe('PlanEditorPage', () => {
       ],
     });
 
-    request.flush({
-      editRevision: 5,
-      steps: [{ ...STEP_B }, { ...STEP_A }],
-    });
+    request.flush(savedDraft(5, [{ ...STEP_B }, { ...STEP_A }]));
     await harness.fixture.whenStable();
     harness.detectChanges();
 
@@ -325,7 +345,7 @@ describe('PlanEditorPage', () => {
     expect(secondRequest.request.body).toMatchObject({
       expectedRevision: 5,
     });
-    secondRequest.flush({ editRevision: 6, steps: [{ ...STEP_B }, { ...STEP_A }] });
+    secondRequest.flush(savedDraft(6, [{ ...STEP_B }, { ...STEP_A }]));
     await harness.fixture.whenStable();
     harness.detectChanges();
   });
@@ -354,13 +374,13 @@ describe('PlanEditorPage', () => {
       ],
     });
 
-    firstRequest.flush({
-      editRevision: 5,
-      steps: [
+    firstRequest.flush(
+      savedDraft(5, [
         { ...STEP_A },
         { ...STEP_B },
         {
           logicalStepId: 'new-id-1',
+          position: 3,
           name: 'Resistance',
           unit: 'Ohm',
           minimum: '1',
@@ -368,8 +388,8 @@ describe('PlanEditorPage', () => {
           sampleCount: 10,
           intervalMs: 1000,
         },
-      ],
-    });
+      ]),
+    );
     await harness.fixture.whenStable();
     harness.detectChanges();
 
@@ -383,13 +403,13 @@ describe('PlanEditorPage', () => {
         { logicalStepId: 'new-id-1' },
       ],
     });
-    secondRequest.flush({
-      editRevision: 6,
-      steps: [
+    secondRequest.flush(
+      savedDraft(6, [
         { ...STEP_A },
         { ...STEP_B },
         {
           logicalStepId: 'new-id-1',
+          position: 3,
           name: 'Resistance',
           unit: 'Ohm',
           minimum: '1',
@@ -397,8 +417,8 @@ describe('PlanEditorPage', () => {
           sampleCount: 10,
           intervalMs: 1000,
         },
-      ],
-    });
+      ]),
+    );
     await harness.fixture.whenStable();
     harness.detectChanges();
   });
@@ -678,12 +698,14 @@ describe('PlanEditorPage', () => {
       id: PLAN_ID,
       name: 'Published only',
       profile: PROFILE,
+      createdAt: '2026-11-03T09:00:00.000Z',
       latestPublishedVersion: {
         id: VERSION_ID,
         versionNumber: 3,
         publishedAt: '2026-11-03T10:00:00.000Z',
       },
       draft: null,
+      published: null,
     });
     const root = rootOf(harness);
 
@@ -881,6 +903,7 @@ describe('PlanEditorPage', () => {
           publishedAt: '2026-11-03T10:00:00.000Z',
         },
         draft: null,
+        published: null,
       },
       [],
     );
@@ -958,6 +981,7 @@ describe('PlanEditorPage', () => {
         ...PLAN_DETAIL,
         latestPublishedVersion: null,
         draft: null,
+        published: null,
       },
       [],
     );

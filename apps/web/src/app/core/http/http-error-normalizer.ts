@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { MalformedApiResponseError } from './malformed-api-response.error';
 
 /** A field-level validation message returned by the API. */
 export interface ApiFieldErrorView {
@@ -47,6 +48,19 @@ export class HttpErrorNormalizer {
   normalize(error: unknown): ApiErrorView {
     if (error instanceof HttpErrorResponse) {
       return this.fromHttpError(error);
+    }
+
+    if (error instanceof MalformedApiResponseError) {
+      return {
+        kind: 'api',
+        status: null,
+        code: 'MALFORMED_API_RESPONSE',
+        message: error.message,
+        requestId: null,
+        fieldErrors: [],
+        reason: null,
+        currentRevision: null,
+      };
     }
 
     return {

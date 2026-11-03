@@ -29,6 +29,7 @@ const PROFILE = {
 
 const STEP_A = {
   logicalStepId: 'step-a',
+  position: 1,
   name: 'Voltage',
   unit: 'V',
   minimum: '4.75',
@@ -39,6 +40,7 @@ const STEP_A = {
 
 const STEP_B = {
   logicalStepId: 'step-b',
+  position: 2,
   name: 'Current',
   unit: 'A',
   minimum: '0.1',
@@ -75,12 +77,14 @@ const PLAN_WITHOUT_DRAFT = {
   id: PLAN_ID,
   name: 'Thermal check',
   profile: PROFILE,
+  createdAt: '2026-11-03T09:00:00.000Z',
   latestPublishedVersion: {
     id: VERSION_ID,
     versionNumber: 2,
     publishedAt: '2026-11-03T11:00:00.000Z',
   },
   draft: null,
+  published: null,
 };
 
 describe('PlanVersionPage', () => {
@@ -223,7 +227,10 @@ describe('PlanVersionPage', () => {
       draft: {
         id: 'draft-2',
         editRevision: 1,
+        planId: PLAN_ID,
+        state: 'DRAFT',
         name: 'Thermal check',
+        versionNumber: null,
         steps: [STEP_A, STEP_B],
       },
     });
@@ -244,7 +251,10 @@ describe('PlanVersionPage', () => {
       draft: {
         id: 'draft-2',
         editRevision: 6,
+        planId: PLAN_ID,
+        state: 'DRAFT',
         name: 'Thermal check draft',
+        versionNumber: null,
         steps: [],
       },
     });
@@ -261,6 +271,62 @@ describe('PlanVersionPage', () => {
     expect(
       draftLinks.some((link) => link.textContent?.includes('Continue editing draft')),
     ).toBe(true);
+  });
+
+  it('shows not found and renders nothing when the version belongs to another plan', async () => {
+    const harness = await open('VIEWER');
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+
+    http
+      .expectOne(`/api/plan-versions/${VERSION_ID}`)
+      .flush({ ...VERSION_DETAIL, planId: '99999999-9999-4999-8999-999999999999' });
+    http.expectOne(`/api/plans/${PLAN_ID}/versions`).flush(VERSION_LIST);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(root.textContent).toContain('Published version not found');
+    expect(root.textContent).toContain('does not belong to the plan in the address');
+    expect(root.querySelector('#version-title')).toBeNull();
+    expect(root.querySelector('table')).toBeNull();
+    expect(root.textContent).not.toContain('planner@probedesk.local');
+  });
+
+  it('hides new draft on an older version and explains that the latest is copied', async () => {
+    const harness = await open('PLANNER');
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+    const latestId = '77777777-7777-4777-8777-777777777777';
+
+    http.expectOne(`/api/plan-versions/${VERSION_ID}`).flush(VERSION_DETAIL);
+    http.expectOne(`/api/plans/${PLAN_ID}/versions`).flush([
+      {
+        id: latestId,
+        versionNumber: 3,
+        name: 'Thermal check',
+        publishedAt: '2026-11-03T12:00:00.000Z',
+        publishedBy: {
+          id: '44444444-4444-4444-8444-444444444444',
+          email: 'planner@probedesk.local',
+          role: 'PLANNER',
+        },
+      },
+      ...VERSION_LIST,
+    ]);
+    http.expectOne(`/api/plans/${PLAN_ID}`).flush(PLAN_WITHOUT_DRAFT);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(root.querySelector('#start-new-draft-button')).toBeNull();
+    expect(root.textContent).toContain('This is an older published version.');
+    expect(root.textContent).toContain(
+      'A new draft always copies the latest published version, not this older version.',
+    );
+    expect(
+      root.querySelector<HTMLAnchorElement>(`a[href="/plans/${PLAN_ID}/versions/${latestId}"]`)
+        ?.textContent,
+    ).toContain('Open version 3');
+    expect(http.match(`/api/plans/${PLAN_ID}/drafts`)).toHaveLength(0);
   });
 
   it('shows a clear not-found state for a draft or unknown version id', async () => {

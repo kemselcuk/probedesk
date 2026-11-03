@@ -27,6 +27,7 @@ import {
 import { filter } from 'rxjs';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import { roleLabel } from '../../core/auth/auth.types';
+import { UnsavedChangesService } from '../../core/navigation/unsaved-changes.service';
 
 interface NavigationItem {
   readonly path: string;
@@ -74,6 +75,7 @@ export class AppShell {
   private readonly environmentInjector = inject(EnvironmentInjector);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly auth = inject(AuthFacade);
+  private readonly unsavedChanges = inject(UnsavedChangesService);
 
   private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
   private readonly contentScroller = viewChild(MatSidenavContent);
@@ -81,6 +83,7 @@ export class AppShell {
   protected readonly navigationItems = NAVIGATION_ITEMS;
   protected readonly compactViewport = signal(false);
   private readonly mobileNavigationOpen = signal(false);
+  private readonly signOutPromptOpen = signal(false);
 
   protected readonly navMode = computed(() =>
     this.compactViewport() ? 'over' : 'side',
@@ -140,10 +143,26 @@ export class AppShell {
   }
 
   protected signOut(): void {
-    if (this.auth.pending()) {
+    if (this.auth.pending() || this.signOutPromptOpen()) {
       return;
     }
 
+    this.signOutPromptOpen.set(true);
+    this.unsavedChanges
+      .confirmLeave()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (allowed) => {
+          this.signOutPromptOpen.set(false);
+          if (allowed) {
+            this.revokeSession();
+          }
+        },
+        error: () => this.signOutPromptOpen.set(false),
+      });
+  }
+
+  private revokeSession(): void {
     this.auth
       .logout()
       .pipe(takeUntilDestroyed(this.destroyRef))

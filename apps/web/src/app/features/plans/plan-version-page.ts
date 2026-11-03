@@ -68,6 +68,24 @@ export class PlanVersionPage {
       this.facade.versions().find((version) => version.id === this.versionId)?.publishedBy ??
       null,
   );
+  /** The route's plan and the loaded version must describe the same plan. */
+  protected readonly versionPlanMismatch = computed(() => {
+    const version = this.facade.version();
+    return version !== null && version.planId !== this.planId;
+  });
+  protected readonly latestPublishedVersion = computed(() => {
+    const versions = this.facade.versions();
+    if (versions.length === 0) {
+      return null;
+    }
+
+    return versions.reduce((latest, version) =>
+      version.versionNumber > latest.versionNumber ? version : latest,
+    );
+  });
+  protected readonly isLatestPublishedVersion = computed(
+    () => this.facade.version()?.id === this.latestPublishedVersion()?.id,
+  );
   protected readonly hasOpenDraft = computed(() => (this.facade.plan()?.draft ?? null) !== null);
   protected readonly openDraftRevision = computed(
     () => this.facade.plan()?.draft?.editRevision ?? null,
@@ -93,8 +111,10 @@ export class PlanVersionPage {
     () =>
       this.isPlanner() &&
       this.facade.planStatus() === 'loaded' &&
+      this.facade.versionsStatus() === 'loaded' &&
       !this.hasOpenDraft() &&
       this.facade.version() !== null &&
+      this.isLatestPublishedVersion() &&
       this.facade.createDraftError() === null &&
       !this.facade.createDraftPending(),
   );
