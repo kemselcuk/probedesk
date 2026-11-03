@@ -1,0 +1,228 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Superseded pull-request runs are cancelled; main runs are allowed to finish.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CI: "true"
+  NPM_CONFIG_AUDIT: "false"
+  NPM_CONFIG_FUND: "false"
+
+jobs:
+  api_quality:
+    name: API quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npx --yes npm@11.6.2 ci --no-audit --no-fund
+
+      - name: Lint API
+        run: npx --yes npm@11.6.2 run lint --workspace apps/api
+
+      - name: Type-check API
+        run: npx --yes npm@11.6.2 run typecheck --workspace apps/api
+
+      - name: Run API unit tests
+        run: >-
+          npx --yes npm@11.6.2 run test --workspace apps/api --
+          --reporter=default --reporter=junit
+          --outputFile.junit=test-results/junit.xml
+
+      - name: Build API
+        run: npx --yes npm@11.6.2 run build --workspace apps/api
+
+      - name: Upload API unit report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-quality-junit
+          path: apps/api/test-results/junit.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  api_integration:
+    name: API integration (PostgreSQL 18)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18.1-alpine
+        env:
+          POSTGRES_USER: probedesk
+          POSTGRES_PASSWORD: probedesk
+          POSTGRES_DB: probedesk_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U probedesk -d probedesk_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # The migration helper refuses to run when TEST_DATABASE_URL aliases the
+      # development database. The development URL only needs a distinct
+      # identity on the same CI server; current jobs never connect to it.
+      DATABASE_URL: postgresql://probedesk:probedesk@127.0.0.1:5432/probedesk_dev?schema=public
+      TEST_DATABASE_URL: postgresql://probedesk:probedesk@127.0.0.1:5432/probedesk_test?schema=public
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npx --yes npm@11.6.2 ci --no-audit --no-fund
+
+      - name: Migrate the isolated test database
+        run: npx --yes npm@11.6.2 run db:migrate:test --workspace apps/api
+
+      - name: Run API integration and E2E tests
+        run: >-
+          npx --yes npm@11.6.2 run test:e2e --workspace apps/api --
+          --reporter=default --reporter=junit
+          --outputFile.junit=test-results/junit.xml
+
+      - name: Upload integration test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-integration-junit
+          path: apps/api/test-results/junit.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  web_quality:
+    name: Web quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npx --yes npm@11.6.2 ci --no-audit --no-fund
+
+      - name: Lint web
+        run: npx --yes npm@11.6.2 run lint --workspace apps/web
+
+      - name: Type-check web
+        run: npx --yes npm@11.6.2 run typecheck --workspace apps/web
+
+      - name: Run web unit tests
+        run: >-
+          npx --yes npm@11.6.2 run test --workspace apps/web --
+          --watch=false --reporters=default --reporters=junit
+          --output-file=test-results/junit.xml
+
+      - name: Build web
+        run: npx --yes npm@11.6.2 run build --workspace apps/web
+
+      - name: Upload web test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-quality-junit
+          path: apps/web/test-results/junit.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  contract:
+    name: OpenAPI contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npx --yes npm@11.6.2 ci --no-audit --no-fund
+
+      - name: Emit the OpenAPI document
+        run: npx --yes npm@11.6.2 run openapi:emit
+
+      # `openapi:check` emits again before comparing, so emitting first would
+      # otherwise hide a stale committed document. Fail on the working-tree
+      # diff before the check runs.
+      - name: Reject OpenAPI document drift
+        run: |
+          git ls-files --error-unmatch apps/api/openapi.json
+          git diff --exit-code -- apps/api/openapi.json
+
+      - name: Check OpenAPI and generated-client drift
+        run: npx --yes npm@11.6.2 run openapi:check
+
+  ci_required:
+    name: CI required
+    if: always()
+    needs: [api_quality, api_integration, web_quality, contract]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify every required job succeeded
+        env:
+          API_QUALITY: ${{ needs.api_quality.result }}
+          API_INTEGRATION: ${{ needs.api_integration.result }}
+          WEB_QUALITY: ${{ needs.web_quality.result }}
+          CONTRACT: ${{ needs.contract.result }}
+        run: |
+          failed=0
+          for entry in \
+            "API quality=$API_QUALITY" \
+            "API integration=$API_INTEGRATION" \
+            "Web quality=$WEB_QUALITY" \
+            "OpenAPI contract=$CONTRACT"
+          do
+            name="${entry%%=*}"
+            result="${entry#*=}"
+            echo "$name: $result"
+            if [ "$result" != "success" ]; then
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "One or more required jobs did not succeed." >&2
+            exit 1
+          fi
+
+          echo "All required jobs succeeded."

@@ -1,6 +1,13 @@
 # Doğrulama kanıtları
 
-Bu dizin şu anda yalnızca kanıt düzenini açıklar. Uygulama testi, çalışan UI görüntüsü, coverage, CI sonucu veya demo videosu henüz yoktur.
+Bu dizin kanıt düzenini açıklar ve eklenen kanıt kayıtlarını listeler. Uygulama
+testi, çalışan UI görüntüsü, coverage, CI sonucu veya demo videosu yalnızca
+gerçekten üretildiğinde eklenir.
+
+## Kayıtlar
+
+- [P1-08 — İlk CI kontrolü](p1-08-ci.md): yerel doğrulama tamamlandı; gerçek
+  GitHub Actions koşusu ve kontrollü başarısız kontrol gösterimi bekliyor.
 
 ## Kayıt biçimi
 

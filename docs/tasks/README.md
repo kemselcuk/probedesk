@@ -34,7 +34,7 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | [P1-05 — OpenAPI istemci tipleri](P1-05.md) | Entegrasyon | In Review |
 | [P1-06 — Backend oturum ve yetkilendirme](P1-06.md) | Backend | Planned |
 | [P1-07 — Angular giriş ve oturum akışı](P1-07.md) | Frontend | Planned |
-| [P1-08 — İlk CI kontrolü](P1-08.md) | Entegrasyon | Planned |
+| [P1-08 — İlk CI kontrolü](P1-08.md) | Entegrasyon | In Progress |
 
 ## Aşama 2 — Plan editörü ve sürümler
 
