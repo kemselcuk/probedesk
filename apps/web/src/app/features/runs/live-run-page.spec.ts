@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
+  TestRequest,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -185,6 +186,49 @@ describe('LiveRunPage', () => {
     ).toBe('connected');
   });
 
+  it('shows the explicit stream warning after empty streams exhaust the retry budget', async () => {
+    const { harness } = await openWithStream();
+    const http = TestBed.inject(HttpTestingController);
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const source = FakeEventSource.latest();
+      source.open();
+      source.fail(0);
+
+      if (attempt < 2) {
+        await vi.waitFor(() =>
+          expect(FakeEventSource.instances).toHaveLength(attempt + 2),
+        );
+      }
+    }
+
+    await vi.waitFor(() => {
+      harness.detectChanges();
+      expect(rootOf(harness).querySelector('#live-stream-warning')).not.toBeNull();
+    });
+    // The facade asks for one fresh snapshot after the stream gives up.
+    const refreshes: TestRequest[] = [];
+    await vi.waitFor(() => {
+      refreshes.push(...http.match(`/api/runs/${RUN_ID}`));
+      expect(refreshes.length).toBeGreaterThan(0);
+    });
+    refreshes[0]?.flush(runSnapshot({ lastEventSequence: 3 }));
+    harness.detectChanges();
+
+    const root = rootOf(harness);
+    const warning = root.querySelector('#live-stream-warning');
+    expect(warning?.textContent).toContain('Live updates are not flowing');
+    expect(warning?.textContent).toContain(
+      'Live updates stopped after several reconnect attempts',
+    );
+    expect(warning?.textContent).toContain('Reconnect live updates');
+    expect(
+      root.querySelector('[data-connection]')?.getAttribute('data-connection'),
+    ).toBe('disconnected');
+    expect(root.querySelector('.status-badge')?.textContent).toContain('Running');
+    expect(FakeEventSource.instances).toHaveLength(3);
+  });
+
   it('hides cancellation from a Viewer while the run is RUNNING', async () => {
     const { harness } = await openWithStream('VIEWER');
     expect(rootOf(harness).querySelector('#cancel-run-button')).toBeNull();
@@ -360,6 +404,74 @@ describe('LiveRunPage', () => {
       `/api/runs/${RUN_ID}/events?after=4`,
     );
     expect(rootOf(harness).textContent).toContain('1 of 4 samples recorded (25%)');
+  });
+
+  it('qualifies stale running steps when every final snapshot attempt fails', async () => {
+    const { harness, source } = await openWithStream();
+
+    emit(source, completedEvent(4));
+    harness.detectChanges();
+    expect(rootOf(harness).querySelector('.status-badge')?.textContent).toContain('Failed');
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      TestBed.inject(HttpTestingController)
+        .expectOne(`/api/runs/${RUN_ID}`)
+        .flush(
+          { code: 'INTERNAL_ERROR', message: 'The snapshot failed.', requestId: 'r1' },
+          { status: 500, statusText: 'Server Error' },
+        );
+    }
+
+    harness.detectChanges();
+    const root = rootOf(harness);
+    const warning = root.querySelector('#live-final-steps-warning');
+    expect(warning?.textContent).toContain('Final step detail could not be loaded');
+    expect(warning?.textContent).toContain('marked unavailable');
+    expect(warning?.textContent).toContain('not shown as');
+    expect(root.querySelector('.status-badge')?.textContent).toContain('Failed');
+    expect(root.querySelector('.step-row')?.getAttribute('data-status')).toBe('UNAVAILABLE');
+    expect(root.querySelector('.step-status')?.textContent?.trim()).toBe('Unavailable');
+    expect(root.textContent).not.toContain('In progress:');
+    expect(root.textContent).not.toContain('Pending');
+  });
+
+  it('does not show the final step warning when the retried snapshot succeeds', async () => {
+    const { harness, source } = await openWithStream();
+
+    emit(source, completedEvent(4));
+    TestBed.inject(HttpTestingController)
+      .expectOne(`/api/runs/${RUN_ID}`)
+      .flush(
+        { code: 'INTERNAL_ERROR', message: 'The snapshot failed.', requestId: 'r1' },
+        { status: 500, statusText: 'Server Error' },
+      );
+    TestBed.inject(HttpTestingController)
+      .expectOne(`/api/runs/${RUN_ID}`)
+      .flush(
+        runSnapshot({
+          status: 'COMPLETED',
+          outcome: 'FAILED',
+          finishedAt: '2026-11-03T10:00:04.000Z',
+          recordedSampleCount: 4,
+          lastEventSequence: 4,
+          steps: [
+            runningStep({
+              status: 'COMPLETED',
+              outcome: 'FAILED',
+              recordedCount: 4,
+              outOfToleranceCount: 1,
+              firstFailureSampleIndex: 0,
+              hasOutOfTolerance: true,
+              measurements: [MEASUREMENT],
+            }),
+          ],
+        }),
+      );
+
+    harness.detectChanges();
+    const root = rootOf(harness);
+    expect(root.querySelector('#live-final-steps-warning')).toBeNull();
+    expect(root.querySelector('.step-status')?.textContent?.trim()).toBe('Completed');
   });
 
   it('shows the terminal event and reloads final step states once', async () => {

@@ -276,6 +276,71 @@ describe('LiveRunFacade', () => {
     expect(FakeEventSource.instances).toHaveLength(1);
   });
 
+  it('retries the final snapshot and marks stale step states unavailable when all attempts fail', async () => {
+    const { facade, source } = await loadRunning();
+
+    emit(source, cancelledEvent(4));
+    expect(facade.snapshot()?.status).toBe('CANCELLED');
+    expect(facade.snapshot()?.steps[0]?.status).toBe('RUNNING');
+    expect(facade.finalizing()).toBe(true);
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const request = http.expectOne(`/api/runs/${RUN_ID}`);
+      expect(request.request.method).toBe('GET');
+      request.flush(
+        { code: 'INTERNAL_ERROR', message: 'The snapshot failed.', requestId: 'r1' },
+        { status: 500, statusText: 'Server Error' },
+      );
+    }
+
+    http.expectNone(`/api/runs/${RUN_ID}`);
+    expect(facade.finalizing()).toBe(false);
+    expect(facade.finalStepStateUnavailable()).toBe(true);
+    expect(facade.finalStepStateError()).toContain(
+      'final step detail could not be loaded after 3 attempts',
+    );
+    expect(facade.finalStepStateError()).toContain(
+      'Steps that were still running or pending are marked unavailable',
+    );
+    // The run-level terminal state from the event is preserved; only the
+    // unverified step rows are qualified by the screen.
+    expect(facade.snapshot()?.status).toBe('CANCELLED');
+    expect(facade.snapshot()?.steps[0]?.status).toBe('RUNNING');
+  });
+
+  it('recovers the final step states when a bounded snapshot retry succeeds', async () => {
+    const { facade, source } = await loadRunning();
+
+    emit(source, cancelledEvent(4));
+    http
+      .expectOne(`/api/runs/${RUN_ID}`)
+      .flush(
+        { code: 'INTERNAL_ERROR', message: 'The snapshot failed.', requestId: 'r1' },
+        { status: 500, statusText: 'Server Error' },
+      );
+    http
+      .expectOne(`/api/runs/${RUN_ID}`)
+      .flush(
+        { code: 'INTERNAL_ERROR', message: 'The snapshot failed.', requestId: 'r2' },
+        { status: 500, statusText: 'Server Error' },
+      );
+    http.expectOne(`/api/runs/${RUN_ID}`).flush(
+      runSnapshot({
+        status: 'CANCELLED',
+        reasonCode: 'USER_CANCELLED',
+        finishedAt: '2026-11-03T10:00:02.000Z',
+        recordedSampleCount: 1,
+        lastEventSequence: 4,
+        steps: [runningStep({ status: 'CANCELLED', recordedCount: 1 })],
+      }),
+    );
+
+    expect(facade.finalizing()).toBe(false);
+    expect(facade.finalStepStateUnavailable()).toBe(false);
+    expect(facade.finalStepStateError()).toBeNull();
+    expect(facade.snapshot()?.steps[0]?.status).toBe('CANCELLED');
+  });
+
   it('never reverts a terminal event when the final snapshot claims RUNNING', async () => {
     const { facade, source } = await loadRunning();
 

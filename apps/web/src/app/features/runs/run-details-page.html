@@ -63,8 +63,8 @@
           >
             <h2 id="refresh-error-heading">The snapshot could not be refreshed</h2>
             <p>
-              {{ failure.message }} The previously loaded snapshot is still displayed and may be
-              out of date.
+              {{ failure.message }} The previously loaded snapshot is still displayed and may be out
+              of date.
             </p>
             @if (failure.requestId; as requestId) {
               <p class="request-id">
@@ -93,9 +93,7 @@
               </p>
             }
             <div class="error-actions">
-              <button mat-stroked-button type="button" (click)="refresh()">
-                Refresh snapshot
-              </button>
+              <button mat-stroked-button type="button" (click)="refresh()">Refresh snapshot</button>
               @if (failure.status === 401) {
                 <a mat-stroked-button routerLink="/login">Sign in again</a>
               }
@@ -143,7 +141,9 @@
             </p>
           }
 
-          @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
+          @if (
+            run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR'
+          ) {
             <p class="reason-code">
               @if (run.reasonCode) {
                 Reason code: <code>{{ run.reasonCode }}</code>
@@ -220,6 +220,16 @@
                         · value not available
                       }
                     </span>
+                    @if (failure.value !== null) {
+                      <button
+                        mat-button
+                        type="button"
+                        class="first-failure-action"
+                        (click)="selectFirstFailure()"
+                      >
+                        Show sample in measurements
+                      </button>
+                    }
                   } @else if (totalOutOfTolerance() > 0) {
                     Out-of-tolerance samples were counted, but no first failure index is stored.
                   } @else if (isRunning()) {
@@ -470,9 +480,7 @@
                 </div>
 
                 @if (step.status === 'NOT_RUN') {
-                  <p class="step-note">
-                    This step did not start. No samples were recorded for it.
-                  </p>
+                  <p class="step-note">This step did not start. No samples were recorded for it.</p>
                 } @else if (step.recordedCount < step.sampleCount) {
                   <p class="step-note">
                     Partial step: {{ step.recordedCount }} of {{ step.sampleCount }} samples were
@@ -481,7 +489,10 @@
                 }
 
                 <div class="step-detail-grid">
-                  <section class="step-panel" [attr.aria-labelledby]="'step-rules-' + step.runStepId">
+                  <section
+                    class="step-panel"
+                    [attr.aria-labelledby]="'step-rules-' + step.runStepId"
+                  >
                     <h4 [id]="'step-rules-' + step.runStepId">Snapshot rules</h4>
                     <dl class="step-rules">
                       <div>
@@ -582,6 +593,15 @@
                   </section>
                 </div>
 
+                <app-measurement-chart
+                  [runId]="run.id"
+                  [planName]="run.planName"
+                  [step]="step"
+                  [selectedSample]="activeSelection()"
+                  (sampleSelected)="selectSample($event)"
+                  (tableViewRequested)="focusMeasurementsTable($event)"
+                />
+
                 <section
                   class="measurements"
                   [attr.aria-labelledby]="'step-measurements-' + step.runStepId"
@@ -590,10 +610,32 @@
                   @if (step.measurements.length === 0) {
                     <p class="empty-note">No samples were recorded for this step.</p>
                   } @else {
-                    <div class="table-scroll">
+                    <div
+                      class="table-scroll"
+                      [id]="tableId(step.runStepId)"
+                      tabindex="-1"
+                      [attr.aria-label]="
+                        'Measurement table for step ' +
+                        step.position +
+                        ': ' +
+                        step.name +
+                        ' (' +
+                        step.unit +
+                        ')'
+                      "
+                    >
                       <table>
                         <caption class="visually-hidden">
-                          Recorded measurements for step {{ step.position }}: {{ step.name }} ({{ step.unit }})
+                          Recorded measurements for step
+                          {{
+                            step.position
+                          }}:
+                          {{
+                            step.name
+                          }}
+                          ({{
+                            step.unit
+                          }})
                         </caption>
                         <thead>
                           <tr>
@@ -607,7 +649,23 @@
                         </thead>
                         <tbody>
                           @for (measurement of step.measurements; track measurement.sampleIndex) {
-                            <tr>
+                            <tr
+                              [id]="rowId(step.runStepId, measurement.sampleIndex)"
+                              [class.is-selected]="isSampleSelected(step, measurement.sampleIndex)"
+                              [attr.tabindex]="
+                                measurementRowTabIndex(measurement.isWithinTolerance)
+                              "
+                              [attr.aria-label]="measurementRowLabel(step, measurement.sampleIndex)"
+                              [attr.aria-current]="
+                                isSampleSelected(step, measurement.sampleIndex) ? 'true' : null
+                              "
+                              (click)="selectMeasurementRow(step, measurement.sampleIndex)"
+                              (keydown.enter)="selectMeasurementRow(step, measurement.sampleIndex)"
+                              (keydown.space)="
+                                selectMeasurementRow(step, measurement.sampleIndex);
+                                $event.preventDefault()
+                              "
+                            >
                               <td>{{ measurement.sampleIndex }}</td>
                               <td class="mono">{{ measurement.value }}</td>
                               <td>{{ step.unit }}</td>
@@ -673,7 +731,9 @@
             This run does not exist or is not available to your role. No status, outcome, or
             measurements are assumed.
           </p>
-          <p class="request-id">Run ID: <code>{{ runId() }}</code></p>
+          <p class="request-id">
+            Run ID: <code>{{ runId() }}</code>
+          </p>
           @if (loadError()?.requestId; as requestId) {
             <p class="request-id">
               Request ID: <code>{{ requestId }}</code>

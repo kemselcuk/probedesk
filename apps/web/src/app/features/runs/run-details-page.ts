@@ -6,6 +6,7 @@ import {
   Injector,
   afterNextRender,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -15,12 +16,20 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '../../core/auth/auth.facade';
+import { MeasurementChart } from '../../shared/charts/measurement-chart';
+import type { MeasurementSelection } from '../../shared/charts/measurement-chart.types';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 import { CancelRunDialog } from './cancel-run-dialog';
 import type { CancelRunDialogData } from './cancel-run-dialog';
+import {
+  findSelectedMeasurement,
+  findStepByLogicalStepId,
+  measurementRowId,
+  measurementsTableId,
+} from './run-details-chart';
 import { buildRerunRequest } from './run-rerun';
 import { RunStartAttempt } from './run-start-form';
 import {
@@ -35,9 +44,11 @@ import {
 } from './run-status';
 import { RunStatusBadge } from './run-status-badge';
 import type { StartRunRequest } from './runs-api.types';
+import type { RunSnapshotStep } from './runs-api.types';
 import { RunsFacade } from './runs.facade';
 
 interface FirstFailureView {
+  readonly logicalStepId: string;
   readonly stepPosition: number;
   readonly stepName: string;
   readonly unit: string;
@@ -64,6 +75,7 @@ interface FirstFailureView {
     LoadingState,
     MatButtonModule,
     MatCardModule,
+    MeasurementChart,
     PageHeader,
     RouterLink,
     RunStatusBadge,
@@ -91,6 +103,23 @@ export class RunDetailsPage {
   protected readonly startFailure = this.runs.startError;
   protected readonly cancelFailure = this.runs.cancelError;
   protected readonly announcement = signal('');
+  protected readonly selectedSample = signal<MeasurementSelection | null>(null);
+
+  /**
+   * A selection is kept only while the exact logical step and sample index
+   * still exist in the loaded snapshot. A refresh may legitimately remove a
+   * partial sample; stale highlights are then cleared instead of pointing at
+   * a row that is no longer there.
+   */
+  protected readonly activeSelection = computed<MeasurementSelection | null>(() => {
+    const selection = this.selectedSample();
+    const run = this.snapshot();
+    if (selection === null || run === null) {
+      return null;
+    }
+
+    return findSelectedMeasurement(run, selection) === null ? null : selection;
+  });
 
   protected readonly statusView = computed(() => {
     const run = this.snapshot();
@@ -150,6 +179,7 @@ export class RunDetailsPage {
       const measurement = step.measurements.find((entry) => entry.sampleIndex === sampleIndex);
 
       return {
+        logicalStepId: step.logicalStepId,
         stepPosition: step.position,
         stepName: step.name,
         unit: step.unit,
@@ -200,38 +230,24 @@ export class RunDetailsPage {
       : `${step.name} (${step.unit})`;
   });
 
-  protected readonly showCancelAction = computed(
-    () => this.isOperator() && this.isRunning(),
-  );
+  protected readonly showCancelAction = computed(() => this.isOperator() && this.isRunning());
 
   protected readonly canCancel = computed(
-    () =>
-      this.showCancelAction() &&
-      this.snapshot() !== null &&
-      !this.runs.cancelPending(),
+    () => this.showCancelAction() && this.snapshot() !== null && !this.runs.cancelPending(),
   );
 
-  protected readonly showRunAgain = computed(
-    () => this.isOperator() && this.isTerminal(),
-  );
+  protected readonly showRunAgain = computed(() => this.isOperator() && this.isTerminal());
 
   protected readonly canRunAgain = computed(
-    () =>
-      this.showRunAgain() &&
-      this.snapshot() !== null &&
-      !this.runs.startPending(),
+    () => this.showRunAgain() && this.snapshot() !== null && !this.runs.startPending(),
   );
 
   protected readonly isActiveRunConflict = computed(
     () => this.startFailure()?.error.code === 'RUN_ALREADY_ACTIVE',
   );
   protected readonly activeRunId = computed(() => this.startFailure()?.activeRunId ?? null);
-  protected readonly isUnauthenticated = computed(
-    () => this.startFailure()?.error.status === 401,
-  );
-  protected readonly isStartForbidden = computed(
-    () => this.startFailure()?.error.status === 403,
-  );
+  protected readonly isUnauthenticated = computed(() => this.startFailure()?.error.status === 401);
+  protected readonly isStartForbidden = computed(() => this.startFailure()?.error.status === 403);
   protected readonly startFieldErrors = computed(
     () => this.startFailure()?.error.fieldErrors ?? [],
   );
@@ -336,21 +352,28 @@ export class RunDetailsPage {
     this.runs.clearCancelError();
     this.loadIfPossible();
 
-    this.route.paramMap
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => {
-        const nextRunId = params.get('runId') ?? '';
-        if (nextRunId === this.runId()) {
-          return;
-        }
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const nextRunId = params.get('runId') ?? '';
+      if (nextRunId === this.runId()) {
+        return;
+      }
 
-        this.runId.set(nextRunId);
-        this.attempt.reset();
-        this.announcement.set('');
-        this.runs.clearStartError();
-        this.runs.clearCancelError();
-        this.loadIfPossible();
-      });
+      this.runId.set(nextRunId);
+      this.attempt.reset();
+      this.selectedSample.set(null);
+      this.announcement.set('');
+      this.runs.clearStartError();
+      this.runs.clearCancelError();
+      this.loadIfPossible();
+    });
+
+    effect(() => {
+      const selection = this.selectedSample();
+      const run = this.snapshot();
+      if (selection !== null && run !== null && findSelectedMeasurement(run, selection) === null) {
+        this.selectedSample.set(null);
+      }
+    });
   }
 
   protected retryLoad(): void {
@@ -454,6 +477,97 @@ export class RunDetailsPage {
   protected stepStatus = stepStatusLabel;
   protected stepOutcome = stepOutcomeLabel;
   protected progress = progressLabel;
+  protected tableId = measurementsTableId;
+  protected rowId = measurementRowId;
+
+  /**
+   * One selection path for chart points, the chart failure list, the summary
+   * action, and measurement rows. The row is focused after rendering, which
+   * also scrolls the step card into view.
+   */
+  protected selectSample(selection: MeasurementSelection): void {
+    const run = this.snapshot();
+    if (run === null) {
+      return;
+    }
+
+    const resolved = findSelectedMeasurement(run, selection);
+    if (resolved === null) {
+      return;
+    }
+
+    this.selectedSample.set(selection);
+    const { step, measurement } = resolved;
+    const tolerance = measurement.isWithinTolerance ? 'Within tolerance' : 'Outside tolerance';
+    this.announcement.set(
+      `${tolerance}: sample ${measurement.sampleIndex} of step ${step.position}, ${step.name}, value ${measurement.value} ${step.unit}, elapsed ${measurement.elapsedMs} ms. The measurement row is focused in the table.`,
+    );
+    this.focusAfterRender(measurementRowId(step.runStepId, measurement.sampleIndex));
+  }
+
+  protected selectFirstFailure(): void {
+    const failure = this.firstFailure();
+    if (failure === null) {
+      return;
+    }
+
+    this.selectSample({
+      logicalStepId: failure.logicalStepId,
+      sampleIndex: failure.sampleIndex,
+    });
+  }
+
+  protected selectMeasurementRow(step: RunSnapshotStep, sampleIndex: number): void {
+    this.selectSample({ logicalStepId: step.logicalStepId, sampleIndex });
+  }
+
+  protected isSampleSelected(step: RunSnapshotStep, sampleIndex: number): boolean {
+    const selection = this.activeSelection();
+    return (
+      selection !== null &&
+      selection.logicalStepId === step.logicalStepId &&
+      selection.sampleIndex === sampleIndex
+    );
+  }
+
+  /** Failure rows are tab stops; every row can still receive programmatic focus. */
+  protected measurementRowTabIndex(isWithinTolerance: boolean): number {
+    return isWithinTolerance ? -1 : 0;
+  }
+
+  protected measurementRowLabel(step: RunSnapshotStep, sampleIndex: number): string | null {
+    const run = this.snapshot();
+    if (run === null) {
+      return null;
+    }
+
+    const resolved = findSelectedMeasurement(run, {
+      logicalStepId: step.logicalStepId,
+      sampleIndex,
+    });
+    if (resolved === null || resolved.measurement.isWithinTolerance) {
+      return null;
+    }
+
+    return `Sample ${sampleIndex}, outside tolerance, value ${resolved.measurement.value} ${step.unit}. Select to highlight it in the chart.`;
+  }
+
+  protected focusMeasurementsTable(logicalStepId: string): void {
+    const run = this.snapshot();
+    if (run === null) {
+      return;
+    }
+
+    const step = findStepByLogicalStepId(run, logicalStepId);
+    if (step === null) {
+      return;
+    }
+
+    this.announcement.set(
+      `Measurement table for step ${step.position}, ${step.name}, is focused. It contains the same recorded values and backend tolerance results as the chart.`,
+    );
+    this.focusAfterRender(measurementsTableId(step.runStepId));
+  }
 
   private confirmCancel(runId: string): void {
     this.runs

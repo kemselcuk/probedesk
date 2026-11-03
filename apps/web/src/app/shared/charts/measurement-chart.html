@@ -1,0 +1,104 @@
+<section class="measurement-chart" [attr.aria-labelledby]="headingId()">
+  <div class="chart-header">
+    <div class="chart-heading-text">
+      <h4 [id]="headingId()">Measurement chart — {{ step().name }} ({{ step().unit }})</h4>
+      <p class="chart-caption">
+        X axis: elapsed time in milliseconds. Y axis: recorded value in {{ step().unit }}. The
+        shaded area and dashed lines show the tolerance copied into this run snapshot.
+      </p>
+    </div>
+    <button
+      mat-stroked-button
+      type="button"
+      class="reset-view"
+      [disabled]="!chartReady()"
+      (click)="resetView()"
+    >
+      Reset view
+    </button>
+  </div>
+
+  <div class="chart-frame">
+    <canvas
+      #chartCanvas
+      role="img"
+      [attr.aria-label]="canvasLabel()"
+      [attr.aria-describedby]="summaryId()"
+    ></canvas>
+
+    @if (!hasPoints()) {
+      <p class="chart-overlay" role="note">
+        No samples were recorded for this step. The axes and tolerance still show the copied rules;
+        no value or result is inferred.
+      </p>
+    }
+
+    @if (chartUnavailable()) {
+      <p class="chart-overlay chart-overlay--warning" role="note">
+        The chart could not be drawn in this browser. The accessible summary, failure list, and
+        measurement table below still show every recorded value and backend result.
+      </p>
+    }
+  </div>
+
+  <ul class="chart-legend" aria-label="Chart point legend">
+    <li>
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <circle cx="8" cy="8" r="5" fill="#00695c" />
+      </svg>
+      Within tolerance (circle)
+    </li>
+    <li>
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <rect x="4" y="4" width="8" height="8" transform="rotate(45 8 8)" fill="#b3261e" />
+      </svg>
+      Outside tolerance (diamond)
+    </li>
+    <li><span class="band-swatch" aria-hidden="true"></span> Recorded tolerance band</li>
+  </ul>
+
+  <p [id]="summaryId()" class="visually-hidden">{{ summary() }}</p>
+  <p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
+
+  @if (failureSamples().length > 0) {
+    <section class="failure-list" [attr.aria-labelledby]="failureListId()">
+      <h5 [id]="failureListId()">Out-of-tolerance samples</h5>
+      <p class="failure-hint">
+        Select a sample to open and focus its row in the measurement table. Keyboard users can Tab
+        to a sample and press Enter.
+      </p>
+      <ul>
+        @for (failure of failureSamples(); track failure.sampleIndex) {
+          <li>
+            <button
+              type="button"
+              class="failure-item"
+              [attr.aria-pressed]="failure.sampleIndex === selectedIndex()"
+              (click)="selectFailure(failure.sampleIndex)"
+            >
+              <span class="failure-shape" aria-hidden="true">◆</span>
+              <span class="failure-index">Sample {{ failure.sampleIndex }}</span>
+              <span class="failure-value">{{ failure.value }} {{ step().unit }}</span>
+              <span class="failure-meta"
+                >{{ failure.elapsedMs }} ms · {{ failure.recordedAtUtc }}</span
+              >
+              @if (failure.isFirstFailure) {
+                <span class="failure-first">First failure</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  <p class="table-link-row">
+    <a
+      class="table-link"
+      [href]="'#measurements-table-' + step().runStepId"
+      (click)="requestTable($event)"
+    >
+      View measurements in the table
+    </a>
+  </p>
+</section>

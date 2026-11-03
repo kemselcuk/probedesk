@@ -426,6 +426,105 @@ describe('RunEventsService', () => {
     expect(FakeEventSource.instances).toHaveLength(1);
   });
 
+  it('gives up when every stream opens and closes without a domain event', async () => {
+    const { updates, completed } = connect(3);
+
+    for (let index = 0; index < 3; index += 1) {
+      const source = FakeEventSource.latest();
+      source.open();
+      source.fail(0);
+
+      if (index < 2) {
+        await vi.waitFor(() =>
+          expect(FakeEventSource.instances).toHaveLength(index + 2),
+        );
+      }
+    }
+
+    await vi.waitFor(() => expect(completed()).toBe(true));
+    expect(FakeEventSource.instances).toHaveLength(3);
+    expect(updates).toContainEqual(
+      expect.objectContaining({ type: 'error', code: 'unavailable' }),
+    );
+    expect(updates.at(-1)).toEqual({
+      type: 'connection',
+      state: 'disconnected',
+    });
+    expect(FakeEventSource.instances.every((source) => source.closed)).toBe(true);
+    expect(
+      FakeEventSource.instances.every((source) => source.listenerCount() === 0),
+    ).toBe(true);
+  });
+
+  it('resets the reconnect budget only after a delivered domain event', async () => {
+    const { updates } = connect(3);
+
+    let source = FakeEventSource.latest();
+    source.open();
+    source.fail(0);
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
+
+    source = FakeEventSource.latest();
+    source.open();
+    source.fail(0);
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(3));
+
+    // Without a delivered event the next failure would exhaust the two-delay
+    // budget. The event below is the only thing that grants a fresh budget.
+    source = FakeEventSource.latest();
+    source.open();
+    source.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 4, measurementPayload(4)),
+      '4',
+    );
+    source.fail(0);
+
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(4));
+    const reopened = FakeEventSource.latest();
+    reopened.open();
+
+    expect(updates.at(-1)).toEqual({ type: 'connection', state: 'connected' });
+    expect(updates.filter((update) => update.type === 'error')).toHaveLength(0);
+    expect(reopened.closed).toBe(false);
+  });
+
+  it('does not reset the reconnect budget for a duplicate replay', async () => {
+    const { updates, completed } = connect(3);
+
+    let source = FakeEventSource.latest();
+    source.open();
+    source.fail(0);
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(2));
+
+    source = FakeEventSource.latest();
+    source.open();
+    source.fail(0);
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(3));
+
+    // Sequence 3 is the session cursor, so this replay does not advance it.
+    // A server that repeats the same old frame cannot keep the stream alive
+    // forever by pretending it produced new data.
+    source = FakeEventSource.latest();
+    source.open();
+    source.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 3, measurementPayload(3)),
+      '3',
+    );
+    source.fail(0);
+
+    await vi.waitFor(() => expect(completed()).toBe(true));
+    expect(FakeEventSource.instances).toHaveLength(3);
+    expect(updates).toContainEqual(
+      expect.objectContaining({ type: 'error', code: 'unavailable' }),
+    );
+    expect(updates.at(-1)).toEqual({
+      type: 'connection',
+      state: 'disconnected',
+    });
+  });
+
   it('gives up after the bounded reconnect delays with a visible error', async () => {
     const { updates, completed } = connect(3);
     const first = FakeEventSource.latest();

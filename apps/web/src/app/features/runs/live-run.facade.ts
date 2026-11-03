@@ -33,6 +33,14 @@ export interface RecentLiveMeasurement {
 const RECENT_MEASUREMENT_LIMIT = 20;
 
 /**
+ * The terminal event does not carry every step transition. The final snapshot
+ * is the only authoritative source for CANCELLED/NOT_RUN/INTERRUPTED step
+ * states, so a transient GET failure gets a few bounded retries before the
+ * screen qualifies the remaining RUNNING/PENDING rows as unavailable.
+ */
+const FINAL_SNAPSHOT_ATTEMPTS = 3;
+
+/**
  * Live run facade: snapshot loading, the SSE merge, reconnect reconciliation,
  * and server-confirmed cancellation.
  *
@@ -54,6 +62,8 @@ export class LiveRunFacade {
   private readonly connectionState = signal<RunConnectionState>('disconnected');
   private readonly streamErrorState = signal<string | null>(null);
   private readonly finalizingState = signal(false);
+  private readonly finalStepStateUnavailableState = signal(false);
+  private readonly finalStepStateErrorState = signal<string | null>(null);
   private readonly cancelPendingState = signal(false);
   private readonly cancelErrorState = signal<ApiErrorView | null>(null);
 
@@ -70,6 +80,8 @@ export class LiveRunFacade {
   readonly connection = this.connectionState.asReadonly();
   readonly streamError = this.streamErrorState.asReadonly();
   readonly finalizing = this.finalizingState.asReadonly();
+  readonly finalStepStateUnavailable = this.finalStepStateUnavailableState.asReadonly();
+  readonly finalStepStateError = this.finalStepStateErrorState.asReadonly();
   readonly cancelPending = this.cancelPendingState.asReadonly();
   readonly cancelError = this.cancelErrorState.asReadonly();
 
@@ -136,6 +148,8 @@ export class LiveRunFacade {
     this.loadErrorState.set(null);
     this.streamErrorState.set(null);
     this.finalizingState.set(false);
+    this.finalStepStateUnavailableState.set(false);
+    this.finalStepStateErrorState.set(null);
     this.cancelPendingState.set(false);
     this.cancelErrorState.set(null);
     this.connectionState.set('disconnected');
@@ -391,7 +405,10 @@ export class LiveRunFacade {
   /**
    * The terminal event carries counters and the verdict but not every step
    * transition. One final snapshot fills the cancelled/interrupted step
-   * statuses; it is never used to reopen the stream.
+   * statuses; it is never used to reopen the stream. A transient read failure
+   * is retried a bounded number of times. If every attempt fails, the terminal
+   * run state is kept and the remaining RUNNING/PENDING rows are marked
+   * unavailable rather than presented as current truth.
    */
   private finalizeSnapshot(): void {
     const runId = this.runId;
@@ -400,9 +417,19 @@ export class LiveRunFacade {
     }
 
     this.finalizingState.set(true);
+    this.finalStepStateUnavailableState.set(false);
+    this.finalStepStateErrorState.set(null);
     this.requestSequence += 1;
     const request = this.requestSequence;
 
+    this.fetchFinalSnapshot(runId, request, FINAL_SNAPSHOT_ATTEMPTS);
+  }
+
+  private fetchFinalSnapshot(
+    runId: string,
+    request: number,
+    attemptsLeft: number,
+  ): void {
     this.api
       .getRun(runId)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -413,6 +440,8 @@ export class LiveRunFacade {
           }
 
           this.finalizingState.set(false);
+          this.finalStepStateUnavailableState.set(false);
+          this.finalStepStateErrorState.set(null);
           this.snapshotState.set(mergeRunSnapshot(this.snapshot(), snapshot));
           this.cursor = Math.max(this.cursor, snapshot.lastEventSequence);
         },
@@ -421,9 +450,15 @@ export class LiveRunFacade {
             return;
           }
 
+          if (attemptsLeft > 1) {
+            this.fetchFinalSnapshot(runId, request, attemptsLeft - 1);
+            return;
+          }
+
           this.finalizingState.set(false);
-          this.streamErrorState.set(
-            `${this.errorNormalizer.normalize(error).message} The terminal event is shown; the final step snapshot could not be loaded.`,
+          this.finalStepStateUnavailableState.set(true);
+          this.finalStepStateErrorState.set(
+            `${this.errorNormalizer.normalize(error).message} The terminal run state is final, but the final step detail could not be loaded after ${FINAL_SNAPSHOT_ATTEMPTS} attempts. Steps that were still running or pending are marked unavailable, not current progress.`,
           );
         },
       });

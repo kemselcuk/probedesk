@@ -185,6 +185,30 @@
             </section>
           }
 
+          @if (live.finalStepStateUnavailable()) {
+            <section
+              id="live-final-steps-warning"
+              class="inline-error"
+              role="alert"
+              aria-labelledby="live-final-steps-warning-heading"
+            >
+              <h2 id="live-final-steps-warning-heading">
+                Final step detail could not be loaded
+              </h2>
+              <p>{{ live.finalStepStateError() }}</p>
+              <p>
+                The terminal run status above is final. Steps that were still running or pending
+                when the last live update arrived are marked unavailable; they are not shown as
+                current progress.
+              </p>
+              <div class="error-actions">
+                <button mat-stroked-button type="button" (click)="reload()">
+                  Reload snapshot
+                </button>
+              </div>
+            </section>
+          }
+
           <dl class="run-metadata">
             <div>
               <dt>Plan version</dt>
@@ -253,7 +277,10 @@
           } @else {
             <ol class="step-list">
               @for (step of run.steps; track step.runStepId) {
-                <li class="step-row" [attr.data-status]="step.status">
+                <li
+                  class="step-row"
+                  [attr.data-status]="stepStateUnavailable(step) ? 'UNAVAILABLE' : step.status"
+                >
                   <div class="step-main">
                     <h3 class="step-title">Step {{ step.position }}: {{ step.name }}</h3>
                     <p class="step-subtitle">
@@ -261,7 +288,13 @@
                       samples · interval {{ step.intervalMs | number }} ms
                     </p>
 
-                    @if (step.status === 'NOT_RUN') {
+                    @if (stepStateUnavailable(step)) {
+                      <p class="step-note">
+                        Final state unavailable. This step was still running or pending when the
+                        last live update arrived. The run has finished, so it is not in progress
+                        now; reload the snapshot to try again.
+                      </p>
+                    } @else if (step.status === 'NOT_RUN') {
                       <p class="step-note">
                         This step did not start. No samples were recorded for it.
                       </p>
@@ -293,9 +326,13 @@
                   </div>
 
                   <div class="step-badges">
-                    <span class="step-status" [attr.data-status]="step.status">
-                      {{ stepStatus(step.status) }}
-                    </span>
+                    @if (stepStateUnavailable(step)) {
+                      <span class="step-status" data-status="UNAVAILABLE">Unavailable</span>
+                    } @else {
+                      <span class="step-status" [attr.data-status]="step.status">
+                        {{ stepStatus(step.status) }}
+                      </span>
+                    }
                     @if (stepOutcome(step.outcome); as outcome) {
                       <span class="step-outcome" [attr.data-outcome]="step.outcome">
                         {{ outcome }}

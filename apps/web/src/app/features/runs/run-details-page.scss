@@ -299,6 +299,10 @@ code {
   overflow-x: auto;
 }
 
+tbody tr.is-selected {
+  background: #e0f2f1;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

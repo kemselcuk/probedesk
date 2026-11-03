@@ -274,6 +274,18 @@ export class LiveRunPage {
     return step.hasOutOfTolerance;
   }
 
+  /**
+   * A terminal event can arrive before the final snapshot that carries the
+   * authoritative step statuses. When that snapshot never loads, RUNNING or
+   * PENDING rows are stale by definition and must not be read as current.
+   */
+  protected stepStateUnavailable(step: RunSnapshotStep): boolean {
+    return (
+      this.live.finalStepStateUnavailable() &&
+      (step.status === 'RUNNING' || step.status === 'PENDING')
+    );
+  }
+
   protected scenario = scenarioLabel;
   protected stepStatus = stepStatusLabel;
   protected stepOutcome = stepOutcomeLabel;

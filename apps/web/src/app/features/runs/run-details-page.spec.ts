@@ -1,14 +1,25 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  TestRequest,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { Router, TitleStrategy, provideRouter, withDisabledInitialNavigation } from '@angular/router';
+import {
+  Router,
+  TitleStrategy,
+  provideRouter,
+  withDisabledInitialNavigation,
+} from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../../app.routes';
 import { AuthSessionStore } from '../../core/auth/auth-session.store';
 import type { Role } from '../../core/auth/auth.types';
 import { AppTitleStrategy } from '../../core/title/app-title.strategy';
+import { MEASUREMENT_CHART_FACTORY } from '../../shared/charts/measurement-chart.factory';
+import { FakeMeasurementChartFactory } from '../../shared/charts/testing/fake-measurement-chart';
 
 const RUN_ID = '44444444-4444-4444-8444-444444444444';
 const OTHER_RUN_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -314,13 +325,17 @@ const FAILED_FORCED_SNAPSHOT = {
 };
 
 describe('RunDetailsPage', () => {
+  let chartFactory: FakeMeasurementChartFactory;
+
   beforeEach(async () => {
+    chartFactory = new FakeMeasurementChartFactory();
     await TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         provideRouter(routes, withDisabledInitialNavigation()),
         { provide: TitleStrategy, useClass: AppTitleStrategy },
+        { provide: MEASUREMENT_CHART_FACTORY, useValue: chartFactory },
       ],
     }).compileComponents();
   });
@@ -353,12 +368,26 @@ describe('RunDetailsPage', () => {
     const http = TestBed.inject(HttpTestingController);
     http.expectOne(`/api/runs/${RUN_ID}`).flush(snapshot);
     await harness.fixture.whenStable();
+    TestBed.tick();
     harness.detectChanges();
     return harness;
   }
 
   function rootOf(harness: RouterTestingHarness): HTMLElement {
     return harness.fixture.nativeElement as HTMLElement;
+  }
+
+  function settle(harness: RouterTestingHarness): void {
+    TestBed.tick();
+    harness.detectChanges();
+  }
+
+  function measurementRow(
+    root: ParentNode,
+    runStepId: string,
+    sampleIndex: number,
+  ): HTMLElement | null {
+    return root.querySelector<HTMLElement>(`#measurement-row-${runStepId}-${sampleIndex}`);
   }
 
   function findButton(root: ParentNode, label: string): HTMLButtonElement | undefined {
@@ -452,9 +481,7 @@ describe('RunDetailsPage', () => {
 
     expect(root.querySelector('#run-again-button')).not.toBeNull();
     expect(root.querySelector('#cancel-run-button')).toBeNull();
-    expect(root.textContent).toContain(
-      'The recorded run on this page stays in history unchanged.',
-    );
+    expect(root.textContent).toContain('The recorded run on this page stays in history unchanged.');
   });
 
   it('renders a failed run with out-of-tolerance samples and the first failure index', async () => {
@@ -659,7 +686,9 @@ describe('RunDetailsPage', () => {
 
     expect(root.querySelector('.status-badge')?.textContent).toContain('Failed');
     expect(root.querySelector('.status-badge')?.textContent).not.toContain('Cancelled');
-    expect(root.textContent).toContain('was already Failed. Its existing result is shown unchanged.');
+    expect(root.textContent).toContain(
+      'was already Failed. Its existing result is shown unchanged.',
+    );
 
     http.expectOne(`/api/runs/${RUN_ID}`).flush(FAILED_SNAPSHOT);
     await harness.fixture.whenStable();
@@ -1136,5 +1165,153 @@ describe('RunDetailsPage', () => {
     expect(root.querySelector('.status-badge')?.textContent).not.toContain('Passed');
     expect(root.querySelector('.status-badge')?.textContent).not.toContain('Failed');
     expect(root.textContent).toContain('not a Passed or Failed result');
+  });
+
+  it('renders one measurement chart per step and never duplicates a chart on re-render', async () => {
+    const harness = await openLoaded(PASSED_SNAPSHOT);
+    const root = rootOf(harness);
+
+    expect(root.querySelectorAll('app-measurement-chart')).toHaveLength(2);
+    expect(chartFactory.created).toHaveLength(2);
+    expect(chartFactory.created[0]?.config.data.datasets[0]?.data).toHaveLength(2);
+    expect(chartFactory.created[1]?.config.data.datasets[0]?.data).toHaveLength(2);
+
+    settle(harness);
+    settle(harness);
+
+    expect(chartFactory.created).toHaveLength(2);
+  });
+
+  it('uses the same recorded value and backend flag in the chart and the table', async () => {
+    const harness = await openLoaded(FAILED_SNAPSHOT);
+    const root = rootOf(harness);
+    const chartPoints = chartFactory.created[1]?.config.data.datasets[0]?.data ?? [];
+    const failingPoint = chartPoints.find((point) => point.sampleIndex === 1);
+    const row = measurementRow(root, RUN_STEP_2, 1);
+
+    expect(failingPoint?.measurement.value).toBe('0.600000');
+    expect(failingPoint?.measurement.isWithinTolerance).toBe(false);
+    expect(row?.textContent).toContain('0.600000');
+    expect(row?.textContent).toContain('Outside tolerance');
+    expect(chartPoints).toHaveLength(2);
+  });
+
+  it('selects and focuses the measurement row when a chart point is clicked', async () => {
+    const harness = await openLoaded(FAILED_SNAPSHOT);
+    const root = rootOf(harness);
+    const failureChart = chartFactory.created[1];
+    expect(failureChart).toBeDefined();
+
+    failureChart?.clickPoint(1);
+    settle(harness);
+
+    const row = measurementRow(root, RUN_STEP_2, 1);
+    expect(row?.classList.contains('is-selected')).toBe(true);
+    expect(row?.getAttribute('aria-current')).toBe('true');
+    expect(document.activeElement?.id).toBe(row?.id);
+    expect(root.textContent).toContain('Outside tolerance: sample 1 of step 2, Current draw');
+    expect(root.textContent).toContain('The measurement row is focused in the table.');
+    expect(failureChart?.updateCalls.length).toBeGreaterThan(0);
+  });
+
+  it('reaches the same selection from the chart failure list and switches step correctly', async () => {
+    const harness = await openLoaded(FAILED_SNAPSHOT);
+    const root = rootOf(harness);
+
+    const failureButton = root
+      .querySelectorAll('app-measurement-chart')[1]
+      ?.querySelector<HTMLButtonElement>('.failure-item');
+    expect(failureButton?.tagName).toBe('BUTTON');
+    failureButton?.click();
+    settle(harness);
+
+    const stepTwoRow = measurementRow(root, RUN_STEP_2, 1);
+    expect(stepTwoRow?.classList.contains('is-selected')).toBe(true);
+    expect(document.activeElement?.id).toBe(stepTwoRow?.id);
+
+    measurementRow(root, RUN_STEP_1, 0)?.click();
+    settle(harness);
+
+    const stepOneRow = measurementRow(root, RUN_STEP_1, 0);
+    expect(stepOneRow?.classList.contains('is-selected')).toBe(true);
+    expect(stepTwoRow?.classList.contains('is-selected')).toBe(false);
+    expect(root.textContent).toContain('Within tolerance: sample 0 of step 1, Output voltage');
+
+    settle(harness);
+    expect(stepOneRow?.classList.contains('is-selected')).toBe(true);
+  });
+
+  it('offers a keyboard alternative on out-of-tolerance table rows', async () => {
+    const harness = await openLoaded(FAILED_SNAPSHOT);
+    const root = rootOf(harness);
+    const row = measurementRow(root, RUN_STEP_2, 1);
+
+    expect(row?.getAttribute('tabindex')).toBe('0');
+    expect(row?.getAttribute('aria-label')).toContain('outside tolerance');
+    expect(measurementRow(root, RUN_STEP_1, 0)?.getAttribute('tabindex')).toBe('-1');
+
+    row?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    settle(harness);
+
+    expect(row?.classList.contains('is-selected')).toBe(true);
+    expect(document.activeElement?.id).toBe(row?.id);
+  });
+
+  it('focuses the measurement table from the chart table link and the first-failure action', async () => {
+    const harness = await openLoaded(FAILED_SNAPSHOT);
+    const root = rootOf(harness);
+    const tableLink = root
+      .querySelectorAll('app-measurement-chart')[1]
+      ?.querySelector<HTMLAnchorElement>('.table-link');
+
+    const notCancelled = tableLink?.dispatchEvent(
+      new MouseEvent('click', { bubbles: true, cancelable: true }),
+    );
+    expect(notCancelled).toBe(false);
+    settle(harness);
+    expect(document.activeElement?.id).toBe(`measurements-table-${RUN_STEP_2}`);
+    expect(root.textContent).toContain('Measurement table for step 2, Current draw, is focused.');
+
+    root.querySelector<HTMLButtonElement>('.first-failure-action')?.click();
+    settle(harness);
+
+    const row = measurementRow(root, RUN_STEP_2, 1);
+    expect(row?.classList.contains('is-selected')).toBe(true);
+    expect(document.activeElement?.id).toBe(row?.id);
+  });
+
+  it('clears a selection when a refreshed snapshot no longer contains that sample', async () => {
+    const harness = await openLoaded(FAILED_SNAPSHOT);
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+
+    measurementRow(root, RUN_STEP_2, 1)?.click();
+    settle(harness);
+    expect(measurementRow(root, RUN_STEP_2, 1)?.classList.contains('is-selected')).toBe(true);
+
+    root.querySelector<HTMLButtonElement>('#refresh-run-button')?.click();
+    harness.detectChanges();
+
+    http.expectOne(`/api/runs/${RUN_ID}`).flush({
+      ...FAILED_SNAPSHOT,
+      recordedSampleCount: 3,
+      steps: [
+        VOLTAGE_STEP,
+        {
+          ...CURRENT_STEP,
+          recordedCount: 1,
+          outOfToleranceCount: 0,
+          firstFailureSampleIndex: null,
+          hasOutOfTolerance: false,
+          measurements: [CURRENT_STEP.measurements[0]],
+        },
+      ],
+    });
+    await harness.fixture.whenStable();
+    settle(harness);
+
+    expect(root.querySelector('.step-card tbody tr.is-selected')).toBeNull();
+    expect(root.querySelector('.step-card tbody tr[aria-current="true"]')).toBeNull();
+    expect(chartFactory.created[1]?.config.data.datasets[0]?.data).toHaveLength(1);
   });
 });

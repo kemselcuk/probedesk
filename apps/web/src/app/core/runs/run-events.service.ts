@@ -201,6 +201,10 @@ class RunEventSession {
    * sequences again; the reducer ignores those duplicates. This is the
    * supported recovery path when the consumer's applied cursor is behind the
    * session's delivered cursor.
+   *
+   * The reconnect budget is deliberately not reset here. A consumer-driven
+   * restart is not evidence that the transport is healthy, so an open/close
+   * loop must not be able to buy fresh retries by asking for another cursor.
    */
   restartAt(afterSequence: number): void {
     if (this.closed || this.lastSequence === afterSequence) {
@@ -210,7 +214,6 @@ class RunEventSession {
     this.clearTimer();
     this.closeSource();
     this.lastSequence = afterSequence;
-    this.attempt = 0;
     this.setState('connecting');
 
     if (this.consumers > 0) {
@@ -279,7 +282,10 @@ class RunEventSession {
       return;
     }
 
-    this.attempt = 0;
+    // Opening the HTTP response is not proof that the stream works. A proxy
+    // can accept the request, send the SSE headers, and close without a single
+    // domain event. Reset the bounded-retry budget only when data arrives, so
+    // that an empty open/close loop still exhausts the delays.
     this.setState('connected');
   }
 
@@ -313,7 +319,17 @@ class RunEventSession {
       return;
     }
 
+    // A delivered domain event that advances this run's cursor is the only
+    // positive health signal we have. Heartbeat comments are invisible to the
+    // EventSource API, so an open socket alone cannot distinguish a working
+    // stream from one that will close without data on the next poll. A
+    // duplicate replay does not advance the cursor and therefore does not buy
+    // a fresh retry budget either.
+    const advancedCursor = parsed.sequence > this.lastSequence;
     this.lastSequence = Math.max(this.lastSequence, parsed.sequence);
+    if (advancedCursor) {
+      this.attempt = 0;
+    }
     this.updatesSubject.next({ type: 'event', event: parsed });
 
     if (isTerminalRunEventType(parsed.type)) {
