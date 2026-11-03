@@ -5,6 +5,7 @@ import { DeviceProfilesModule } from './device-profiles/device-profiles.module.j
 import { HealthModule } from './health/health.module.js';
 import { PlansModule } from './plans/plans.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { RunsModule } from './runs/runs.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     HealthModule,
     DeviceProfilesModule,
     PlansModule,
+    RunsModule,
   ],
 })
 export class AppModule {}

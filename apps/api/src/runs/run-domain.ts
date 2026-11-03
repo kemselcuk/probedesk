@@ -75,5 +75,12 @@ export function runEventWireType(type: RunEventType): string {
 /** Envelope schema version stored on every row and sent over SSE. */
 export const RUN_EVENT_SCHEMA_VERSION = 1;
 
+/**
+ * Version of the tolerance/summary evaluation rules stamped on every run.
+ * P3-05 implements the evaluator; changing its verdict or summary rules must
+ * bump this value so historical runs stay traceable.
+ */
+export const RUN_EVALUATION_VERSION = 'decimal-v1';
+
 /** Seed is a uint32 and therefore does not fit a signed PostgreSQL INTEGER. */
 export const MAX_RUN_SEED = 4_294_967_295n;

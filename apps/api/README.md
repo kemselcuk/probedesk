@@ -134,6 +134,40 @@ transition (and aborts the publish because the content changed) or waits and is
 rejected after it. The test cleanup helper disables these triggers as the schema
 owner; application connections cannot.
 
+## Run start
+
+`POST /api/runs` starts a published plan version as the single active run. It
+requires an Operator session, the CSRF header and an `Idempotency-Key` header
+(1–200 characters).
+
+```json
+{
+  "planVersionId": "…",
+  "scenario": "NORMAL",
+  "seed": 123456789
+}
+```
+
+`scenario` is one of `NORMAL`, `FORCED_FAILURE` and `RANDOM`. `failureStepId` is
+required only for `FORCED_FAILURE` and must be one of that published version's
+`logicalStepId` values. `errorProbability` is required only for `RANDOM` and is
+a canonical decimal string from `0` to `1` with at most six fractional digits;
+it is stored as six-place text. Unknown fields and client-supplied status,
+outcome or counters are rejected with `400 VALIDATION_ERROR` and `fieldErrors`.
+
+A new run returns `202` with `runId`, `status: "RUNNING"`, `outcome: null` and
+the relative `snapshotUrl`/`eventsUrl`. The run row, every immutable `RunStep`
+copy and the `run.started` event commit in one transaction. Execution is not
+tied to the start HTTP connection; the executor and the snapshot/event endpoints
+are added by later Phase 3 tasks.
+
+Retrying the same user, key and normalized request returns the stored run with
+`200`, even after it reached a terminal status. Reusing the key with a different
+request is `409 IDEMPOTENCY_CONFLICT`. Starting with a different key while one
+run is `RUNNING` is `409 RUN_ALREADY_ACTIVE` with `details.activeRunId`; the
+request is not queued. The database partial unique index on `RUNNING` rows is
+the final guarantee when two starts arrive concurrently.
+
 ## Tests
 
 ```bash

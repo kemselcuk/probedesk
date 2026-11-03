@@ -41,6 +41,7 @@ describe('OpenAPI document (e2e)', () => {
       '/api/plans/{id}/draft/publish',
       '/api/plans/{id}/drafts',
       '/api/plans/{id}/versions',
+      '/api/runs',
     ]);
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
@@ -89,7 +90,7 @@ describe('OpenAPI document (e2e)', () => {
       '204',
     );
     expect(document.paths['/api/auth/logout']?.post?.responses).toHaveProperty(
-       '403',
+      '403',
     );
 
     expect(document.paths['/api/device-profiles']?.get?.security).toEqual([
@@ -104,21 +105,37 @@ describe('OpenAPI document (e2e)', () => {
     expect(document.paths['/api/plans/{id}']?.get?.security).toEqual([
       { session: [] },
     ]);
-    expect(
-      document.paths['/api/plans/{id}/draft']?.put?.security,
-    ).toEqual([{ session: [], csrfToken: [] }]);
+    expect(document.paths['/api/plans/{id}/draft']?.put?.security).toEqual([
+      { session: [], csrfToken: [] },
+    ]);
     expect(
       document.paths['/api/plans/{id}/draft/publish']?.post?.security,
     ).toEqual([{ session: [], csrfToken: [] }]);
-    expect(
-      document.paths['/api/plans/{id}/drafts']?.post?.security,
-    ).toEqual([{ session: [], csrfToken: [] }]);
+    expect(document.paths['/api/plans/{id}/drafts']?.post?.security).toEqual([
+      { session: [], csrfToken: [] },
+    ]);
     expect(document.paths['/api/plans/{id}/versions']?.get?.security).toEqual([
       { session: [] },
     ]);
     expect(document.paths['/api/plan-versions/{id}']?.get?.security).toEqual([
       { session: [] },
     ]);
+    expect(document.paths['/api/runs']?.post?.security).toEqual([
+      { session: [], csrfToken: [] },
+    ]);
+    expect(document.paths['/api/runs']?.post?.responses).toHaveProperty('202');
+    expect(document.paths['/api/runs']?.post?.responses).toHaveProperty('200');
+    expect(document.paths['/api/runs']?.post?.responses).toHaveProperty('400');
+    expect(document.paths['/api/runs']?.post?.responses).toHaveProperty('409');
+    expect(document.paths['/api/runs']?.post?.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'Idempotency-Key',
+          in: 'header',
+          required: true,
+        }),
+      ]),
+    );
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('201');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('400');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('403');
@@ -176,6 +193,8 @@ describe('OpenAPI document (e2e)', () => {
       'PublishedBySummaryDto',
     );
     expect(document.components?.schemas).toHaveProperty('DeviceProfileDto');
+    expect(document.components?.schemas).toHaveProperty('StartRunDto');
+    expect(document.components?.schemas).toHaveProperty('RunStartResponseDto');
     expect(document.components?.schemas?.AuthUserDto).toMatchObject({
       required: ['id', 'email', 'role'],
     });

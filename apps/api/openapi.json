@@ -879,6 +879,107 @@
           "plan-versions"
         ]
       }
+    },
+    "/api/runs": {
+      "post": {
+        "operationId": "RunsController_start",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key scoped to the current user. Retrying the same request with this key returns the existing run.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "6b6f0a1e-2b64-4e9d-9b8d-0fbe7e75a0c4",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRunDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An earlier run for the same user and Idempotency-Key was replayed. Its current status may already be terminal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStartResponseDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "A new RUNNING run was created with its snapshot, steps and first run.started event. The returned URLs can be opened independently of this request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStartResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The Idempotency-Key header or a body field is missing, unknown or outside the scenario contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not an Operator or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RUN_ALREADY_ACTIVE for another active run (details.activeRunId), or IDEMPOTENCY_CONFLICT when the key was used with a different request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Start a published plan version as the single active run, or replay an idempotent retry.",
+        "tags": [
+          "runs"
+        ]
+      }
     }
   },
   "info": {
@@ -1542,6 +1643,93 @@
           "publishedAt",
           "name",
           "publishedBy"
+        ]
+      },
+      "StartRunDto": {
+        "type": "object",
+        "properties": {
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Published plan revision id."
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "description": "Deterministic simulator scenario.",
+            "example": "NORMAL"
+          },
+          "seed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4294967295,
+            "description": "Unsigned 32-bit simulator seed.",
+            "example": 123456789
+          },
+          "failureStepId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required for FORCED_FAILURE only: the logicalStepId of the failing step in this published version."
+          },
+          "errorProbability": {
+            "type": "string",
+            "description": "Required for RANDOM only: decimal failure probability between 0 and 1 with at most 6 fractional digits.",
+            "example": "0.050000"
+          }
+        },
+        "required": [
+          "planVersionId",
+          "scenario",
+          "seed"
+        ]
+      },
+      "RunStartResponseDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "RUNNING",
+            "description": "RUNNING for a newly created run. A replay returns the stored current status, which may already be terminal."
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Overall outcome. Null until a COMPLETED run has a verdict; a terminal replay reports the stored value."
+          },
+          "snapshotUrl": {
+            "type": "string",
+            "example": "/api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f"
+          },
+          "eventsUrl": {
+            "type": "string",
+            "example": "/api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events"
+          }
+        },
+        "required": [
+          "runId",
+          "status",
+          "outcome",
+          "snapshotUrl",
+          "eventsUrl"
         ]
       }
     }

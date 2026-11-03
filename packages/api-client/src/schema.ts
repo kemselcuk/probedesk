@@ -226,6 +226,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a published plan version as the single active run, or replay an idempotent retry. */
+        post: operations["RunsController_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -477,6 +494,53 @@ export interface components {
             /** @example Power rail verification */
             name: string;
             publishedBy: components["schemas"]["PublishedBySummaryDto"];
+        };
+        StartRunDto: {
+            /**
+             * Format: uuid
+             * @description Published plan revision id.
+             */
+            planVersionId: string;
+            /**
+             * @description Deterministic simulator scenario.
+             * @example NORMAL
+             * @enum {string}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+            /**
+             * @description Unsigned 32-bit simulator seed.
+             * @example 123456789
+             */
+            seed: number;
+            /**
+             * Format: uuid
+             * @description Required for FORCED_FAILURE only: the logicalStepId of the failing step in this published version.
+             */
+            failureStepId?: string;
+            /**
+             * @description Required for RANDOM only: decimal failure probability between 0 and 1 with at most 6 fractional digits.
+             * @example 0.050000
+             */
+            errorProbability?: string;
+        };
+        RunStartResponseDto: {
+            /** Format: uuid */
+            runId: string;
+            /**
+             * @description RUNNING for a newly created run. A replay returns the stored current status, which may already be terminal.
+             * @example RUNNING
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+            /**
+             * @description Overall outcome. Null until a COMPLETED run has a verdict; a terminal replay reports the stored value.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** @example /api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f */
+            snapshotUrl: string;
+            /** @example /api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events */
+            eventsUrl: string;
         };
     };
     responses: never;
@@ -1121,6 +1185,78 @@ export interface operations {
             };
             /** @description The version does not exist or is not published. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    RunsController_start: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key scoped to the current user. Retrying the same request with this key returns the existing run. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartRunDto"];
+            };
+        };
+        responses: {
+            /** @description An earlier run for the same user and Idempotency-Key was replayed. Its current status may already be terminal. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunStartResponseDto"];
+                };
+            };
+            /** @description A new RUNNING run was created with its snapshot, steps and first run.started event. The returned URLs can be opened independently of this request. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunStartResponseDto"];
+                };
+            };
+            /** @description The Idempotency-Key header or a body field is missing, unknown or outside the scenario contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not an Operator or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description RUN_ALREADY_ACTIVE for another active run (details.activeRunId), or IDEMPOTENCY_CONFLICT when the key was used with a different request. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
