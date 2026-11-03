@@ -60,9 +60,12 @@ The API listens under `/api`. Health probes:
 - `GET http://127.0.0.1:3000/api/health/live`
 - `GET http://127.0.0.1:3000/api/health/ready`
 
-Readiness answers 503 until PostgreSQL is reachable and `_prisma_migrations`
-shows no unfinished or rolled-back migration. An empty database therefore
-reports `migrations: pending` instead of accepting traffic.
+Readiness answers 503 until PostgreSQL is reachable, `_prisma_migrations`
+shows no unfinished or rolled-back migration, and startup recovery has closed
+leftover RUNNING runs. An empty database therefore reports `migrations:
+pending` instead of accepting traffic. A failed startup recovery is retried by
+readiness, and run starts are rejected with `503 SERVICE_UNAVAILABLE` until it
+completes.
 
 Swagger UI is served at `/api/docs`; the JSON document is at `/api/docs-json`.
 
@@ -192,6 +195,47 @@ Terminal runs remain readable and are never recomputed from the current plan or
 draft. An unknown run id is `404 NOT_FOUND`; a non-UUID id is
 `400 VALIDATION_ERROR`. Responses contain no password hash, session token,
 idempotency key, request hash or draft content.
+
+## Cancellation, interruption and technical errors
+
+`POST /api/runs/:id/cancel` requires an Operator session and the CSRF header. It
+locks the run row with a conditional update, re-checks `RUNNING`, then in one
+transaction writes:
+
+- the run as `CANCELLED` with `finishedAt`, `cancelledById` and
+  `reasonCode: "USER_CANCELLED"`;
+- the active step as `CANCELLED` with `finishedAt`;
+- every step that never started as `NOT_RUN`;
+- one `run.cancelled` event at the next sequence.
+
+Committed measurements, counters and completed step results are untouched. The
+endpoint returns `200` with the full snapshot. If the run is already terminal,
+the existing snapshot is returned unchanged and no event is appended; repeating
+the request is safe. The in-process executor is signalled after the terminal
+commit, so its timer stops and every later write is rejected by the row-status
+check. A sample racing the cancel either commits before the terminal transition
+or does not exist.
+
+Startup recovery runs before readiness becomes `ok` and before a new run can
+start. Every leftover `RUNNING` run is closed in its own transaction as
+`INTERRUPTED` with `reasonCode: "SERVER_RESTART"`; the active step becomes
+`INTERRUPTED`, pending steps become `NOT_RUN`, and one `run.interrupted` event is
+appended. Recovery never resumes a run and never deletes measurements or
+completed steps. Re-running recovery over terminal history changes nothing.
+
+A controlled shutdown stops executor timers without writing a terminal status.
+The next process reconciles the still-RUNNING rows through the same recovery
+path.
+
+Invalid simulator output and persistence/execution failures are technical
+errors, not tolerance verdicts. When the database is reachable the run becomes
+`ERROR` with `outcome: null`, the active step becomes `ERROR`, pending steps
+become `NOT_RUN`, and `run.errored` carries a safe reason code such as
+`SIMULATOR_OUTPUT_INVALID` or `EXECUTION_FAILED`. Already committed samples are
+preserved. If the database cannot record the failure, the run stays RUNNING for
+startup recovery, readiness stays failed and new starts are rejected. Logs
+contain only run ids, reason codes and fixed messages; SQL, connection strings
+and stack traces are never logged or returned.
 
 ## Tests
 

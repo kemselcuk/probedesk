@@ -44,6 +44,7 @@ describe('OpenAPI document (e2e)', () => {
       '/api/runs',
       '/api/runs/active',
       '/api/runs/{id}',
+      '/api/runs/{id}/cancel',
     ]);
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
@@ -156,6 +157,21 @@ describe('OpenAPI document (e2e)', () => {
     expect(document.paths['/api/runs/{id}']?.get?.responses).toHaveProperty(
       '404',
     );
+    expect(document.paths['/api/runs/{id}/cancel']?.post?.security).toEqual([
+      { session: [], csrfToken: [] },
+    ]);
+    expect(
+      document.paths['/api/runs/{id}/cancel']?.post?.responses,
+    ).toHaveProperty('200');
+    expect(
+      document.paths['/api/runs/{id}/cancel']?.post?.responses,
+    ).toHaveProperty('401');
+    expect(
+      document.paths['/api/runs/{id}/cancel']?.post?.responses,
+    ).toHaveProperty('403');
+    expect(
+      document.paths['/api/runs/{id}/cancel']?.post?.responses,
+    ).toHaveProperty('404');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('201');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('400');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('403');

@@ -15,6 +15,7 @@ import {
   RUN_EVENT_SCHEMA_VERSION,
 } from './run-domain.js';
 import { RunExecutor } from './run-executor.js';
+import { RunRecoveryService } from './run-recovery.service.js';
 import { RUN_SCHEDULER, type RunScheduler } from './run-scheduler.js';
 import {
   buildRunSnapshot,
@@ -52,6 +53,8 @@ export class RunsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RunExecutor) private readonly runExecutor: RunExecutor,
+    @Inject(RunRecoveryService)
+    private readonly runRecovery: RunRecoveryService,
     @Inject(RUN_SCHEDULER) private readonly scheduler: RunScheduler,
   ) {}
 
@@ -78,6 +81,12 @@ export class RunsService {
       errorProbability: dto.errorProbability,
     });
     const requestHash = hashRunStartRequest(request);
+
+    // Startup reconciliation must finish before any new work is accepted. A
+    // stale RUNNING row would otherwise look like RUN_ALREADY_ACTIVE forever.
+    if (!(await this.runRecovery.ensureCompleted())) {
+      throw serviceUnavailable();
+    }
 
     // The existing key is checked before plan validation so a retry after the
     // run became terminal (or after the plan changed) still returns that run.
@@ -315,5 +324,15 @@ function runAlreadyActive(activeRunId: string): ApiException {
     'RUN_ALREADY_ACTIVE',
     'Another run is already active. Wait for it to finish before starting a new run.',
     { details: { activeRunId } },
+  );
+}
+
+/** Readiness (database, migrations and startup recovery) is not complete. */
+function serviceUnavailable(): ApiException {
+  return new ApiException(
+    HttpStatus.SERVICE_UNAVAILABLE,
+    'SERVICE_UNAVAILABLE',
+    'The service is not ready to accept new runs.',
+    { details: { checks: { startup: 'pending' } } },
   );
 }

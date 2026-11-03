@@ -2,7 +2,7 @@ import {
   Inject,
   Injectable,
   Logger,
-  type OnApplicationShutdown,
+  type OnModuleDestroy,
 } from '@nestjs/common';
 import {
   RunEventType,
@@ -128,8 +128,9 @@ class RunPreparationError extends Error {
 }
 
 @Injectable()
-export class RunExecutor implements OnApplicationShutdown {
+export class RunExecutor implements OnModuleDestroy {
   private readonly logger = new Logger(RunExecutor.name);
+  /** In-process cancellation registry: one execution state per run id. */
   private readonly executions = new Map<string, ExecutionState>();
 
   constructor(
@@ -163,7 +164,27 @@ export class RunExecutor implements OnApplicationShutdown {
     return this.executions.size;
   }
 
-  onApplicationShutdown(): void {
+  /**
+   * Signals the in-process execution for this run to stop. The timer or the
+   * pending wait is cancelled immediately; every database write still re-checks
+   * the RUNNING status under the row lock, so a write already in flight either
+   * committed before the cancel transaction or is rejected by it.
+   */
+  cancel(runId: string): boolean {
+    const state = this.executions.get(runId);
+    if (!state) {
+      return false;
+    }
+
+    this.stopExecution(state);
+    return true;
+  }
+
+  /**
+   * Controlled shutdown stops timers and leaves the run data untouched for
+   * startup recovery. It never writes a terminal status.
+   */
+  onModuleDestroy(): void {
     for (const state of this.executions.values()) {
       this.stopExecution(state);
     }
@@ -235,12 +256,27 @@ export class RunExecutor implements OnApplicationShutdown {
         if (!recorded) {
           return;
         }
+
+        // Shutdown or cancellation may have been signalled while this sample
+        // was committing. The sample itself stays committed only if its
+        // transaction won the row lock, but no further step may start.
+        if (state.stopped) {
+          throw new RunStoppedError();
+        }
+      }
+
+      if (state.stopped) {
+        throw new RunStoppedError();
       }
 
       const completed = await this.completeStep(runId, plannedStep.step);
       if (!completed) {
         return;
       }
+    }
+
+    if (state.stopped) {
+      throw new RunStoppedError();
     }
 
     await this.completeRun(runId);

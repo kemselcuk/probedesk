@@ -227,7 +227,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The database is reachable and every registered migration has finished.",
+            "description": "The database is reachable, every registered migration has finished and leftover running runs have been reconciled.",
             "content": {
               "application/json": {
                 "schema": {
@@ -264,7 +264,7 @@
             }
           },
           "503": {
-            "description": "The database is unavailable or its migrations are unfinished; retry after it recovers.",
+            "description": "The database is unavailable, its migrations are unfinished or startup recovery is incomplete; retry after it recovers.",
             "content": {
               "application/json": {
                 "schema": {
@@ -274,9 +274,279 @@
             }
           }
         },
-        "summary": "Report whether the API can serve requests, including database access and applied migrations.",
+        "summary": "Report whether the API can serve requests, including database access, applied migrations and startup recovery.",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/runs": {
+      "post": {
+        "operationId": "RunsController_start",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key scoped to the current user. Retrying the same request with this key returns the existing run.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "6b6f0a1e-2b64-4e9d-9b8d-0fbe7e75a0c4",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRunDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An earlier run for the same user and Idempotency-Key was replayed. Its current status may already be terminal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStartResponseDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "A new RUNNING run was created with its snapshot, steps and first run.started event. The returned URLs can be opened independently of this request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStartResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The Idempotency-Key header or a body field is missing, unknown or outside the scenario contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not an Operator or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RUN_ALREADY_ACTIVE for another active run (details.activeRunId), or IDEMPOTENCY_CONFLICT when the key was used with a different request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Start a published plan version as the single active run, or replay an idempotent retry.",
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/api/runs/active": {
+      "get": {
+        "operationId": "RunsController_getActive",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The RUNNING run summary. The response body is the JSON literal null when no run is active.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/RunActiveDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read the single running run summary, or JSON null when idle.",
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/api/runs/{id}": {
+      "get": {
+        "operationId": "RunsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Run id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run, copied step rules, measurements and lastEventSequence read from one consistent repeatable-read transaction. A RUNNING run is readable; terminal rule values are never re-evaluated from the live plan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunSnapshotDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The run does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read the immutable run snapshot with its measurements and event cursor.",
+        "tags": [
+          "runs"
+        ]
+      }
+    },
+    "/api/runs/{id}/cancel": {
+      "post": {
+        "operationId": "RunsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Run id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run is CANCELLED, or it was already terminal and its existing state is returned unchanged. Already committed measurements and completed steps are preserved; steps that never started are NOT_RUN. Repeating the request is safe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunSnapshotDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not an Operator or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The run does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Cancel the running run, or return the existing terminal snapshot unchanged.",
+        "tags": [
+          "runs"
         ]
       }
     },
@@ -879,207 +1149,6 @@
           "plan-versions"
         ]
       }
-    },
-    "/api/runs": {
-      "post": {
-        "operationId": "RunsController_start",
-        "parameters": [
-          {
-            "name": "Idempotency-Key",
-            "in": "header",
-            "description": "Client-generated key scoped to the current user. Retrying the same request with this key returns the existing run.",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "example": "6b6f0a1e-2b64-4e9d-9b8d-0fbe7e75a0c4",
-              "minLength": 1,
-              "maxLength": 200
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StartRunDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "An earlier run for the same user and Idempotency-Key was replayed. Its current status may already be terminal.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunStartResponseDto"
-                }
-              }
-            }
-          },
-          "202": {
-            "description": "A new RUNNING run was created with its snapshot, steps and first run.started event. The returned URLs can be opened independently of this request.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunStartResponseDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The Idempotency-Key header or a body field is missing, unknown or outside the scenario contract.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The session is missing, expired or revoked.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The user is not an Operator or the CSRF token is invalid.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "RUN_ALREADY_ACTIVE for another active run (details.activeRunId), or IDEMPOTENCY_CONFLICT when the key was used with a different request.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "session": [],
-            "csrfToken": []
-          }
-        ],
-        "summary": "Start a published plan version as the single active run, or replay an idempotent retry.",
-        "tags": [
-          "runs"
-        ]
-      }
-    },
-    "/api/runs/active": {
-      "get": {
-        "operationId": "RunsController_getActive",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "The RUNNING run summary. The response body is the JSON literal null when no run is active.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "nullable": true,
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/RunActiveDto"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The session is missing, expired or revoked.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "session": []
-          }
-        ],
-        "summary": "Read the single running run summary, or JSON null when idle.",
-        "tags": [
-          "runs"
-        ]
-      }
-    },
-    "/api/runs/{id}": {
-      "get": {
-        "operationId": "RunsController_getById",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Run id.",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Run, copied step rules, measurements and lastEventSequence read from one consistent repeatable-read transaction. A RUNNING run is readable; terminal rule values are never re-evaluated from the live plan.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunSnapshotDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "The session is missing, expired or revoked.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The run does not exist.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "session": []
-          }
-        ],
-        "summary": "Read the immutable run snapshot with its measurements and event cursor.",
-        "tags": [
-          "runs"
-        ]
-      }
     }
   },
   "info": {
@@ -1239,6 +1308,157 @@
           "role"
         ]
       },
+      "RunActiveDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "RUNNING"
+          },
+          "expectedSampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10000,
+            "example": 6
+          },
+          "recordedSampleCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 3
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "example": "NORMAL"
+          }
+        },
+        "required": [
+          "runId",
+          "planName",
+          "versionNumber",
+          "status",
+          "expectedSampleCount",
+          "recordedSampleCount",
+          "startedAt",
+          "scenario"
+        ]
+      },
+      "StartRunDto": {
+        "type": "object",
+        "properties": {
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Published plan revision id."
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "description": "Deterministic simulator scenario.",
+            "example": "NORMAL"
+          },
+          "seed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4294967295,
+            "description": "Unsigned 32-bit simulator seed.",
+            "example": 123456789
+          },
+          "failureStepId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required for FORCED_FAILURE only: the logicalStepId of the failing step in this published version."
+          },
+          "errorProbability": {
+            "type": "string",
+            "description": "Required for RANDOM only: decimal failure probability between 0 and 1 with at most 6 fractional digits.",
+            "example": "0.050000"
+          }
+        },
+        "required": [
+          "planVersionId",
+          "scenario",
+          "seed"
+        ]
+      },
+      "RunStartResponseDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "RUNNING",
+            "description": "RUNNING for a newly created run. A replay returns the stored current status, which may already be terminal."
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Overall outcome. Null until a COMPLETED run has a verdict; a terminal replay reports the stored value."
+          },
+          "snapshotUrl": {
+            "type": "string",
+            "example": "/api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f"
+          },
+          "eventsUrl": {
+            "type": "string",
+            "example": "/api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events"
+          }
+        },
+        "required": [
+          "runId",
+          "status",
+          "outcome",
+          "snapshotUrl",
+          "eventsUrl"
+        ]
+      },
       "DeviceProfileDto": {
         "type": "object",
         "properties": {
@@ -1265,6 +1485,382 @@
           "id",
           "code",
           "name"
+        ]
+      },
+      "RunRequestedByDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "operator@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "PLANNER",
+              "OPERATOR",
+              "VIEWER"
+            ],
+            "example": "OPERATOR"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role"
+        ]
+      },
+      "RunStepStatisticsDto": {
+        "type": "object",
+        "properties": {
+          "minimum": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "4.980000",
+            "description": "Smallest recorded sample, or null for a partial step."
+          },
+          "maximum": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.020000",
+            "description": "Largest recorded sample, or null for a partial step."
+          },
+          "average": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.000000",
+            "description": "Rounded average, or null for a partial step."
+          },
+          "sampleCount": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "example": 100,
+            "description": "Sample count covered by the stored summary, or null when no summary exists."
+          }
+        },
+        "required": [
+          "minimum",
+          "maximum",
+          "average",
+          "sampleCount"
+        ]
+      },
+      "RunMeasurementDto": {
+        "type": "object",
+        "properties": {
+          "sampleIndex": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "value": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.000000",
+            "description": "Canonical six-fraction-digit measurement value."
+          },
+          "isWithinTolerance": {
+            "type": "boolean",
+            "example": true
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "elapsedMs": {
+            "type": "number",
+            "minimum": 0,
+            "example": 200
+          }
+        },
+        "required": [
+          "sampleIndex",
+          "value",
+          "isWithinTolerance",
+          "recordedAt",
+          "elapsedMs"
+        ]
+      },
+      "RunSnapshotStepDto": {
+        "type": "object",
+        "properties": {
+          "runStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "number",
+            "minimum": 1,
+            "description": "1-based step order inside this run."
+          },
+          "name": {
+            "type": "string",
+            "example": "Output voltage"
+          },
+          "unit": {
+            "type": "string",
+            "example": "V"
+          },
+          "minimum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "4.750000"
+          },
+          "maximum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.250000"
+          },
+          "sampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "example": 100
+          },
+          "intervalMs": {
+            "type": "number",
+            "minimum": 100,
+            "maximum": 5000,
+            "example": 250
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR",
+              "NOT_RUN"
+            ],
+            "example": "RUNNING"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Step verdict. Null unless the step is COMPLETED; a partial step can still report an out-of-tolerance sample."
+          },
+          "recordedCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 42
+          },
+          "outOfToleranceCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "firstFailureSampleIndex": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "example": null,
+            "description": "Index of the first out-of-tolerance sample, if any."
+          },
+          "hasOutOfTolerance": {
+            "type": "boolean",
+            "example": false,
+            "description": "True exactly when outOfToleranceCount is greater than zero. Available even while outcome is null."
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/RunStepStatisticsDto"
+          },
+          "measurements": {
+            "description": "Recorded samples ordered by ascending sampleIndex.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunMeasurementDto"
+            }
+          }
+        },
+        "required": [
+          "runStepId",
+          "logicalStepId",
+          "position",
+          "name",
+          "unit",
+          "minimum",
+          "maximum",
+          "sampleCount",
+          "intervalMs",
+          "status",
+          "outcome",
+          "recordedCount",
+          "outOfToleranceCount",
+          "firstFailureSampleIndex",
+          "hasOutOfTolerance",
+          "statistics",
+          "measurements"
+        ]
+      },
+      "RunSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "profile": {
+            "$ref": "#/components/schemas/DeviceProfileDto"
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "example": "NORMAL"
+          },
+          "seed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4294967295,
+            "example": 123456789
+          },
+          "errorProbability": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d+\\.\\d{6}$",
+            "example": null,
+            "description": "Canonical probability for RANDOM, otherwise null."
+          },
+          "failureStepId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "Logical step selected for FORCED_FAILURE, otherwise null."
+          },
+          "simulatorVersion": {
+            "type": "string",
+            "example": "sim-v1"
+          },
+          "evaluationVersion": {
+            "type": "string",
+            "example": "decimal-v1"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "RUNNING"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Overall verdict; only a COMPLETED run has one."
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "requestedBy": {
+            "$ref": "#/components/schemas/RunRequestedByDto"
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true,
+            "example": null,
+            "description": "Safe technical reason code for an ERROR or cancellation."
+          },
+          "expectedSampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10000,
+            "example": 6
+          },
+          "recordedSampleCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 6
+          },
+          "lastEventSequence": {
+            "type": "number",
+            "minimum": 0,
+            "example": 14,
+            "description": "Sequence of the last committed run event covered by this snapshot. Use it as the initial SSE cursor."
+          },
+          "steps": {
+            "description": "Steps ordered by ascending position.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSnapshotStepDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "planId",
+          "planVersionId",
+          "planName",
+          "versionNumber",
+          "profile",
+          "scenario",
+          "seed",
+          "errorProbability",
+          "failureStepId",
+          "simulatorVersion",
+          "evaluationVersion",
+          "status",
+          "outcome",
+          "startedAt",
+          "finishedAt",
+          "requestedBy",
+          "reasonCode",
+          "expectedSampleCount",
+          "recordedSampleCount",
+          "lastEventSequence",
+          "steps"
         ]
       },
       "CreatePlanDto": {
@@ -1743,533 +2339,6 @@
           "publishedAt",
           "name",
           "publishedBy"
-        ]
-      },
-      "RunActiveDto": {
-        "type": "object",
-        "properties": {
-          "runId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "planName": {
-            "type": "string",
-            "example": "Power rail verification"
-          },
-          "versionNumber": {
-            "type": "number",
-            "minimum": 1,
-            "example": 1
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "RUNNING",
-              "COMPLETED",
-              "CANCELLED",
-              "INTERRUPTED",
-              "ERROR"
-            ],
-            "example": "RUNNING"
-          },
-          "expectedSampleCount": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 10000,
-            "example": 6
-          },
-          "recordedSampleCount": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 10000,
-            "example": 3
-          },
-          "startedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "scenario": {
-            "type": "string",
-            "enum": [
-              "NORMAL",
-              "FORCED_FAILURE",
-              "RANDOM"
-            ],
-            "example": "NORMAL"
-          }
-        },
-        "required": [
-          "runId",
-          "planName",
-          "versionNumber",
-          "status",
-          "expectedSampleCount",
-          "recordedSampleCount",
-          "startedAt",
-          "scenario"
-        ]
-      },
-      "StartRunDto": {
-        "type": "object",
-        "properties": {
-          "planVersionId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Published plan revision id."
-          },
-          "scenario": {
-            "type": "string",
-            "enum": [
-              "NORMAL",
-              "FORCED_FAILURE",
-              "RANDOM"
-            ],
-            "description": "Deterministic simulator scenario.",
-            "example": "NORMAL"
-          },
-          "seed": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 4294967295,
-            "description": "Unsigned 32-bit simulator seed.",
-            "example": 123456789
-          },
-          "failureStepId": {
-            "type": "string",
-            "format": "uuid",
-            "description": "Required for FORCED_FAILURE only: the logicalStepId of the failing step in this published version."
-          },
-          "errorProbability": {
-            "type": "string",
-            "description": "Required for RANDOM only: decimal failure probability between 0 and 1 with at most 6 fractional digits.",
-            "example": "0.050000"
-          }
-        },
-        "required": [
-          "planVersionId",
-          "scenario",
-          "seed"
-        ]
-      },
-      "RunStartResponseDto": {
-        "type": "object",
-        "properties": {
-          "runId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "RUNNING",
-              "COMPLETED",
-              "CANCELLED",
-              "INTERRUPTED",
-              "ERROR"
-            ],
-            "example": "RUNNING",
-            "description": "RUNNING for a newly created run. A replay returns the stored current status, which may already be terminal."
-          },
-          "outcome": {
-            "type": "string",
-            "enum": [
-              "PASSED",
-              "FAILED"
-            ],
-            "nullable": true,
-            "description": "Overall outcome. Null until a COMPLETED run has a verdict; a terminal replay reports the stored value."
-          },
-          "snapshotUrl": {
-            "type": "string",
-            "example": "/api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f"
-          },
-          "eventsUrl": {
-            "type": "string",
-            "example": "/api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events"
-          }
-        },
-        "required": [
-          "runId",
-          "status",
-          "outcome",
-          "snapshotUrl",
-          "eventsUrl"
-        ]
-      },
-      "RunRequestedByDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "operator@example.com"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "PLANNER",
-              "OPERATOR",
-              "VIEWER"
-            ],
-            "example": "OPERATOR"
-          }
-        },
-        "required": [
-          "id",
-          "email",
-          "role"
-        ]
-      },
-      "RunStepStatisticsDto": {
-        "type": "object",
-        "properties": {
-          "minimum": {
-            "type": "string",
-            "nullable": true,
-            "pattern": "^-?\\d+\\.\\d{6}$",
-            "example": "4.980000",
-            "description": "Smallest recorded sample, or null for a partial step."
-          },
-          "maximum": {
-            "type": "string",
-            "nullable": true,
-            "pattern": "^-?\\d+\\.\\d{6}$",
-            "example": "5.020000",
-            "description": "Largest recorded sample, or null for a partial step."
-          },
-          "average": {
-            "type": "string",
-            "nullable": true,
-            "pattern": "^-?\\d+\\.\\d{6}$",
-            "example": "5.000000",
-            "description": "Rounded average, or null for a partial step."
-          },
-          "sampleCount": {
-            "type": "number",
-            "nullable": true,
-            "minimum": 0,
-            "example": 100,
-            "description": "Sample count covered by the stored summary, or null when no summary exists."
-          }
-        },
-        "required": [
-          "minimum",
-          "maximum",
-          "average",
-          "sampleCount"
-        ]
-      },
-      "RunMeasurementDto": {
-        "type": "object",
-        "properties": {
-          "sampleIndex": {
-            "type": "number",
-            "minimum": 0,
-            "example": 0
-          },
-          "value": {
-            "type": "string",
-            "pattern": "^-?\\d+\\.\\d{6}$",
-            "example": "5.000000",
-            "description": "Canonical six-fraction-digit measurement value."
-          },
-          "isWithinTolerance": {
-            "type": "boolean",
-            "example": true
-          },
-          "recordedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "elapsedMs": {
-            "type": "number",
-            "minimum": 0,
-            "example": 200
-          }
-        },
-        "required": [
-          "sampleIndex",
-          "value",
-          "isWithinTolerance",
-          "recordedAt",
-          "elapsedMs"
-        ]
-      },
-      "RunSnapshotStepDto": {
-        "type": "object",
-        "properties": {
-          "runStepId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "logicalStepId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "position": {
-            "type": "number",
-            "minimum": 1,
-            "description": "1-based step order inside this run."
-          },
-          "name": {
-            "type": "string",
-            "example": "Output voltage"
-          },
-          "unit": {
-            "type": "string",
-            "example": "V"
-          },
-          "minimum": {
-            "type": "string",
-            "pattern": "^-?\\d+\\.\\d{6}$",
-            "example": "4.750000"
-          },
-          "maximum": {
-            "type": "string",
-            "pattern": "^-?\\d+\\.\\d{6}$",
-            "example": "5.250000"
-          },
-          "sampleCount": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 1000,
-            "example": 100
-          },
-          "intervalMs": {
-            "type": "number",
-            "minimum": 100,
-            "maximum": 5000,
-            "example": 250
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "RUNNING",
-              "COMPLETED",
-              "CANCELLED",
-              "INTERRUPTED",
-              "ERROR",
-              "NOT_RUN"
-            ],
-            "example": "RUNNING"
-          },
-          "outcome": {
-            "type": "string",
-            "enum": [
-              "PASSED",
-              "FAILED"
-            ],
-            "nullable": true,
-            "description": "Step verdict. Null unless the step is COMPLETED; a partial step can still report an out-of-tolerance sample."
-          },
-          "recordedCount": {
-            "type": "number",
-            "minimum": 0,
-            "example": 42
-          },
-          "outOfToleranceCount": {
-            "type": "number",
-            "minimum": 0,
-            "example": 0
-          },
-          "firstFailureSampleIndex": {
-            "type": "number",
-            "nullable": true,
-            "minimum": 0,
-            "example": null,
-            "description": "Index of the first out-of-tolerance sample, if any."
-          },
-          "hasOutOfTolerance": {
-            "type": "boolean",
-            "example": false,
-            "description": "True exactly when outOfToleranceCount is greater than zero. Available even while outcome is null."
-          },
-          "statistics": {
-            "$ref": "#/components/schemas/RunStepStatisticsDto"
-          },
-          "measurements": {
-            "description": "Recorded samples ordered by ascending sampleIndex.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RunMeasurementDto"
-            }
-          }
-        },
-        "required": [
-          "runStepId",
-          "logicalStepId",
-          "position",
-          "name",
-          "unit",
-          "minimum",
-          "maximum",
-          "sampleCount",
-          "intervalMs",
-          "status",
-          "outcome",
-          "recordedCount",
-          "outOfToleranceCount",
-          "firstFailureSampleIndex",
-          "hasOutOfTolerance",
-          "statistics",
-          "measurements"
-        ]
-      },
-      "RunSnapshotDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "planId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "planVersionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "planName": {
-            "type": "string",
-            "example": "Power rail verification"
-          },
-          "versionNumber": {
-            "type": "number",
-            "minimum": 1,
-            "example": 1
-          },
-          "profile": {
-            "$ref": "#/components/schemas/DeviceProfileDto"
-          },
-          "scenario": {
-            "type": "string",
-            "enum": [
-              "NORMAL",
-              "FORCED_FAILURE",
-              "RANDOM"
-            ],
-            "example": "NORMAL"
-          },
-          "seed": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 4294967295,
-            "example": 123456789
-          },
-          "errorProbability": {
-            "type": "string",
-            "nullable": true,
-            "pattern": "^\\d+\\.\\d{6}$",
-            "example": null,
-            "description": "Canonical probability for RANDOM, otherwise null."
-          },
-          "failureStepId": {
-            "type": "string",
-            "nullable": true,
-            "format": "uuid",
-            "description": "Logical step selected for FORCED_FAILURE, otherwise null."
-          },
-          "simulatorVersion": {
-            "type": "string",
-            "example": "sim-v1"
-          },
-          "evaluationVersion": {
-            "type": "string",
-            "example": "decimal-v1"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "RUNNING",
-              "COMPLETED",
-              "CANCELLED",
-              "INTERRUPTED",
-              "ERROR"
-            ],
-            "example": "RUNNING"
-          },
-          "outcome": {
-            "type": "string",
-            "enum": [
-              "PASSED",
-              "FAILED"
-            ],
-            "nullable": true,
-            "description": "Overall verdict; only a COMPLETED run has one."
-          },
-          "startedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "finishedAt": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "requestedBy": {
-            "$ref": "#/components/schemas/RunRequestedByDto"
-          },
-          "reasonCode": {
-            "type": "string",
-            "nullable": true,
-            "example": null,
-            "description": "Safe technical reason code for an ERROR or cancellation."
-          },
-          "expectedSampleCount": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 10000,
-            "example": 6
-          },
-          "recordedSampleCount": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 10000,
-            "example": 6
-          },
-          "lastEventSequence": {
-            "type": "number",
-            "minimum": 0,
-            "example": 14,
-            "description": "Sequence of the last committed run event covered by this snapshot. Use it as the initial SSE cursor."
-          },
-          "steps": {
-            "description": "Steps ordered by ascending position.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RunSnapshotStepDto"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "planId",
-          "planVersionId",
-          "planName",
-          "versionNumber",
-          "profile",
-          "scenario",
-          "seed",
-          "errorProbability",
-          "failureStepId",
-          "simulatorVersion",
-          "evaluationVersion",
-          "status",
-          "outcome",
-          "startedAt",
-          "finishedAt",
-          "requestedBy",
-          "reasonCode",
-          "expectedSampleCount",
-          "recordedSampleCount",
-          "lastEventSequence",
-          "steps"
         ]
       }
     }

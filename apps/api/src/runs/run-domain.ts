@@ -76,6 +76,13 @@ export function runEventWireType(type: RunEventType): string {
 export const RUN_EVENT_SCHEMA_VERSION = 1;
 
 /**
+ * Safe reason codes stored on a terminal run. They are fixed identifiers, not
+ * driver messages, SQL or stack traces, and may be shown to any run reader.
+ */
+export const RUN_CANCELLED_REASON_CODE = 'USER_CANCELLED';
+export const RUN_INTERRUPTED_REASON_CODE = 'SERVER_RESTART';
+
+/**
  * Version of the tolerance/summary evaluation rules stamped on every run.
  * P3-05 implements the evaluator; changing its verdict or summary rules must
  * bump this value so historical runs stay traceable.

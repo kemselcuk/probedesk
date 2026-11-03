@@ -37,11 +37,11 @@ export class HealthController {
   @Header('Cache-Control', 'no-store')
   @ApiOperation({
     summary:
-      'Report whether the API can serve requests, including database access and applied migrations.',
+      'Report whether the API can serve requests, including database access, applied migrations and startup recovery.',
   })
   @ApiOkResponse({
     description:
-      'The database is reachable and every registered migration has finished.',
+      'The database is reachable, every registered migration has finished and leftover running runs have been reconciled.',
     schema: {
       type: 'object',
       required: ['status', 'checks'],
@@ -60,7 +60,7 @@ export class HealthController {
   })
   @ApiServiceUnavailableResponse({
     description:
-      'The database is unavailable or its migrations are unfinished; retry after it recovers.',
+      'The database is unavailable, its migrations are unfinished or startup recovery is incomplete; retry after it recovers.',
     type: ApiErrorDto,
   })
   ready(): Promise<{

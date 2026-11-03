@@ -43,6 +43,7 @@ import { StartRunDto } from './dto/start-run.dto.js';
 import { RunStartResponseDto } from './dto/run-start-response.dto.js';
 import { RunActiveDto, RunSnapshotDto } from './dto/run-snapshot.dto.js';
 import { MAX_IDEMPOTENCY_KEY_LENGTH } from './run-start.js';
+import { RunCancellationService } from './run-cancel.service.js';
 import { RunSnapshotService } from './run-snapshot.service.js';
 import { RunsService } from './runs.service.js';
 
@@ -54,6 +55,7 @@ export class RunsController {
   constructor(
     private readonly runsService: RunsService,
     private readonly runSnapshotService: RunSnapshotService,
+    private readonly runCancellationService: RunCancellationService,
   ) {}
 
   @Post()
@@ -184,6 +186,55 @@ export class RunsController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<RunSnapshotDto> {
     const snapshot = await this.runSnapshotService.findById(id);
+    if (!snapshot) {
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'NOT_FOUND',
+        'The requested resource was not found.',
+      );
+    }
+
+    return snapshot;
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @Header('Cache-Control', 'no-store')
+  @UseGuards(CsrfGuard)
+  @Roles(Role.OPERATOR)
+  @ApiSecurity({ session: [], csrfToken: [] })
+  @ApiOperation({
+    summary:
+      'Cancel the running run, or return the existing terminal snapshot unchanged.',
+  })
+  @ApiOkResponse({
+    description:
+      'The run is CANCELLED, or it was already terminal and its existing state is returned unchanged. Already committed measurements and completed steps are preserved; steps that never started are NOT_RUN. Repeating the request is safe.',
+    type: RunSnapshotDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  @ApiForbiddenResponse({
+    description: 'The user is not an Operator or the CSRF token is invalid.',
+    type: ApiErrorDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'The run does not exist.',
+    type: ApiErrorDto,
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Run id.',
+  })
+  async cancel(
+    @CurrentAuth() auth: AuthContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<RunSnapshotDto> {
+    const snapshot = await this.runCancellationService.cancel(id, auth.user.id);
     if (!snapshot) {
       throw new ApiException(
         HttpStatus.NOT_FOUND,

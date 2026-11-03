@@ -59,8 +59,8 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | [P3-04 — Test başlatma ve tek çalışma garantisi](P3-04.md) | Backend | In Review |
 | [P3-05 — Sıralı yürütme ve sonuç hesaplama](P3-05.md) | Backend | In Review |
 | [P3-06 — Çalıştırma snapshot API'si](P3-06.md) | Backend | In Review |
-| [P3-07 — İptal işlemi](P3-07.md) | Backend | Planned |
-| [P3-08 — Kesinti ve teknik hata yönetimi](P3-08.md) | Backend | Planned |
+| [P3-07 — İptal işlemi](P3-07.md) | Backend | In Review |
+| [P3-08 — Kesinti ve teknik hata yönetimi](P3-08.md) | Backend | In Review |
 | [P3-09 — Test başlatma formu](P3-09.md) | Frontend | In Review |
 | [P3-10 — Çalıştırma özeti ve kontrol işlemleri](P3-10.md) | Frontend | Planned |
 
