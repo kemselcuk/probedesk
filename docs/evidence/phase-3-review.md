@@ -250,3 +250,47 @@ Gerçek sonuçlar:
 ## Sonuç
 
 Bu inceleme, görev kartlarındaki "tamamlandı" ifadelerine güvenmeden yapılmıştır. Çekirdek ölçüm/simülasyon/snapshot/cancel/recovery davranışı büyük ölçüde sağlamdır; ancak B1 (High) Phase 3'ün kullanıcı akışını ve P3-09/P3-10 kabulünü bloke eder. B2–B6 kapatılmadan veya açık bir kullanıcı kararıyla ertelenmeden Phase 3 teknik kabulü önerilmez. Bu belge ürün kabulü değildir; nihai kabul kullanıcıya aittir.
+
+---
+
+# Fix re-check — 2026-11-03
+
+## Kapsam ve yöntem
+
+- İncelenen düzeltme commit'leri: `186722b` (web B1/B2/B9), `2da9e7e` (API B3/B4/B5/B7/B8/B10/B12), `f0395a6` (demo/UI yeniden çalıştırma).
+- Ürün kodu değiştirilmedi; yalnız bu dosya güncellendi. Kartlar `Accepted` yapılmadı.
+- Çalıştırılanlar: `npm run verify` (exit 0; API 14 dosya/97 test, web 23 dosya/199 test, build ve openapi current), `npm run test:e2e --workspace apps/api` (16 dosya/151 test, exit 0), `npm run openapi:check` (current, exit 0).
+- Hedefli e2e: B3 retry/500, B4 dirty recovery, B5 finalization shutdown, B7 cancel lock, B8 elapsed, B10 terminal writes, B12 schema/immutability testleri ayrı ayrı çalıştırıldı ve geçti.
+- Gerçek API: `probedesk_review2` geçici DB (7 migration), port 3101; `scripts/phase-3-demo.mjs` doğrudan, `scripts/phase-3-ui-check.mjs` ise repo dışına screenshot yazan birebir kopyasıyla gerçek Chrome'da (port 4200, geçici proxy) çalıştırıldı. Geçici DB silindi, API/web kapatıldı.
+
+## Bulgu durumları
+
+| Bulgu | Durum | Kanıt / not |
+|---|---|---|
+| B1 (High) | **Kapalı** | Start ve Run Again `router.navigate(['/runs', result.runId])`; aktif bağlantılar `/runs/:id`; `/live` placeholder'ı "View run details" bağlantısı veriyor. Gerçek Chrome: formdan başlatılan run `cb7e1a57-c14d-400b-94ab-08814c1e33b6` ile uygulama kendisi `/runs/:id` detayına gitti, iptal dialogu ve `Cancelled` doğrulandı; `/live` bağlantısı aynı detaya gitti. Ekran görüntüsü: geçici `fix-cancelled.png` (repo dışı). Konsol istisnası yok. |
+| B2 (Medium) | **Kapalı** | `isPartialResult` yalnız eksik örnekte true; `isStoppedAfterAllSamples` ayrı. Gerçek Chrome'da `run.completed` trigger'ıyla üretilen `ERROR` run `b7d2ead1-8af0-4c3f-aaa8-09bf98cbaea1` 90/90 örnek, üç adım COMPLETED/PASSED: "All expected samples were recorded." görünür, "Partial results" yok. Kısmi `CANCELLED` run `accc7ca5-028d-4853-ae35-48436bffc559` 1/90: "Partial results" var. |
+| B3 (Medium) | **Kapalı (normal yarış), Low residual** | Unique ihlalinde retry/409/202 yolu eklendi. 25 tur × 20 eşzamanlı başlangıç + anında cancel: 25×202, 475×409, 0×500. Ancak üç denemeden sonra hâlâ unique ihlali varsa kod bilinçli olarak 500 döndürüyor (`surfaces ... after every start retry fails` testi); bu test `$transaction` mock'u ile üretiliyor, gerçek DB terminalizasyon yarışıyla değil. Normal yarışta gözlenmedi; "cannot return 500" mutlak değilse residual Low/Medium. |
+| B4 (Medium) | **Kapalı** | `markDirty/generation` eklendi. Gerçek API'de `test_runs` UPDATE'leri ve measurement insert'i trigger ile bloke edildi; run `7fb63af1-e27e-49c8-bce3-1563d1b9d5d5` RUNNING (2 örnek) kaldı, readiness 503, yeni start 503; trigger'lar kaldırılınca readiness 200, run `INTERRUPTED/SERVER_RESTART`, yeni start 202. Hedefli e2e de geçti. |
+| B5 (Medium) | **Kapalı (test), Low residual** | `beginShutdown` ve iki transaction içi kontrol; hedefli e2e "shutdown begins inside finalization" geçti: run RUNNING, 6/6 örnek, üç adım COMPLETED, `run.completed` yok. Son kontrol ile DB commit arasındaki çok dar pencere kanıt dosyasında kabul edilmiş; gerçek SIGTERM ile bu pencere tetiklenmedi. |
+| B6 (Medium) | **Açık (doküman)** | Script'ler env-driven; hardcoded ID yok; UI script uygulamanın kendi `/runs/:id` navigasyonunu bekliyor ve `/live` detay bağlantısını kontrol ediyor. Ancak doküman çelişkileri sürüyor: `docs/tasks/P3-09.md:52` "B1 gerçek tarayıcıda yeniden denenmedi" derken `P3-10.md:27,50` yeniden çalıştırıldığını söylüyor; `P3-10.md:39` "gerçek smoke yapılmadı" derken aynı kart `:27` yapıldığını söylüyor; `phase-3-run-summary.md:132,136` yeniden çalıştırılmadığını söylüyor; `phase-3-review-fixes-web.md` gerçek tarayıcı yapılmadığını söylüyor. Bu çelişki giderilmeden kanıt paketi tutarlı değildir. |
+| B7 (Low) | **Kapalı** | Cancel/recovery `SELECT ... FOR UPDATE` sonrası `finishedAt`; hedefli kilit testi geçti; terminal olay zamanı run.finishedAt ile aynı. |
+| B8 (Low) | **Kapalı** | Monotonik referans `beginStep` öncesinde; 150 ms yavaş `step.started` trigger'lı testte ilk örnek `elapsedMs >= 120` geçti. |
+| B9 (Low) | **Kapalı** | Boş/boşluklu RANDOM olasılığı `buildStartRunRequest` içinde hata fırlatıyor; testler geçti. |
+| B10 (Low) | **Kapalı** | Terminal run'a yeni measurement/rule/status değişikliği gerçek DB trigger'larıyla reddediliyor; cancel-vs-completion testi tek terminal olayı doğruluyor. |
+| B12 (Low) | **Kısmen kapalı (Low)** | 7 migration uygulandı, manifest 7, üç yeni trigger dev/test DB'de etkin; snapshot/rule-copy/terminal status ve terminal run'a yeni measurement engelleniyor. Ancak terminal `outcome`/`reasonCode` ve mevcut measurement UPDATE hâlâ doğrudan SQL ile değiştirilebiliyor (gözlem: COMPLETED run outcome PASSED→FAILED ve reasonCode TAMPERED; measurement value 0.000000; transaction rollback ile denendi). DELETE için bu trigger yok; migration yorumu test temizliği için bilinçli olduğunu söylüyor. Ürün yolunda yok; DB "run history immutability" iddiası tam değil. |
+| B11 (Low) | **Büyük ölçüde kapalı** | Roadmap/testing/executor metinleri düzeltildi; görev kartlarında "commit yok" alanları hâlâ eski. |
+| B13/B14 | **Değişmedi / bilinen sınır** | Çok geniş span'de tam maximum üretimi ve SSE `eventsUrl` P4 kapsamı; yeni bir ürün hatası değil. |
+
+## Yeni bulgular
+
+1. **Y1 — Medium (kanıt tutarlılığı, B6 residual):** Aynı düzeltme turunda P3-09/P3-10 ve `phase-3-run-summary.md` gerçek Chrome'un yeniden çalıştırılmadığını söylerken P3-10 ve `phase-3-demo.md` çalıştırıldığını söylüyor. Bağımsız Chrome turu akışın çalıştığını doğruladı; sorun ürün kodu değil, kanıt metinlerinin çelişmesi. `P3-09.md:52`, `P3-10.md:27,39,50`, `phase-3-run-summary.md:132,136`, `phase-3-review-fixes-web.md`.
+2. **Y2 — Low (B12 residual):** Migration tam run-history immutability sağlamıyor; terminal outcome/reasonCode ve mevcut measurement satırları UPDATE edilebiliyor (DELETE trigger'ı yok). Snapshot/rule-copy ve yeni measurement koruması çalışıyor; ürün yolu etkilenmiyor, ancak "run immutability" kapsamı netleştirilmeli.
+3. **Y3 — Low (B3 testi):** Retry dalı gerçek DB unique ihlali/terminalizasyon ile değil, `$transaction` mock'u ile test ediliyor; üç deneme sonrası 500 yolu bilinçli olarak korunuyor. Gerçek 500 eşzamanlı istek denemesinde 500 görülmedi.
+
+## Sonuç
+
+- Görev verdictleri (yeniden): P3-01/02/03/06 **PASS**; P3-04/05/07/08 **PASS with findings**; P3-09/P3-10 **PASS with findings** (B6 doküman çelişkisi açık).
+- B1, B2, B4, B5, B7, B8, B9, B10 kapatıldı; B3 normal terminalizasyon yarışı için kapalı, üç retry sonrası 500 ve mock testi Low residual; B12 kısmen kapalı; B6 doküman çelişkisi açık.
+- Yeni **Critical/High** bulgu yok. Yeni **Medium** yalnız kanıt tutarlılığı (Y1); ürün davranışında yeni Medium yok.
+- **Teknik kabul:** Ürün davranışı açısından Phase 3 teknik olarak kabul edilebilir; ancak resmi kapanış için B6/Y1 doküman çelişkisi giderilmeli ve B12/Y2 kapsamı açıkça kabul edilmeli veya düzeltilmeli. Kartlar `Accepted` değildir; bağımsız yeniden inceleme ve kullanıcı kabulü ayrıdır.
+- Temizlik: `probedesk_review2` geçici DB silindi; API 3101 ve web 4200 kapatıldı; dev/test DB'lerinde `tgenabled<>'O'` trigger sayısı `0/14` (dev) ve `0/14` (test); test DB `runs=0`. Dev DB bu incelemede yazılmadı (başlangıçta 9 run vardı; lead demo verisi).

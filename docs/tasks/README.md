@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 Accepted (teknik kabul, 2026-11-03); P3 In Review; P4–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
+Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -53,16 +53,16 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P3-01 — Deterministik normal simülatör](P3-01.md) | Backend | In Review |
-| [P3-02 — Kesin hata ve rastgele senaryolar](P3-02.md) | Backend | In Review |
-| [P3-03 — Çalıştırma kayıtları ve snapshot](P3-03.md) | Backend | In Review |
-| [P3-04 — Test başlatma ve tek çalışma garantisi](P3-04.md) | Backend | In Review |
-| [P3-05 — Sıralı yürütme ve sonuç hesaplama](P3-05.md) | Backend | In Review |
-| [P3-06 — Çalıştırma snapshot API'si](P3-06.md) | Backend | In Review |
-| [P3-07 — İptal işlemi](P3-07.md) | Backend | In Review |
-| [P3-08 — Kesinti ve teknik hata yönetimi](P3-08.md) | Backend | In Review |
-| [P3-09 — Test başlatma formu](P3-09.md) | Frontend | In Review |
-| [P3-10 — Çalıştırma özeti ve kontrol işlemleri](P3-10.md) | Frontend | In Review |
+| [P3-01 — Deterministik normal simülatör](P3-01.md) | Backend | Accepted |
+| [P3-02 — Kesin hata ve rastgele senaryolar](P3-02.md) | Backend | Accepted |
+| [P3-03 — Çalıştırma kayıtları ve snapshot](P3-03.md) | Backend | Accepted |
+| [P3-04 — Test başlatma ve tek çalışma garantisi](P3-04.md) | Backend | Accepted |
+| [P3-05 — Sıralı yürütme ve sonuç hesaplama](P3-05.md) | Backend | Accepted |
+| [P3-06 — Çalıştırma snapshot API'si](P3-06.md) | Backend | Accepted |
+| [P3-07 — İptal işlemi](P3-07.md) | Backend | Accepted |
+| [P3-08 — Kesinti ve teknik hata yönetimi](P3-08.md) | Backend | Accepted |
+| [P3-09 — Test başlatma formu](P3-09.md) | Frontend | Accepted |
+| [P3-10 — Çalıştırma özeti ve kontrol işlemleri](P3-10.md) | Frontend | Accepted |
 
 ## Aşama 4 — Canlı durum ve bağlantı dayanıklılığı
 

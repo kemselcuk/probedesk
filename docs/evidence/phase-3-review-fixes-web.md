@@ -121,3 +121,8 @@ Test sayısı önceki 186'dan 199'a çıktı; mevcut testler korunup B1/B2/B9 i�
 - **B6'nın diğer dosyaları bu worker'ın sahiplik alanı dışında.** `phase-3-demo.md`, `docs/roadmap.md`, `docs/testing.md`, `docs/tasks/README.md` ve `docs/evidence/phase-3-executor.md` düzeltilmedi; `phase-3-run-summary.md` yalnız bu worker'a ait olduğu için durum notuyla güncellendi.
 - **Bağımsız yeniden inceleme ve kullanıcı kabulü yapılmadı.** P3-09 ve P3-10 `In Review`; `Accepted` değil. B1/B2/B9 düzeltmelerinin review tarafından yeniden değerlendirilmesi gerekir.
 - **Git komutu çalıştırılmadı.** Commit/push lead tarafından yapılacak.
+
+## Fix sonrası gerçek Chrome
+
+- B1/B2 düzeltmelerinden sonra lead tarafından gerçek Chrome turu yapıldı: formdan başlatma uygulamanın kendi yönlendirmesiyle `/runs/:id` detayına gitti, `/live` placeholder'ı detaya bağlandı, iptal dialogu ve Cancelled sonucu doğrulandı; konsol istisnası yok.
+- Kanıt: `docs/evidence/phase-3-demo.md`.
