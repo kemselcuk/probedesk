@@ -1,4 +1,4 @@
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import {
   ChangeDetectionStrategy,
@@ -35,6 +35,8 @@ import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
 import { DiscardChangesDialog } from './discard-changes-dialog';
+import { createDraftErrorGuidance, publishErrorGuidance } from './plan-error-guidance';
+import type { PlanErrorGuidance } from './plan-error-guidance';
 import {
   MAX_DECIMALS,
   MAX_DRAFT_STEPS,
@@ -54,8 +56,14 @@ import {
   trimmedMaxLength,
   trimmedRequired,
 } from './plan-draft-form';
-import type { PlanDetail, PlanStep, SaveDraftResult } from './plans-api.types';
+import type {
+  PlanDetail,
+  PlanStep,
+  PublishedRevision,
+  SaveDraftResult,
+} from './plans-api.types';
 import { PlansFacade } from './plans.facade';
+import { PublishConfirmDialog } from './publish-confirm-dialog';
 import { PendingChangesAware } from './unsaved-changes.guard';
 
 interface ValidationItem {
@@ -87,6 +95,7 @@ class MaximumErrorStateMatcher implements ErrorStateMatcher {
 @Component({
   selector: 'app-plan-editor-page',
   imports: [
+    DatePipe,
     DecimalPipe,
     DragDropModule,
     ErrorState,
@@ -242,6 +251,77 @@ export class PlanEditorPage implements PendingChangesAware {
     () => this.facade.plan()?.latestPublishedVersion ?? null,
   );
 
+  protected readonly publishedVersion = signal<PublishedRevision | null>(null);
+
+  /**
+   * Publish is allowed only for the exact revision on the server. Any local
+   * edit blocks it with an explicit explanation; the request never contains
+   * form fields, so a dirty form can never be published by accident.
+   */
+  protected readonly publishBlockReason = computed(() => {
+    this.formRevision();
+    if (this.facade.publishPending()) {
+      return null;
+    }
+
+    if (this.facade.savePending()) {
+      return 'Wait for the current save to finish before publishing.';
+    }
+
+    if (this.form.dirty || this.dirty()) {
+      return 'Save your changes before publishing';
+    }
+
+    if (this.expectedRevision() === null) {
+      return 'The draft revision is unavailable. Reload the plan before publishing.';
+    }
+
+    if (this.form.invalid) {
+      return 'Fix the validation errors in the saved draft before publishing.';
+    }
+
+    return null;
+  });
+
+  protected readonly publishDisabled = computed(
+    () => this.publishBlockReason() !== null || this.facade.publishPending(),
+  );
+
+  protected readonly publishErrorGuidance = computed<PlanErrorGuidance | null>(() => {
+    const error = this.facade.publishError();
+    return error === null ? null : publishErrorGuidance(error);
+  });
+
+  protected readonly publishErrorRequestId = computed(
+    () => this.facade.publishError()?.requestId ?? null,
+  );
+
+  protected readonly publishConflictRevision = computed(
+    () => this.facade.publishError()?.currentRevision ?? null,
+  );
+
+  protected readonly createDraftError = computed<PlanErrorGuidance | null>(() => {
+    const error = this.facade.createDraftError();
+    return error === null ? null : createDraftErrorGuidance(error);
+  });
+
+  protected readonly createDraftErrorRequestId = computed(
+    () => this.facade.createDraftError()?.requestId ?? null,
+  );
+
+  protected readonly createDraftConflictRevision = computed(
+    () => this.facade.createDraftError()?.currentRevision ?? null,
+  );
+
+  protected readonly canStartNewDraft = computed(
+    () =>
+      this.facade.planStatus() === 'loaded' &&
+      this.facade.plan()?.draft === null &&
+      this.latestVersion() !== null &&
+      this.facade.createDraftError() === null &&
+      !this.facade.createDraftPending(),
+  );
+
   protected readonly planErrorMessage = computed(() => {
     const error = this.facade.planError();
     if (error === null) {
@@ -276,6 +356,10 @@ export class PlanEditorPage implements PendingChangesAware {
     });
 
     this.loadPlan();
+    this.facade
+      .loadVersions(this.planId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => undefined });
   }
 
   protected get steps(): FormArray<StepFormGroup> {
@@ -285,6 +369,13 @@ export class PlanEditorPage implements PendingChangesAware {
   protected reloadPlan(): void {
     this.showReloadConfirm.set(false);
     this.loadPlan();
+  }
+
+  protected reloadVersions(): void {
+    this.facade
+      .loadVersions(this.planId, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => undefined });
   }
 
   protected addStep(): void {
@@ -343,10 +434,11 @@ export class PlanEditorPage implements PendingChangesAware {
 
   protected save(): void {
     const revision = this.expectedRevision();
-    if (revision === null || this.facade.savePending()) {
+    if (revision === null || this.facade.savePending() || this.facade.publishPending()) {
       return;
     }
 
+    this.facade.clearPublishError();
     this.submitAttempted.set(true);
     if (this.form.invalid) {
       this.focusAfterRender('validation-summary');
@@ -371,8 +463,72 @@ export class PlanEditorPage implements PendingChangesAware {
       });
   }
 
+  protected publish(): void {
+    const revision = this.expectedRevision();
+    const plan = this.facade.plan();
+    if (revision === null || plan === null || plan.draft === null || this.publishDisabled()) {
+      return;
+    }
+
+    const planName = this.form.controls.name.value.trim();
+    this.dialog
+      .open<PublishConfirmDialog, { planName: string; stepCount: number }, boolean>(
+        PublishConfirmDialog,
+        {
+          data: {
+            planName: planName.length === 0 ? plan.name : planName,
+            stepCount: this.stepCount(),
+          },
+          ariaLabelledBy: 'publish-confirm-title',
+          ariaDescribedBy: 'publish-confirm-description',
+          autoFocus: 'first-tabbable',
+          restoreFocus: true,
+          width: '520px',
+        },
+      )
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((confirmed) => {
+        if (confirmed === true) {
+          this.submitPublish(revision);
+        }
+      });
+  }
+
+  protected startNewDraft(): void {
+    const version = this.latestVersion();
+    if (!this.canStartNewDraft() || version === null) {
+      return;
+    }
+
+    const versionNumber = version.versionNumber;
+    this.facade
+      .createDraft(this.planId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          const plan = this.facade.plan();
+          if (plan !== null) {
+            this.applyLoadedPlan(plan);
+          }
+          this.notifications.success(
+            `New draft created from version ${versionNumber}.`,
+          );
+          this.focusAfterRender(this.stepCount() === 0 ? 'add-step-button' : 'plan-name');
+        },
+        error: () => {
+          this.formRevision.update((revision) => revision + 1);
+          this.focusAfterRender('draft-create-error-panel');
+        },
+      });
+  }
+
   canLeave(): boolean | Observable<boolean> {
-    if (!this.form.dirty && !this.facade.savePending()) {
+    if (
+      !this.form.dirty &&
+      !this.facade.savePending() &&
+      !this.facade.publishPending()
+    ) {
       return true;
     }
 
@@ -535,6 +691,9 @@ export class PlanEditorPage implements PendingChangesAware {
     this.submitAttempted.set(false);
     this.showReloadConfirm.set(false);
     this.facade.clearSaveError();
+    this.facade.clearPublishError();
+    this.facade.clearCreateDraftError();
+    this.publishedVersion.set(null);
     this.moveAnnouncement.set('');
     this.formRevision.update((revision) => revision + 1);
   }
@@ -551,6 +710,42 @@ export class PlanEditorPage implements PendingChangesAware {
       sampleCount: step.sampleCount,
       intervalMs: step.intervalMs,
     });
+  }
+
+  private submitPublish(expectedRevision: number): void {
+    this.facade
+      .publishDraft(this.planId, expectedRevision)
+      .subscribe({
+        next: (published) => this.handlePublishSuccess(published),
+        error: () => this.handlePublishError(),
+      });
+  }
+
+  private handlePublishSuccess(published: PublishedRevision): void {
+    this.publishedVersion.set(published);
+    this.expectedRevision.set(null);
+    this.form.markAsPristine();
+    this.dirty.set(false);
+    this.formRevision.update((revision) => revision + 1);
+    this.notifications.success(`Version ${published.versionNumber} published.`);
+    this.facade
+      .loadVersions(this.planId, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => undefined });
+    this.focusAfterRender('publish-success-heading');
+  }
+
+  private handlePublishError(): void {
+    this.formRevision.update((revision) => revision + 1);
+
+    const error = this.facade.publishError();
+    if (error === null) {
+      return;
+    }
+
+    const guidance = publishErrorGuidance(error);
+    this.notifications.error(`${guidance.heading}. ${guidance.message}`);
+    this.focusAfterRender('publish-error-panel');
   }
 
   private handleSaveSuccess(

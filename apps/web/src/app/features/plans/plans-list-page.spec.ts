@@ -321,6 +321,7 @@ describe('PlansListPage', () => {
       name: 'Thermal check',
       draft: null,
     });
+    http.expectOne(`/api/plans/${NEW_PLAN_ID}/versions`).flush([]);
     await harness.fixture.whenStable();
     harness.detectChanges();
 

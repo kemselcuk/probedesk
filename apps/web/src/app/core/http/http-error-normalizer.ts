@@ -13,6 +13,10 @@ export interface ApiFieldErrorView {
  *
  * `requestId` is the value from the API error body, when the API supplied one.
  * It is shown as a support detail and is never used to infer the failure kind.
+ *
+ * `reason` and `currentRevision` are the only `details` members exposed to the
+ * UI. The API may add other details later; they stay out of this view model so
+ * a screen can never render an unexpected or unsafe value.
  */
 export interface ApiErrorView {
   readonly kind: 'api' | 'network' | 'unknown';
@@ -21,6 +25,8 @@ export interface ApiErrorView {
   readonly message: string;
   readonly requestId: string | null;
   readonly fieldErrors: readonly ApiFieldErrorView[];
+  readonly reason: string | null;
+  readonly currentRevision: number | null;
 }
 
 const NETWORK_ERROR_MESSAGE =
@@ -50,6 +56,8 @@ export class HttpErrorNormalizer {
       message: UNKNOWN_ERROR_MESSAGE,
       requestId: null,
       fieldErrors: [],
+      reason: null,
+      currentRevision: null,
     };
   }
 
@@ -62,6 +70,8 @@ export class HttpErrorNormalizer {
         message: NETWORK_ERROR_MESSAGE,
         requestId: null,
         fieldErrors: [],
+        reason: null,
+        currentRevision: null,
       };
     }
 
@@ -70,6 +80,7 @@ export class HttpErrorNormalizer {
     const message = body === null ? null : readString(body, 'message');
 
     if (body !== null && code !== null && message !== null) {
+      const details = asRecord(body['details']);
       return {
         kind: 'api',
         status: error.status,
@@ -77,6 +88,9 @@ export class HttpErrorNormalizer {
         message,
         requestId: readString(body, 'requestId'),
         fieldErrors: readFieldErrors(body),
+        reason: details === null ? null : readString(details, 'reason'),
+        currentRevision:
+          details === null ? null : readInteger(details, 'currentRevision'),
       };
     }
 
@@ -90,6 +104,8 @@ export class HttpErrorNormalizer {
           : `The request failed with status ${error.status}. Please try again.`,
       requestId: null,
       fieldErrors: [],
+      reason: null,
+      currentRevision: null,
     };
   }
 }
@@ -103,6 +119,11 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function readString(record: Record<string, unknown>, key: string): string | null {
   const value = record[key];
   return typeof value === 'string' ? value : null;
+}
+
+function readInteger(record: Record<string, unknown>, key: string): number | null {
+  const value = record[key];
+  return typeof value === 'number' && Number.isInteger(value) ? value : null;
 }
 
 function readFieldErrors(body: Record<string, unknown>): ApiFieldErrorView[] {

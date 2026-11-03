@@ -46,7 +46,7 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | [P2-04 — Typed dinamik adım formu](P2-04.md) | Frontend | In Review |
 | [P2-05 — Adım sıralama ve düzenleme güvenliği](P2-05.md) | Frontend | In Review |
 | [P2-06 — Publish ve yeni sürüm taslağı](P2-06.md) | Backend | In Review |
-| [P2-07 — Frontend sürüm akışı](P2-07.md) | Frontend | Planned |
+| [P2-07 — Frontend sürüm akışı](P2-07.md) | Frontend | In Review |
 | [P2-08 — Plan yaşam döngüsü entegrasyonu](P2-08.md) | Entegrasyon | Planned |
 
 ## Aşama 3 — Simülasyon ve yürütme

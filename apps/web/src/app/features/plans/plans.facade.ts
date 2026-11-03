@@ -7,7 +7,10 @@ import type {
   CreatePlanRequest,
   DeviceProfile,
   PlanDetail,
+  PlanDraft,
   PlanSummary,
+  PublishedRevision,
+  PublishedVersionListItem,
   SaveDraftRequest,
   SaveDraftResult,
 } from './plans-api.types';
@@ -44,6 +47,22 @@ export class PlansFacade {
   private readonly savePendingState = signal(false);
   private readonly saveErrorState = signal<ApiErrorView | null>(null);
 
+  private readonly versionsState = signal<readonly PublishedVersionListItem[]>([]);
+  private readonly versionsStatusState = signal<PlansRequestStatus>('idle');
+  private readonly versionsErrorState = signal<ApiErrorView | null>(null);
+  private versionsPlanId: string | null = null;
+
+  private readonly versionState = signal<PublishedRevision | null>(null);
+  private readonly versionStatusState = signal<PlansRequestStatus>('idle');
+  private readonly versionErrorState = signal<ApiErrorView | null>(null);
+  private versionId: string | null = null;
+
+  private readonly publishPendingState = signal(false);
+  private readonly publishErrorState = signal<ApiErrorView | null>(null);
+
+  private readonly createDraftPendingState = signal(false);
+  private readonly createDraftErrorState = signal<ApiErrorView | null>(null);
+
   readonly plans = this.plansState.asReadonly();
   readonly plansStatus = this.plansStatusState.asReadonly();
   readonly plansError = this.plansErrorState.asReadonly();
@@ -61,6 +80,20 @@ export class PlansFacade {
 
   readonly savePending = this.savePendingState.asReadonly();
   readonly saveError = this.saveErrorState.asReadonly();
+
+  readonly versions = this.versionsState.asReadonly();
+  readonly versionsStatus = this.versionsStatusState.asReadonly();
+  readonly versionsError = this.versionsErrorState.asReadonly();
+
+  readonly version = this.versionState.asReadonly();
+  readonly versionStatus = this.versionStatusState.asReadonly();
+  readonly versionError = this.versionErrorState.asReadonly();
+
+  readonly publishPending = this.publishPendingState.asReadonly();
+  readonly publishError = this.publishErrorState.asReadonly();
+
+  readonly createDraftPending = this.createDraftPendingState.asReadonly();
+  readonly createDraftError = this.createDraftErrorState.asReadonly();
 
   readonly draftConflict = computed(() => {
     const error = this.saveErrorState();
@@ -153,6 +186,8 @@ export class PlansFacade {
     this.planStatusState.set('loading');
     this.planErrorState.set(null);
     this.planState.set(null);
+    this.publishErrorState.set(null);
+    this.createDraftErrorState.set(null);
 
     return this.api.getPlan(planId).pipe(
       tap((plan) => {
@@ -203,5 +238,165 @@ export class PlansFacade {
 
   clearSaveError(): void {
     this.saveErrorState.set(null);
+  }
+
+  /**
+   * Loads published versions newest first. The list is cached per plan unless
+   * `force` asks for the post-publish refresh.
+   */
+  loadVersions(
+    planId: string,
+    force = false,
+  ): Observable<readonly PublishedVersionListItem[]> {
+    if (this.versionsPlanId !== planId) {
+      this.versionsState.set([]);
+      this.versionsStatusState.set('idle');
+      this.versionsErrorState.set(null);
+      this.versionsPlanId = planId;
+    }
+
+    if (
+      this.versionsStatusState() === 'loading' &&
+      this.versionsPlanId === planId
+    ) {
+      return of(this.versionsState());
+    }
+
+    if (!force && this.versionsStatusState() === 'loaded') {
+      return of(this.versionsState());
+    }
+
+    this.versionsStatusState.set('loading');
+    this.versionsErrorState.set(null);
+
+    return this.api.listVersions(planId).pipe(
+      tap((versions) => {
+        this.versionsState.set(versions);
+        this.versionsStatusState.set('loaded');
+      }),
+      catchError((error: unknown) => {
+        this.versionsStatusState.set('error');
+        this.versionsErrorState.set(this.errorNormalizer.normalize(error));
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  /** Loads one immutable published revision for the read-only screen. */
+  loadVersion(versionId: string): Observable<PublishedRevision> {
+    if (this.versionStatusState() === 'loading' && this.versionId === versionId) {
+      const current = this.versionState();
+      return current === null
+        ? EMPTY
+        : of(current);
+    }
+
+    if (this.versionStatusState() === 'loaded' && this.versionId === versionId) {
+      const current = this.versionState();
+      if (current !== null) {
+        return of(current);
+      }
+    }
+
+    this.versionId = versionId;
+    this.versionState.set(null);
+    this.versionStatusState.set('loading');
+    this.versionErrorState.set(null);
+
+    return this.api.getVersion(versionId).pipe(
+      tap((version) => {
+        this.versionState.set(version);
+        this.versionStatusState.set('loaded');
+      }),
+      catchError((error: unknown) => {
+        this.versionStatusState.set('error');
+        this.versionErrorState.set(this.errorNormalizer.normalize(error));
+        return throwError(() => error);
+      }),
+    );
+  }
+
+  publishDraft(planId: string, expectedRevision: number): Observable<PublishedRevision> {
+    if (this.publishPendingState()) {
+      return EMPTY;
+    }
+
+    this.publishPendingState.set(true);
+    this.publishErrorState.set(null);
+    this.saveErrorState.set(null);
+
+    return this.api.publishDraft(planId, { expectedRevision }).pipe(
+      tap((published) => {
+        const summary = {
+          id: published.id,
+          versionNumber: published.versionNumber,
+          publishedAt: published.publishedAt,
+        };
+
+        this.planState.update((plan) =>
+          plan === null
+            ? plan
+            : {
+                ...plan,
+                name: published.name,
+                latestPublishedVersion: summary,
+                versions: [
+                  summary,
+                  ...plan.versions.filter((version) => version.id !== published.id),
+                ],
+                draft: null,
+                hasDraft: false,
+                draftKnown: true,
+                draftRevision: null,
+              },
+        );
+      }),
+      catchError((error: unknown) => {
+        this.publishErrorState.set(this.errorNormalizer.normalize(error));
+        return throwError(() => error);
+      }),
+      finalize(() => this.publishPendingState.set(false)),
+    );
+  }
+
+  clearPublishError(): void {
+    this.publishErrorState.set(null);
+  }
+
+  /** Creates a draft from the latest published version and adopts it as open. */
+  createDraft(planId: string): Observable<PlanDraft> {
+    if (this.createDraftPendingState()) {
+      return EMPTY;
+    }
+
+    this.createDraftPendingState.set(true);
+    this.createDraftErrorState.set(null);
+    this.publishErrorState.set(null);
+
+    return this.api.createDraft(planId).pipe(
+      tap((draft) => {
+        this.planState.update((plan) =>
+          plan === null
+            ? plan
+            : {
+                ...plan,
+                name: draft.name,
+                draft,
+                hasDraft: true,
+                draftKnown: true,
+                draftRevision: draft.editRevision,
+              },
+        );
+      }),
+      catchError((error: unknown) => {
+        this.createDraftErrorState.set(this.errorNormalizer.normalize(error));
+        return throwError(() => error);
+      }),
+      finalize(() => this.createDraftPendingState.set(false)),
+    );
+  }
+
+  clearCreateDraftError(): void {
+    this.createDraftErrorState.set(null);
   }
 }

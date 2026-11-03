@@ -251,6 +251,155 @@ describe('PlansApi', () => {
     expect(result.steps?.[0]?.logicalStepId).toBe(STEP_ID);
   });
 
+  it('publishes only the expected revision and normalizes the published steps', async () => {
+    const api = TestBed.inject(PlansApi);
+    const http = TestBed.inject(HttpTestingController);
+
+    const promise = firstValueFrom(api.publishDraft(PLAN_ID, { expectedRevision: 7 }));
+    const request = http.expectOne(`/api/plans/${PLAN_ID}/draft/publish`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ expectedRevision: 7 });
+    request.flush(
+      {
+        id: VERSION_ID,
+        planId: PLAN_ID,
+        state: 'PUBLISHED',
+        name: 'Bench plan v2',
+        versionNumber: 2,
+        publishedAt: '2026-11-03T11:00:00.000Z',
+        steps: [
+          {
+            logicalStepId: STEP_ID,
+            position: 1,
+            name: 'Voltage',
+            unit: 'V',
+            minimum: '4.75',
+            maximum: '5.25',
+            sampleCount: 10,
+            intervalMs: 1000,
+          },
+        ],
+      },
+      { status: 201, statusText: 'Created' },
+    );
+
+    const published = await promise;
+    expect(published.id).toBe(VERSION_ID);
+    expect(published.versionNumber).toBe(2);
+    expect(published.name).toBe('Bench plan v2');
+    expect(published.steps[0]?.logicalStepId).toBe(STEP_ID);
+    expect(published.steps[0]?.minimum).toBe('4.75');
+  });
+
+  it('creates a draft without a request body and returns the copied steps', async () => {
+    const api = TestBed.inject(PlansApi);
+    const http = TestBed.inject(HttpTestingController);
+
+    const promise = firstValueFrom(api.createDraft(PLAN_ID));
+    const request = http.expectOne(`/api/plans/${PLAN_ID}/drafts`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toBeNull();
+    request.flush(
+      {
+        id: 'draft-2',
+        planId: PLAN_ID,
+        state: 'DRAFT',
+        name: 'Copy of bench plan',
+        editRevision: 1,
+        versionNumber: null,
+        baseVersionId: VERSION_ID,
+        steps: [
+          {
+            logicalStepId: STEP_ID,
+            position: 1,
+            name: 'Voltage',
+            unit: 'V',
+            minimum: '4.75',
+            maximum: '5.25',
+            sampleCount: 10,
+            intervalMs: 1000,
+          },
+        ],
+      },
+      { status: 201, statusText: 'Created' },
+    );
+
+    const draft = await promise;
+    expect(draft.editRevision).toBe(1);
+    expect(draft.name).toBe('Copy of bench plan');
+    expect(draft.steps[0]?.logicalStepId).toBe(STEP_ID);
+  });
+
+  it('lists published versions newest first with the publisher', async () => {
+    const api = TestBed.inject(PlansApi);
+    const http = TestBed.inject(HttpTestingController);
+    const publisher = {
+      id: '44444444-4444-4444-8444-444444444444',
+      email: 'planner@probedesk.local',
+      role: 'PLANNER',
+    };
+
+    const promise = firstValueFrom(api.listVersions(PLAN_ID));
+    const request = http.expectOne(`/api/plans/${PLAN_ID}/versions`);
+    expect(request.request.method).toBe('GET');
+    request.flush([
+      {
+        id: VERSION_ID,
+        versionNumber: 2,
+        name: 'Bench plan v2',
+        publishedAt: '2026-11-03T11:00:00.000Z',
+        publishedBy: publisher,
+      },
+      {
+        id: STEP_ID,
+        versionNumber: 1,
+        name: 'Bench plan v1',
+        publishedAt: '2026-11-03T10:00:00.000Z',
+        publishedBy: publisher,
+      },
+    ]);
+
+    const versions = await promise;
+    expect(versions.map((version) => version.versionNumber)).toEqual([2, 1]);
+    expect(versions[0]?.publishedBy.email).toBe('planner@probedesk.local');
+    expect(versions[0]?.name).toBe('Bench plan v2');
+  });
+
+  it('reads one published version with ordered steps', async () => {
+    const api = TestBed.inject(PlansApi);
+    const http = TestBed.inject(HttpTestingController);
+
+    const promise = firstValueFrom(api.getVersion(VERSION_ID));
+    const request = http.expectOne(`/api/plan-versions/${VERSION_ID}`);
+    expect(request.request.method).toBe('GET');
+    request.flush({
+      id: VERSION_ID,
+      planId: PLAN_ID,
+      state: 'PUBLISHED',
+      name: 'Bench plan v1',
+      versionNumber: 1,
+      publishedAt: '2026-11-03T10:00:00.000Z',
+      steps: [
+        {
+          logicalStepId: STEP_ID,
+          position: 1,
+          name: 'Voltage',
+          unit: 'V',
+          minimum: '4.75',
+          maximum: '5.25',
+          sampleCount: 10,
+          intervalMs: 1000,
+        },
+      ],
+    });
+
+    const version = await promise;
+    expect(version.planId).toBe(PLAN_ID);
+    expect(version.versionNumber).toBe(1);
+    expect(version.steps).toHaveLength(1);
+    expect(version.steps[0]?.name).toBe('Voltage');
+  });
+
   it('creates a plan and extracts the id from a wrapped response', async () => {
     const api = TestBed.inject(PlansApi);
     const http = TestBed.inject(HttpTestingController);

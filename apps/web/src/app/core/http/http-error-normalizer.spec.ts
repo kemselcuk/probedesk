@@ -36,7 +36,31 @@ describe('HttpErrorNormalizer', () => {
           message: 'Maximum must be greater than minimum.',
         },
       ],
+      reason: null,
+      currentRevision: null,
     });
+  });
+
+  it('exposes only the safe conflict details used for plan guidance', () => {
+    const error = new HttpErrorResponse({
+      status: 409,
+      error: {
+        code: 'DRAFT_CONFLICT',
+        message: 'The draft was changed by another save.',
+        requestId: 'req-conflict-7',
+        details: {
+          reason: 'OPEN_DRAFT_EXISTS',
+          currentRevision: 9,
+          secret: 'must not reach the screen',
+        },
+      },
+    });
+
+    const view = normalizer.normalize(error);
+
+    expect(view.reason).toBe('OPEN_DRAFT_EXISTS');
+    expect(view.currentRevision).toBe(9);
+    expect(view).not.toHaveProperty('details');
   });
 
   it('distinguishes a network failure from an API response', () => {

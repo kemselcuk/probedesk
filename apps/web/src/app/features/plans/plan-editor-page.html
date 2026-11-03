@@ -4,14 +4,89 @@
       View version {{ version.versionNumber }}
     </a>
   }
-  <button mat-stroked-button type="button" disabled aria-describedby="publish-availability">
-    Publish
-  </button>
 </app-page-header>
 
-<p id="publish-availability">
-  Publishing and creating a new draft from a published version are available with P2-07.
-</p>
+@if (publishedVersion(); as published) {
+  <section
+    id="publish-success"
+    class="publish-success"
+    role="status"
+    aria-labelledby="publish-success-heading"
+  >
+    <h2 id="publish-success-heading" tabindex="-1">
+      Version {{ published.versionNumber }} published
+    </h2>
+    <p>
+      “{{ published.name }}” is now an immutable published version. The draft is closed; start a new
+      draft when you need to make changes.
+    </p>
+    <a mat-flat-button [routerLink]="['/plans', planId, 'versions', published.id]">
+      View version {{ published.versionNumber }}
+    </a>
+  </section>
+}
+
+@if (publishErrorGuidance(); as guidance) {
+  <section
+    id="publish-error-panel"
+    class="inline-error conflict-panel"
+    role="alert"
+    tabindex="-1"
+    aria-labelledby="publish-error-heading"
+  >
+    <h2 id="publish-error-heading">{{ guidance.heading }}</h2>
+    <p>{{ guidance.message }}</p>
+    @if (publishConflictRevision(); as revision) {
+      <p>The saved draft is now revision {{ revision }}.</p>
+    }
+    <p>Your local input has been kept.</p>
+    @if (publishErrorRequestId(); as requestId) {
+      <p class="request-id">
+        Request ID: <code>{{ requestId }}</code>
+      </p>
+    }
+    @if (!showReloadConfirm()) {
+      <button mat-stroked-button type="button" id="reload-draft-button" (click)="askReload()">
+        Reload plan
+      </button>
+    } @else {
+      <p class="confirm-reload">Reloading discards your local changes. This cannot be undone.</p>
+      <div class="conflict-actions">
+        <button mat-flat-button type="button" id="confirm-reload-button" (click)="reloadPlan()">
+          Discard and reload
+        </button>
+        <button mat-button type="button" (click)="cancelReload()">Keep editing</button>
+      </div>
+    }
+  </section>
+}
+
+@if (createDraftError(); as guidance) {
+  <section
+    id="draft-create-error-panel"
+    class="inline-error conflict-panel"
+    role="alert"
+    tabindex="-1"
+    aria-labelledby="draft-create-error-heading"
+  >
+    <h2 id="draft-create-error-heading">{{ guidance.heading }}</h2>
+    <p>{{ guidance.message }}</p>
+    @if (createDraftConflictRevision(); as revision) {
+      <p>The open draft is revision {{ revision }}.</p>
+    }
+    @if (createDraftErrorRequestId(); as requestId) {
+      <p class="request-id">
+        Request ID: <code>{{ requestId }}</code>
+      </p>
+    }
+    <div class="conflict-actions">
+      @if (facade.createDraftError()?.reason === 'OPEN_DRAFT_EXISTS') {
+        <a mat-flat-button [routerLink]="['/plans', planId, 'edit']">Open existing draft</a>
+      }
+      <button mat-stroked-button type="button" (click)="reloadPlan()">Reload plan</button>
+    </div>
+  </section>
+}
 
 @if (facade.planStatus() === 'error') {
   <app-error-state
@@ -419,7 +494,9 @@
 
         <div class="save-bar">
           <p class="save-state" aria-live="polite">
-            @if (facade.savePending()) {
+            @if (facade.publishPending()) {
+              Publishing version…
+            } @else if (facade.savePending()) {
               Saving draft…
             } @else if (dirty()) {
               Unsaved changes
@@ -427,11 +504,25 @@
               All changes saved
             }
           </p>
+          <p id="publish-availability" class="publish-hint">
+            {{ publishBlockReason() ?? 'Publishing uses the last saved draft only.' }}
+          </p>
+          <button
+            mat-stroked-button
+            type="button"
+            id="publish-button"
+            [disabled]="publishDisabled()"
+            [attr.aria-busy]="facade.publishPending()"
+            aria-describedby="publish-availability"
+            (click)="publish()"
+          >
+            {{ facade.publishPending() ? 'Publishing…' : 'Publish' }}
+          </button>
           <button
             mat-flat-button
             type="submit"
             class="save-button"
-            [disabled]="facade.savePending() || expectedRevision() === null"
+            [disabled]="facade.savePending() || facade.publishPending() || expectedRevision() === null"
             [attr.aria-busy]="facade.savePending()"
           >
             {{ facade.savePending() ? 'Saving…' : 'Save draft' }}
@@ -442,16 +533,102 @@
       <section class="no-draft" aria-labelledby="no-draft-heading">
         <h2 id="no-draft-heading">No open draft</h2>
         <p>
-          This plan has no draft to edit. Creating a new draft from the latest published version is
-          available with P2-07.
+          This plan has no draft to edit. A new draft copies the latest published version and keeps
+          its step identities; the published version itself stays unchanged.
         </p>
-        @if (latestVersion(); as version) {
-          <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', version.id]">
-            View version {{ version.versionNumber }}
-          </a>
+        <div class="no-draft-actions">
+          @if (latestVersion(); as version) {
+            <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', version.id]">
+              View version {{ version.versionNumber }}
+            </a>
+          }
+          <button
+            mat-flat-button
+            type="button"
+            id="start-new-draft-button"
+            [disabled]="!canStartNewDraft()"
+            [attr.aria-busy]="facade.createDraftPending()"
+            (click)="startNewDraft()"
+          >
+            {{ facade.createDraftPending() ? 'Creating draft…' : 'Start new draft' }}
+          </button>
+        </div>
+        @if (latestVersion() === null) {
+          <p class="no-draft-note">
+            A new draft needs a published version to copy. There is no published version yet.
+          </p>
+        }
+        @if (facade.versionsStatus() === 'error') {
+          <p class="no-draft-note">
+            The published version list could not be loaded. Retry from the editor after reloading
+            the plan.
+          </p>
         }
       </section>
     }
+
+    <mat-card class="versions-card" appearance="outlined" aria-labelledby="versions-heading">
+      <div class="versions-heading-row">
+        <div>
+          <h2 id="versions-heading" class="section-heading">Published versions</h2>
+          <p class="section-hint">
+            Newest first. Published versions are immutable; the current one is the latest version
+            of this plan.
+          </p>
+        </div>
+      </div>
+
+      @switch (facade.versionsStatus()) {
+        @case ('loading') {
+          <p class="versions-status" role="status">Loading published versions…</p>
+        }
+        @case ('error') {
+          <div class="inline-error" role="alert">
+            <p>
+              {{ facade.versionsError()?.message ?? 'Published versions could not be loaded.' }}
+            </p>
+            @if (facade.versionsError()?.requestId; as requestId) {
+              <p class="request-id">
+                Request ID: <code>{{ requestId }}</code>
+              </p>
+            }
+            <button mat-stroked-button type="button" (click)="reloadVersions()">
+              Retry versions
+            </button>
+          </div>
+        }
+        @default {
+          @if (facade.versions().length === 0) {
+            <p class="versions-status">
+              No published versions yet. Publishing a draft creates version 1.
+            </p>
+          } @else {
+            <ul class="version-list">
+              @for (version of facade.versions(); track version.id; let first = $first) {
+                <li class="version-item" [class.current-version]="first">
+                  <div class="version-main">
+                    <a
+                      [routerLink]="['/plans', planId, 'versions', version.id]"
+                      [attr.aria-current]="first ? 'true' : null"
+                    >
+                      Version {{ version.versionNumber }}
+                    </a>
+                    @if (first) {
+                      <span class="current-badge">Current</span>
+                    }
+                    <span class="version-name">{{ version.name }}</span>
+                  </div>
+                  <p class="version-meta">
+                    Published {{ version.publishedAt | date: 'medium' : 'UTC' }} UTC by
+                    {{ version.publishedBy.email }} ({{ version.publishedBy.role }})
+                  </p>
+                </li>
+              }
+            </ul>
+          }
+        }
+      }
+    </mat-card>
   }
 } @else {
   <app-loading-state message="Loading plan draft…" />

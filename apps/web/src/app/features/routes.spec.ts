@@ -45,7 +45,6 @@ const routeCases: readonly RouteCase[] = [
     title: 'Published Plan',
     heading: 'Published Plan',
     role: 'VIEWER',
-    task: 'P2-07',
   },
   {
     url: '/runs',
@@ -114,15 +113,40 @@ describe('application routes', () => {
     });
   }
 
-  /** Answers the data requests started by the real plan screens. */
+  /** Answers the data requests started by the real plan and version screens. */
   function flushPlanRequests(): void {
     const http = TestBed.inject(HttpTestingController);
-    for (const request of http.match((candidate) => candidate.url.startsWith('/api/plans'))) {
-      request.flush(
-        request.request.url === '/api/plans'
-          ? []
-          : { id: PLAN_ID, name: 'Deep link plan', draft: null },
-      );
+    for (const request of http.match((candidate) => candidate.url.startsWith('/api/plan'))) {
+      if (request.request.url.startsWith('/api/plan-versions/')) {
+        request.flush({
+          id: VERSION_ID,
+          planId: PLAN_ID,
+          name: 'Deep link plan',
+          versionNumber: 1,
+          publishedAt: '2026-11-03T10:00:00.000Z',
+          steps: [],
+        });
+      } else if (request.request.url.endsWith('/versions')) {
+        request.flush([
+          {
+            id: VERSION_ID,
+            versionNumber: 1,
+            name: 'Deep link plan',
+            publishedAt: '2026-11-03T10:00:00.000Z',
+            publishedBy: {
+              id: '44444444-4444-4444-8444-444444444444',
+              email: 'planner@probedesk.local',
+              role: 'PLANNER',
+            },
+          },
+        ]);
+      } else {
+        request.flush(
+          request.request.url === '/api/plans'
+            ? []
+            : { id: PLAN_ID, name: 'Deep link plan', draft: null },
+        );
+      }
     }
   }
 

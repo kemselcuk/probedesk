@@ -8,7 +8,10 @@ import type {
   PlanDraft,
   PlanStep,
   PlanSummary,
+  PublishedRevision,
   PublishedVersion,
+  PublishedVersionListItem,
+  PublishDraftRequest,
   SaveDraftRequest,
   SaveDraftResult,
 } from './plans-api.types';
@@ -50,6 +53,38 @@ export class PlansApi {
     return this.http
       .put<unknown>(`/api/plans/${encodeURIComponent(planId)}/draft`, request)
       .pipe(map(toSaveDraftResult));
+  }
+
+  /** Publishes the saved draft atomically; the body carries only its revision. */
+  publishDraft(planId: string, request: PublishDraftRequest): Observable<PublishedRevision> {
+    return this.http
+      .post<unknown>(`/api/plans/${encodeURIComponent(planId)}/draft/publish`, request)
+      .pipe(map(toPublishedRevision));
+  }
+
+  /** Creates a new draft copied from the latest published version. */
+  createDraft(planId: string): Observable<PlanDraft> {
+    return this.http
+      .post<unknown>(`/api/plans/${encodeURIComponent(planId)}/drafts`, null)
+      .pipe(map((value) => toPlanDraft(requireRecord(value, 'new draft'), '')));
+  }
+
+  /** Published versions, newest first, including the publisher summary. */
+  listVersions(planId: string): Observable<readonly PublishedVersionListItem[]> {
+    return this.http
+      .get<unknown>(`/api/plans/${encodeURIComponent(planId)}/versions`)
+      .pipe(
+        map((value) =>
+          extractList(value, ['versions']).map((entry) => toPublishedVersionListItem(entry)),
+        ),
+      );
+  }
+
+  /** Reads one immutable published revision with its ordered steps. */
+  getVersion(versionId: string): Observable<PublishedRevision> {
+    return this.http
+      .get<unknown>(`/api/plan-versions/${encodeURIComponent(versionId)}`)
+      .pipe(map(toPublishedRevision));
   }
 }
 
@@ -266,6 +301,36 @@ function toSaveDraftResult(value: unknown): SaveDraftResult {
   return { editRevision, steps, logicalStepIds };
 }
 
+function toPublishedRevision(value: unknown): PublishedRevision {
+  const record = requireRecord(value, 'published version');
+  return {
+    id: requireString(record, 'id'),
+    planId: readString(record, 'planId') ?? '',
+    name: readString(record, 'name') ?? '',
+    versionNumber: requireInteger(record, 'versionNumber'),
+    publishedAt: requireString(record, 'publishedAt'),
+    baseVersionId: readString(record, 'baseVersionId'),
+    steps: (readArray(record, 'steps') ?? []).map(toPlanStep),
+  };
+}
+
+function toPublishedVersionListItem(value: unknown): PublishedVersionListItem {
+  const record = requireRecord(value, 'published version');
+  const publishedBy = requireRecord(record['publishedBy'], 'publisher');
+
+  return {
+    id: requireString(record, 'id'),
+    versionNumber: requireInteger(record, 'versionNumber'),
+    name: readString(record, 'name') ?? '',
+    publishedAt: requireString(record, 'publishedAt'),
+    publishedBy: {
+      id: requireString(publishedBy, 'id'),
+      email: requireString(publishedBy, 'email'),
+      role: requireRole(publishedBy, 'role'),
+    },
+  };
+}
+
 function extractList(value: unknown, keys: readonly string[]): readonly unknown[] {
   if (Array.isArray(value)) {
     return value;
@@ -330,6 +395,27 @@ function requireString(record: Record<string, unknown>, key: string): string {
 function readInteger(record: Record<string, unknown>, key: string): number | null {
   const value = record[key];
   return typeof value === 'number' && Number.isInteger(value) ? value : null;
+}
+
+function requireInteger(record: Record<string, unknown>, key: string): number {
+  const value = readInteger(record, key);
+  if (value === null) {
+    throw new Error(`The response did not contain ${key}.`);
+  }
+
+  return value;
+}
+
+function requireRole(
+  record: Record<string, unknown>,
+  key: string,
+): PublishedVersionListItem['publishedBy']['role'] {
+  const value = requireString(record, key);
+  if (value === 'PLANNER' || value === 'OPERATOR' || value === 'VIEWER') {
+    return value;
+  }
+
+  throw new Error(`The response contained an unknown ${key}.`);
 }
 
 function readBoolean(record: Record<string, unknown>, key: string): boolean | null {

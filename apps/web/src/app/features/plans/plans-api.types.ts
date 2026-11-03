@@ -26,6 +26,21 @@ export type PlanDraft = Pick<
 
 export type PublishedVersion = components['schemas']['PublishedVersionSummaryDto'];
 
+/** One row of GET /api/plans/:id/versions, including the publisher. */
+export type PublishedVersionListItem = components['schemas']['PublishedVersionListItemDto'];
+
+/**
+ * Immutable published content from GET /api/plan-versions/:id or the publish
+ * response. Steps keep server order; the view model deliberately omits the
+ * derived position so the array order stays the only sequence authority.
+ */
+export type PublishedRevision = Pick<
+  components['schemas']['PublishedRevisionDto'],
+  'id' | 'planId' | 'name' | 'versionNumber' | 'publishedAt' | 'baseVersionId'
+> & {
+  readonly steps: readonly PlanStep[];
+};
+
 /**
  * Role-aware plan summary used by the list screen.
  *
@@ -58,6 +73,9 @@ export type SaveDraftStepRequest = components['schemas']['DraftStepDto'];
 
 /** PUT /api/plans/:id/draft request body. Array order is authoritative. */
 export type SaveDraftRequest = components['schemas']['SaveDraftDto'];
+
+/** POST /api/plans/:id/draft/publish request body. */
+export type PublishDraftRequest = components['schemas']['PublishDraftDto'];
 
 /**
  * The useful part of the save response.
