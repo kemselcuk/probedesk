@@ -372,3 +372,84 @@ Scan seçti; `enable_seqscan=off` ile plan indeksinin kullanılabilir olduğu g�
 
 Bu belge bağımsız teknik incelemedir; P5 görevleri `In Review` kalmalıdır. Ürün kabulü,
 demo kabulü veya `Accepted` statüsü bu incelemeyle verilmez.
+
+## Fix re-check — 2026-11-03, commit `7e3934b`
+
+Üç Medium bulgu, `7e3934b` (`fix: close phase 5 review findings`) üzerinde yeniden
+incelendi. Çalışma ağacı bu commit'te temizdi; ürün kodu değiştirilmedi. Yalnız bu bölüm
+ve inceleme sırasında oluşturulan geçici DB fixture'ı eklendi/silindi. Bu bölümdeki
+sonuç, yukarıdaki ilk inceleme özetindeki P5-01/P5-02 “koşullu” durumunun yerine geçer;
+önceki bulgu metinleri tarihsel kayıt olarak korunmuştur.
+
+### Bulgu durumları
+
+1. **Aralık dışı History sayfası — KAPATILDI (doğrulandı).**
+   `run-history-page.ts:134-148` `isPageOutOfRange`/`outOfRangeMessage` ekliyor;
+   `run-history-page.html:112-134` ayrı “This page is out of range” durumu ve
+   “Go to first page” / “Go to last page” aksiyonları gösteriyor. Gerçek Chrome'da
+   `/runs?page=999` (toplam 37 run) “This page is out of range” ve
+   `Page 999 is outside 1-2; 37 runs exist` gösterdi; “No runs recorded yet” yoktu.
+   “Go to first page” `/runs` + 20 satıra, `/runs?status=COMPLETED&page=999` üzerindeki
+   “Go to last page (page 2)” ise `?status=COMPLETED&page=2` + 9 satıra gitti; filtre
+   korundu.
+2. **`partial` semantiği — KAPATILDI (doğrulandı).**
+   `run-history.service.ts:198-205` artık yalnızca
+   `recordedSampleCount < expectedSampleCount` döndürüyor; DTO/OpenAPI açıklaması da
+   güncellendi. `run-status.ts:161-200` Details için aynı sayı tabanlı tanımı paylaşıyor.
+   Gerçek API'de CANCELLED/1-1 fixture'ı `partial:false` döndü; History satırında
+   “1 of 1” ve Partial chip'i yoktu; Details “None — every expected sample was recorded”
+   ve “All expected samples were recorded.” dedi. Aynı fixture'ın 0/90 CANCELLED
+   komşuları `partial:true` kaldı; yani eksik örnek davranışı korunuyor.
+3. **History indeksi — KAPATILDI (doğrulandı).**
+   `apps/api/prisma/migrations/20261103210000_run_history_index/migration.sql` ve
+   `schema.prisma` `test_runs ("startedAt" DESC, id DESC)` indeksini içeriyor;
+   `apps/api/src/prisma/migration-manifest.ts` 8. migration olarak listeliyor.
+   Dev DB (`5434`) ve test DB (`5433`) `_prisma_migrations` tablolarında migration
+   `finished_at` dolu, `rolled_back_at` null. İki DB'de de `pg_indexes` üzerinde
+   `test_runs_startedAt_id_idx` var. Küçük tabloda serbest plan Seq Scan seçebildiği
+   için `SET enable_seqscan=off` ile yapılan EXPLAIN:
+   `Index Only Scan using "test_runs_startedAt_id_idx"` ve **Sort yok**. Bu, indeksin
+   varsayılan `startedAt DESC, id DESC` sıralamasını karşıladığını kanıtlıyor.
+
+### Yeniden çalıştırılan kontroller
+
+```text
+$ npm run verify
+lint: 0 warning / 0 error
+typecheck: exit 0
+test:api:unit: 16 dosya, 118 test geçti
+test:web: 32 dosya, 322 test geçti
+build: api + web başarılı
+openapi:check: OpenAPI contract is current
+
+$ npm run test:e2e --workspace apps/api
+Test Files  19 passed (19)
+Tests       185 passed (185)
+Duration    30.15s
+
+$ npm run openapi:check
+OpenAPI contract is current: apps/api/openapi.json and packages/api-client/src/schema.ts match the application.
+
+$ npm run db:migrate
+8 migrations found; No pending migrations to apply.
+$ npm run db:migrate:test --workspace apps/api
+8 migrations found; No pending migrations to apply.
+```
+
+Not: `docs/evidence/phase-5-review-fixes.md` e2e sayısını 183 olarak yazıyor; bu commit'te
+gerçek sonuç 19 dosya/185 testtir (Phase 6 karşılaştırma testleri aynı commit'te). Bu bir
+ürün bulgusu değildir; güncel gerçek sonuç yukarıdaki 185'tir.
+
+### Yeni bulgular ve sonuç
+
+**Yeni Critical/High/Medium bulgu yok.** Önceki rapordaki dört Low risk (gerçek 401'de
+global login yönlendirmesi, sayfa değişiminde odak kaybı, aynı adlı planların filtrede
+ayrıştırılamaması, geçersiz URL filtrelerinin sessizce yok sayılması) bu commit'te
+değişmedi; fix kanıtı bunları P7-04 kapsamına bırakıyor.
+
+**Teknik kabul durumu:** Üç Medium bulgu kapatıldı; Phase 5 P5-01–P5-06 teknik olarak
+kabul edilebilir. Bu, ürün/demo kabulü değildir; görev kartlarına `Accepted` yazılmadı
+(lead'in kaydı ayrıdır).
+
+İnceleme için oluşturulan CANCELLED/1-1 fixture'ı ve tüm child satırları silindi; geçici
+API/app-server süreçleri kapatıldı. Son DB durumu: `test_runs=36`, `test_plans=2`.
