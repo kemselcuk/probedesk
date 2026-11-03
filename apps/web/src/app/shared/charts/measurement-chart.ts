@@ -19,6 +19,12 @@ import {
   buildMeasurementSummary,
   formatUtcTimestamp,
 } from './measurement-chart.config';
+import {
+  isChartDebugEnabled,
+  registerChartDebugEntry,
+  unregisterChartDebugEntry,
+} from './measurement-chart.debug';
+import type { MeasurementChartDebugEntry } from './measurement-chart.debug';
 import { MEASUREMENT_CHART_FACTORY } from './measurement-chart.factory';
 import type {
   MeasurementChartHandle,
@@ -101,6 +107,7 @@ export class MeasurementChart {
 
   private chart: MeasurementChartHandle | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private debugEntry: MeasurementChartDebugEntry | null = null;
 
   constructor() {
     afterNextRender(() => this.createChart());
@@ -166,9 +173,28 @@ export class MeasurementChart {
       );
       this.chartReady.set(true);
       this.observeResize(canvas);
+      this.registerDebug(canvas);
     } catch {
       this.chartUnavailable.set(true);
     }
+  }
+
+  private registerDebug(canvas: HTMLCanvasElement): void {
+    const debug = this.chart?.debug;
+    if (debug === undefined || !isChartDebugEnabled()) {
+      return;
+    }
+
+    const step = this.step();
+    this.debugEntry = {
+      canvas,
+      runStepId: step.runStepId,
+      logicalStepId: step.logicalStepId,
+      stepName: step.name,
+      unit: step.unit,
+      debug,
+    };
+    registerChartDebugEntry(this.debugEntry);
   }
 
   private observeResize(canvas: HTMLCanvasElement): void {
@@ -186,6 +212,11 @@ export class MeasurementChart {
   }
 
   private destroyChart(): void {
+    if (this.debugEntry !== null) {
+      unregisterChartDebugEntry(this.debugEntry);
+      this.debugEntry = null;
+    }
+
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     this.chart?.destroy();

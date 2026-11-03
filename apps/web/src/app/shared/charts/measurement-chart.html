@@ -1,4 +1,9 @@
-<section class="measurement-chart" [attr.aria-labelledby]="headingId()">
+<section
+  class="measurement-chart"
+  [attr.data-run-step-id]="step().runStepId"
+  [attr.data-logical-step-id]="step().logicalStepId"
+  [attr.aria-labelledby]="headingId()"
+>
   <div class="chart-header">
     <div class="chart-heading-text">
       <h4 [id]="headingId()">Measurement chart — {{ step().name }} ({{ step().unit }})</h4>

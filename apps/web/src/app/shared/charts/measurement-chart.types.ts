@@ -58,12 +58,42 @@ export interface MeasurementPointStyle {
 
 export type MeasurementChartConfig = ChartConfiguration<'line', MeasurementChartPoint[], number>;
 
+/**
+ * Read-only view used by the opt-in browser verification hook. It is not used
+ * by product screens; Chart.js draws tooltips on the canvas, so a real browser
+ * check needs access to the live instance to assert the tooltip text instead
+ * of guessing pixels.
+ */
+export interface MeasurementChartDebugSnapshot {
+  readonly sampleCount: number;
+  readonly visibleSampleCount: number;
+  readonly dataMin: number | null;
+  readonly dataMax: number | null;
+  readonly xMin: number | null;
+  readonly xMax: number | null;
+  readonly zoomed: boolean;
+  readonly tooltip: {
+    readonly opacity: number;
+    readonly title: string[];
+    readonly body: string[];
+    readonly sampleIndex: number | null;
+  } | null;
+}
+
+export interface MeasurementChartDebug {
+  /** Chart-local CSS pixel position of a plotted sample, or null when absent. */
+  pointPixel(sampleIndex: number): { readonly x: number; readonly y: number } | null;
+  snapshot(): MeasurementChartDebugSnapshot;
+}
+
 /** Small boundary around the Chart.js instance so tests never need a canvas. */
 export interface MeasurementChartHandle {
   update(config: MeasurementChartConfig): void;
   resetZoom(): void;
   resize(): void;
   destroy(): void;
+  /** Only the real Chart.js handle provides browser-verification access. */
+  readonly debug?: MeasurementChartDebug;
 }
 
 /** Factory injection boundary. Production uses Chart.js; tests use a fake. */

@@ -368,6 +368,149 @@
           }
         </section>
 
+        <section
+          id="live-charts-section"
+          class="charts-section"
+          aria-labelledby="live-charts-heading"
+          [attr.data-chart-sample-count]="chartSampleCount()"
+          [attr.data-recorded-sample-count]="run.recordedSampleCount"
+        >
+          <h2 id="live-charts-heading" class="section-heading">Live measurement charts</h2>
+          <p class="section-hint">
+            One chart per step and unit. The X axis is the recorded elapsed time and the shaded
+            area is the tolerance copied into this run snapshot. Drawing updates are grouped so a
+            fast stream stays responsive, while the state store keeps every sample; the final
+            chart and full table below show the same recorded sample count as the run.
+          </p>
+
+          @if (live.chartSnapshot(); as chartRun) {
+            <p class="section-hint" role="status">
+              Charts and tables currently show {{ chartSampleCount() }} of
+              {{ chartRun.recordedSampleCount }} recorded samples.
+            </p>
+
+            <div class="step-list">
+              @for (step of chartRun.steps; track step.runStepId) {
+                <article
+                  class="step-row"
+                  style="display: block"
+                  [attr.data-run-step-id]="step.runStepId"
+                  [attr.data-logical-step-id]="step.logicalStepId"
+                >
+                <h3 class="step-title">
+                  Step {{ step.position }}: {{ step.name }} ({{ step.unit }})
+                </h3>
+                <p class="step-subtitle">
+                  {{ step.measurements.length }} of {{ step.sampleCount }} samples recorded ·
+                  tolerance {{ step.minimum }} – {{ step.maximum }} {{ step.unit }}
+                </p>
+
+                <app-measurement-chart
+                  [runId]="chartRun.id"
+                  [planName]="chartRun.planName"
+                  [step]="step"
+                  [selectedSample]="activeSelection()"
+                  (sampleSelected)="selectSample($event)"
+                  (tableViewRequested)="focusMeasurementsTable($event)"
+                />
+
+                <section
+                  class="step-measurements"
+                  [attr.aria-labelledby]="'step-measurements-heading-' + step.runStepId"
+                >
+                  <h4 [id]="'step-measurements-heading-' + step.runStepId" class="step-title">
+                    Recorded measurements
+                  </h4>
+                  @if (step.measurements.length === 0) {
+                    <p class="empty-note">No samples were recorded for this step.</p>
+                  } @else {
+                    <div
+                      class="table-scroll"
+                      [id]="tableId(step.runStepId)"
+                      tabindex="-1"
+                      [attr.aria-label]="
+                        'Measurement table for step ' +
+                        step.position +
+                        ': ' +
+                        step.name +
+                        ' (' +
+                        step.unit +
+                        ')'
+                      "
+                    >
+                      <table>
+                        <caption class="visually-hidden">
+                          Recorded measurements for step
+                          {{ step.position }}:
+                          {{ step.name }}
+                          ({{ step.unit }}). The table contains every sample in the chart.
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Sample index</th>
+                            <th scope="col">Value</th>
+                            <th scope="col">Unit</th>
+                            <th scope="col">Tolerance</th>
+                            <th scope="col">Elapsed (ms)</th>
+                            <th scope="col">Recorded at (UTC)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (measurement of step.measurements; track measurement.sampleIndex) {
+                            <tr
+                              [id]="rowId(step.runStepId, measurement.sampleIndex)"
+                              [class.is-selected]="
+                                isSampleSelected(step, measurement.sampleIndex)
+                              "
+                              [attr.tabindex]="
+                                measurementRowTabIndex(measurement.isWithinTolerance)
+                              "
+                              [attr.aria-label]="
+                                measurementRowLabel(step, measurement.sampleIndex)
+                              "
+                              [attr.aria-current]="
+                                isSampleSelected(step, measurement.sampleIndex) ? 'true' : null
+                              "
+                              (click)="selectMeasurementRow(step, measurement.sampleIndex)"
+                              (keydown.enter)="
+                                selectMeasurementRow(step, measurement.sampleIndex)
+                              "
+                              (keydown.space)="
+                                selectMeasurementRow(step, measurement.sampleIndex);
+                                $event.preventDefault()
+                              "
+                            >
+                              <td>{{ measurement.sampleIndex }}</td>
+                              <td class="mono">{{ measurement.value }}</td>
+                              <td>{{ step.unit }}</td>
+                              <td>
+                                @if (measurement.isWithinTolerance) {
+                                  <span class="tolerance tolerance--within">Within tolerance</span>
+                                } @else {
+                                  <span class="tolerance tolerance--outside">Outside tolerance</span>
+                                }
+                              </td>
+                              <td>{{ measurement.elapsedMs | number }}</td>
+                              <td>
+                                <time [attr.datetime]="measurement.recordedAt">
+                                  {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
+                                </time>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </section>
+              </article>
+              }
+            </div>
+          } @else {
+            <p class="empty-note">Preparing the measurement charts…</p>
+          }
+        </section>
+
         <section class="measurements-section" aria-labelledby="recent-measurements-heading">
           <h2 id="recent-measurements-heading" class="section-heading">Recent measurements</h2>
           @if (live.recentMeasurements().length === 0) {

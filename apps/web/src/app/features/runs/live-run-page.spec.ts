@@ -27,6 +27,9 @@ import {
 } from '../../core/runs/testing/fake-event-source';
 import type { RunEventEnvelope } from '../../core/runs/run-event.types';
 import { AppTitleStrategy } from '../../core/title/app-title.strategy';
+import { MEASUREMENT_CHART_FACTORY } from '../../shared/charts/measurement-chart.factory';
+import { FakeMeasurementChartFactory } from '../../shared/charts/testing/fake-measurement-chart';
+import { LIVE_CHART_SCHEDULER } from './live-chart-scheduler';
 import {
   RUN_ID,
   completedEvent,
@@ -35,6 +38,7 @@ import {
   runningStep,
   USER_ID,
 } from './testing/run-fixtures';
+import { FakeLiveChartScheduler } from './testing/live-chart-scheduler.fake';
 
 const MEASUREMENT = {
   sampleIndex: 0,
@@ -59,6 +63,11 @@ describe('LiveRunPage', () => {
           useValue: (url: string) =>
             new FakeEventSource(url) as unknown as EventSource,
         },
+        {
+          provide: MEASUREMENT_CHART_FACTORY,
+          useValue: new FakeMeasurementChartFactory(),
+        },
+        { provide: LIVE_CHART_SCHEDULER, useValue: new FakeLiveChartScheduler() },
       ],
     }).compileComponents();
   });

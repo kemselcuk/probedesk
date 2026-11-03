@@ -20,6 +20,7 @@ import {
 } from '../../core/runs/testing/fake-event-source';
 import type { RunEventEnvelope } from '../../core/runs/run-event.types';
 import { LiveRunFacade } from './live-run.facade';
+import { LIVE_CHART_SCHEDULER } from './live-chart-scheduler';
 import {
   RUN_ID,
   RUN_STEP_ID,
@@ -29,6 +30,7 @@ import {
   runSnapshot,
   runningStep,
 } from './testing/run-fixtures';
+import { FakeLiveChartScheduler } from './testing/live-chart-scheduler.fake';
 
 describe('LiveRunFacade', () => {
   let http: HttpTestingController;
@@ -54,6 +56,7 @@ describe('LiveRunFacade', () => {
           useValue: (url: string) =>
             new FakeEventSource(url) as unknown as EventSource,
         },
+        { provide: LIVE_CHART_SCHEDULER, useValue: new FakeLiveChartScheduler() },
       ],
     });
     http = TestBed.inject(HttpTestingController);

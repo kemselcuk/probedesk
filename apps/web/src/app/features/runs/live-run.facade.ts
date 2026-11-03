@@ -7,8 +7,10 @@ import {
 } from '../../core/http/http-error-normalizer';
 import type { RunConnectionState } from '../../core/runs/run-events.service';
 import { RunEventsService } from '../../core/runs/run-events.service';
+import { isTerminalRunEventType } from '../../core/runs/run-event.types';
 import type { RunSnapshot } from './runs-api.types';
 import { RunsApi } from './runs-api';
+import { LIVE_CHART_SCHEDULER } from './live-chart-scheduler';
 import {
   applyRunEvent,
   isTerminalRunStatus,
@@ -55,8 +57,10 @@ export class LiveRunFacade {
   private readonly events = inject(RunEventsService);
   private readonly errorNormalizer = inject(HttpErrorNormalizer);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly chartScheduler = inject(LIVE_CHART_SCHEDULER);
 
   private readonly snapshotState = signal<RunSnapshot | null>(null);
+  private readonly chartSnapshotState = signal<RunSnapshot | null>(null);
   private readonly loadStatusState = signal<LiveRunLoadStatus>('idle');
   private readonly loadErrorState = signal<ApiErrorView | null>(null);
   private readonly connectionState = signal<RunConnectionState>('disconnected');
@@ -73,8 +77,15 @@ export class LiveRunFacade {
   private terminalHandled = false;
   private reconciling = false;
   private streamSubscription: Subscription | null = null;
+  private visualHandle: number | null = null;
 
   readonly snapshot = this.snapshotState.asReadonly();
+  /**
+   * Throttled copy of `snapshot` used only for drawing. The store above already
+   * contains every sample; this signal lags by at most one animation frame (or
+   * 16 ms) so a fast stream cannot force a chart re-render per event.
+   */
+  readonly chartSnapshot = this.chartSnapshotState.asReadonly();
   readonly loadStatus = this.loadStatusState.asReadonly();
   readonly loadError = this.loadErrorState.asReadonly();
   readonly connection = this.connectionState.asReadonly();
@@ -89,6 +100,10 @@ export class LiveRunFacade {
     const run = this.snapshot();
     return run !== null && isTerminalRunStatus(run.status);
   });
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.cancelVisualUpdate());
+  }
 
   readonly isRunning = computed(() => this.snapshot()?.status === 'RUNNING');
 
@@ -139,11 +154,13 @@ export class LiveRunFacade {
   /** Loads a run snapshot and opens the live stream from its cursor. */
   load(runId: string): void {
     this.stopStream();
+    this.cancelVisualUpdate();
     this.runId = runId;
     this.cursor = 0;
     this.terminalHandled = false;
     this.reconciling = false;
     this.snapshotState.set(null);
+    this.chartSnapshotState.set(null);
     this.loadStatusState.set('loading');
     this.loadErrorState.set(null);
     this.streamErrorState.set(null);
@@ -166,7 +183,7 @@ export class LiveRunFacade {
             return;
           }
 
-          this.snapshotState.set(mergeRunSnapshot(null, snapshot));
+          this.publishSnapshot(mergeRunSnapshot(null, snapshot), true);
           this.cursor = snapshot.lastEventSequence;
           this.loadStatusState.set('loaded');
           this.loadErrorState.set(null);
@@ -231,7 +248,10 @@ export class LiveRunFacade {
           }
 
           this.cancelPendingState.set(false);
-          this.snapshotState.set(mergeRunSnapshot(this.snapshot(), snapshot));
+          this.publishSnapshot(
+            mergeRunSnapshot(this.snapshot(), snapshot),
+            true,
+          );
           this.cursor = Math.max(this.cursor, snapshot.lastEventSequence);
 
           if (isTerminalRunStatus(snapshot.status)) {
@@ -305,16 +325,11 @@ export class LiveRunFacade {
     const result = applyRunEvent(current, event);
 
     if (result.kind === 'applied') {
-      this.snapshotState.set(result.state.run);
+      const terminalEvent = isTerminalRunEventType(event.type);
+      this.publishSnapshot(result.state.run, terminalEvent);
       this.cursor = result.state.lastEventSequence;
 
-      if (event.type === 'run.completed') {
-        this.finishTerminal();
-      } else if (
-        event.type === 'run.cancelled' ||
-        event.type === 'run.interrupted' ||
-        event.type === 'run.errored'
-      ) {
+      if (terminalEvent) {
         this.finishTerminal();
       }
 
@@ -357,8 +372,9 @@ export class LiveRunFacade {
           }
 
           this.reconciling = false;
-          this.snapshotState.set(
+          this.publishSnapshot(
             mergeRunSnapshot(this.snapshot(), snapshot),
+            true,
           );
           // Never move the applied cursor backwards. A snapshot read can race
           // the stream; resuming from the higher applied cursor replays only
@@ -442,7 +458,10 @@ export class LiveRunFacade {
           this.finalizingState.set(false);
           this.finalStepStateUnavailableState.set(false);
           this.finalStepStateErrorState.set(null);
-          this.snapshotState.set(mergeRunSnapshot(this.snapshot(), snapshot));
+          this.publishSnapshot(
+            mergeRunSnapshot(this.snapshot(), snapshot),
+            true,
+          );
           this.cursor = Math.max(this.cursor, snapshot.lastEventSequence);
         },
         error: (error: unknown) => {
@@ -489,7 +508,10 @@ export class LiveRunFacade {
           }
 
           this.reconciling = false;
-          this.snapshotState.set(mergeRunSnapshot(this.snapshot(), snapshot));
+          this.publishSnapshot(
+            mergeRunSnapshot(this.snapshot(), snapshot),
+            true,
+          );
           this.cursor = Math.max(this.cursor, snapshot.lastEventSequence);
 
           if (isTerminalRunStatus(snapshot.status)) {
@@ -502,6 +524,50 @@ export class LiveRunFacade {
           this.connectionState.set('disconnected');
         },
       });
+  }
+
+  /**
+   * Writes the authoritative store immediately, then either flushes the chart
+   * copy now (initial load, reconciliation, terminal, cancel) or schedules one
+   * grouped update. A burst of events coalesces into the latest complete
+   * snapshot, so no sample can be skipped between visual frames.
+   */
+  private publishSnapshot(run: RunSnapshot, immediate: boolean): void {
+    this.snapshotState.set(run);
+    if (immediate) {
+      this.flushVisualUpdate();
+      return;
+    }
+
+    this.scheduleVisualUpdate();
+  }
+
+  private scheduleVisualUpdate(): void {
+    if (this.visualHandle !== null) {
+      return;
+    }
+
+    this.visualHandle = this.chartScheduler.request(() => {
+      this.visualHandle = null;
+      this.flushVisualUpdate();
+    });
+  }
+
+  private flushVisualUpdate(): void {
+    this.cancelVisualUpdate();
+    const run = this.snapshotState();
+    if (run !== null) {
+      this.chartSnapshotState.set(run);
+    }
+  }
+
+  private cancelVisualUpdate(): void {
+    if (this.visualHandle === null) {
+      return;
+    }
+
+    this.chartScheduler.cancel(this.visualHandle);
+    this.visualHandle = null;
   }
 
   private stopStream(): void {

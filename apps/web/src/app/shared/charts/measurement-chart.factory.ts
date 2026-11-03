@@ -3,6 +3,7 @@ import { Chart } from 'chart.js';
 import { registerChartJs } from './chart-js.setup';
 import type {
   MeasurementChartConfig,
+  MeasurementChartDebug,
   MeasurementChartFactory,
   MeasurementChartHandle,
   MeasurementChartPoint,
@@ -41,8 +42,73 @@ export class ChartJsMeasurementChartFactory implements MeasurementChartFactory {
       destroy(): void {
         chart.destroy();
       },
+      debug: createDebug(chart),
     };
   }
+}
+
+function createDebug(
+  chart: Chart<'line', MeasurementChartPoint[], number>,
+): MeasurementChartDebug {
+  function points(): readonly MeasurementChartPoint[] {
+    return chart.data.datasets[0]?.data ?? [];
+  }
+
+  return {
+    pointPixel(sampleIndex) {
+      const index = points().findIndex((point) => point.sampleIndex === sampleIndex);
+      if (index < 0) {
+        return null;
+      }
+
+      const element = chart.getDatasetMeta(0).data[index];
+      if (element === undefined) {
+        return null;
+      }
+
+      const position = element as unknown as { x: number; y: number };
+      return { x: position.x, y: position.y };
+    },
+    snapshot() {
+      const data = points();
+      const xAxis = chart.scales['x'];
+      const minimum = xAxis === undefined ? null : xAxis.min;
+      const maximum = xAxis === undefined ? null : xAxis.max;
+      const dataXs = data.map((point) => point.x);
+      const tooltip = chart.tooltip;
+      const dataPoints = tooltip?.dataPoints ?? [];
+      const activeDataIndex = dataPoints[0]?.dataIndex;
+      const activePoint =
+        activeDataIndex === undefined ? undefined : data[activeDataIndex];
+      const hasTooltip = tooltip !== undefined && tooltip !== null;
+
+      return {
+        sampleCount: data.length,
+        visibleSampleCount:
+          minimum === null || maximum === null
+            ? data.length
+            : dataXs.filter((x) => x >= minimum && x <= maximum).length,
+        dataMin: dataXs.length === 0 ? null : Math.min(...dataXs),
+        dataMax: dataXs.length === 0 ? null : Math.max(...dataXs),
+        xMin: minimum,
+        xMax: maximum,
+        zoomed: chart.isZoomedOrPanned(),
+        tooltip:
+          !hasTooltip
+            ? null
+            : {
+                opacity: tooltip.opacity,
+                title: [...(tooltip.title ?? [])],
+                body: (tooltip.body ?? []).flatMap((item) => [
+                  ...(item.before ?? []),
+                  ...(item.lines ?? []),
+                  ...(item.after ?? []),
+                ]),
+                sampleIndex: activePoint?.sampleIndex ?? null,
+              },
+      };
+    },
+  };
 }
 
 /** Injection boundary used by `MeasurementChart`; tests override this token. */

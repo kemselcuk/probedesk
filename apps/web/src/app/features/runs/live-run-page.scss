@@ -4,6 +4,7 @@
 
 .run-summary,
 .steps-section,
+.charts-section,
 .measurements-section,
 .inline-error,
 .not-found,
@@ -185,6 +186,7 @@
 }
 
 .steps-section,
+.charts-section,
 .measurements-section {
   margin-bottom: 32px;
 }
@@ -272,10 +274,13 @@
   border-top: 1px solid var(--mat-sys-outline-variant);
 }
 
+tr.is-selected {
+  background: var(--mat-sys-secondary-container);
+}
+
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 10px;
 }
 
 table {

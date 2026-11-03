@@ -3,7 +3,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
+  afterNextRender,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -13,6 +16,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import type { RunConnectionState } from '../../core/runs/run-events.service';
+import { MeasurementChart } from '../../shared/charts/measurement-chart';
+import type { MeasurementSelection } from '../../shared/charts/measurement-chart.types';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
@@ -20,6 +25,12 @@ import { PageHeader } from '../../shared/ui/page-header/page-header';
 import { CancelRunDialog } from './cancel-run-dialog';
 import type { CancelRunDialogData } from './cancel-run-dialog';
 import { LiveRunFacade } from './live-run.facade';
+import {
+  findSelectedMeasurement,
+  findStepByLogicalStepId,
+  measurementRowId,
+  measurementsTableId,
+} from './run-details-chart';
 import {
   isPartialResult,
   isStoppedAfterAllSamples,
@@ -85,6 +96,7 @@ const CONNECTION_VIEWS: Readonly<Record<RunConnectionState, ConnectionView>> = {
     ErrorState,
     LoadingState,
     MatButtonModule,
+    MeasurementChart,
     PageHeader,
     RouterLink,
   ],
@@ -99,6 +111,7 @@ export class LiveRunPage {
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
 
   protected readonly runId = signal(
     this.route.snapshot.paramMap.get('runId') ?? '',
@@ -204,6 +217,35 @@ export class LiveRunPage {
   });
 
   protected readonly announcement = signal('');
+  protected readonly selectedSample = signal<MeasurementSelection | null>(null);
+
+  /**
+   * A selection survives re-renders only while the exact step and sample are
+   * still in the chart snapshot. It is passed to every chart, but only the
+   * matching step highlights it.
+   */
+  protected readonly activeSelection = computed<MeasurementSelection | null>(() => {
+    const selection = this.selectedSample();
+    const run = this.live.chartSnapshot();
+    if (selection === null || run === null) {
+      return null;
+    }
+
+    return findSelectedMeasurement(run, selection) === null ? null : selection;
+  });
+
+  /** Number of samples currently drawn and listed by the grouped visual copy. */
+  protected readonly chartSampleCount = computed(() => {
+    const run = this.live.chartSnapshot();
+    if (run === null) {
+      return 0;
+    }
+
+    return run.steps.reduce(
+      (total, step) => total + step.measurements.length,
+      0,
+    );
+  });
 
   private cancelDialogOpen = false;
 
@@ -220,9 +262,22 @@ export class LiveRunPage {
 
         this.runId.set(nextRunId);
         this.live.clearCancelError();
+        this.selectedSample.set(null);
         this.announcement.set('');
         this.loadIfPossible();
       });
+
+    effect(() => {
+      const selection = this.selectedSample();
+      const run = this.live.chartSnapshot();
+      if (
+        selection !== null &&
+        run !== null &&
+        findSelectedMeasurement(run, selection) === null
+      ) {
+        this.selectedSample.set(null);
+      }
+    });
   }
 
   protected retry(): void {
@@ -286,10 +341,102 @@ export class LiveRunPage {
     );
   }
 
+  /**
+   * One selection path for chart points, chart failure lists, the summary
+   * link, and measurement rows. The matching row is focused after rendering;
+   * the chart highlight is derived from the same logical step + sample index.
+   */
+  protected selectSample(selection: MeasurementSelection): void {
+    const run = this.live.chartSnapshot();
+    if (run === null) {
+      return;
+    }
+
+    const resolved = findSelectedMeasurement(run, selection);
+    if (resolved === null) {
+      return;
+    }
+
+    this.selectedSample.set(selection);
+    const { step, measurement } = resolved;
+    const tolerance = measurement.isWithinTolerance
+      ? 'Within tolerance'
+      : 'Outside tolerance';
+    this.announcement.set(
+      `${tolerance}: sample ${measurement.sampleIndex} of step ${step.position}, ${step.name}, value ${measurement.value} ${step.unit}, elapsed ${measurement.elapsedMs} ms. The measurement row is focused in the table.`,
+    );
+    this.focusAfterRender(
+      measurementRowId(step.runStepId, measurement.sampleIndex),
+    );
+  }
+
+  protected selectMeasurementRow(
+    step: RunSnapshotStep,
+    sampleIndex: number,
+  ): void {
+    this.selectSample({ logicalStepId: step.logicalStepId, sampleIndex });
+  }
+
+  protected isSampleSelected(
+    step: RunSnapshotStep,
+    sampleIndex: number,
+  ): boolean {
+    const selection = this.activeSelection();
+    return (
+      selection !== null &&
+      selection.logicalStepId === step.logicalStepId &&
+      selection.sampleIndex === sampleIndex
+    );
+  }
+
+  /** Failure rows are tab stops; every row can still receive programmatic focus. */
+  protected measurementRowTabIndex(isWithinTolerance: boolean): number {
+    return isWithinTolerance ? -1 : 0;
+  }
+
+  protected measurementRowLabel(
+    step: RunSnapshotStep,
+    sampleIndex: number,
+  ): string | null {
+    const run = this.live.chartSnapshot();
+    if (run === null) {
+      return null;
+    }
+
+    const resolved = findSelectedMeasurement(run, {
+      logicalStepId: step.logicalStepId,
+      sampleIndex,
+    });
+    if (resolved === null || resolved.measurement.isWithinTolerance) {
+      return null;
+    }
+
+    return `Sample ${sampleIndex}, outside tolerance, value ${resolved.measurement.value} ${step.unit}. Select to highlight it in the chart.`;
+  }
+
+  protected focusMeasurementsTable(logicalStepId: string): void {
+    const run = this.live.chartSnapshot();
+    if (run === null) {
+      return;
+    }
+
+    const step = findStepByLogicalStepId(run, logicalStepId);
+    if (step === null) {
+      return;
+    }
+
+    this.announcement.set(
+      `Measurement table for step ${step.position}, ${step.name}, is focused. It contains the same recorded values and backend tolerance results as the chart.`,
+    );
+    this.focusAfterRender(measurementsTableId(step.runStepId));
+  }
+
   protected scenario = scenarioLabel;
   protected stepStatus = stepStatusLabel;
   protected stepOutcome = stepOutcomeLabel;
   protected progress = progressLabel;
+  protected tableId = measurementsTableId;
+  protected rowId = measurementRowId;
 
   private loadIfPossible(): void {
     const runId = this.runId();
@@ -298,5 +445,11 @@ export class LiveRunPage {
     }
 
     this.live.load(runId);
+  }
+
+  private focusAfterRender(elementId: string): void {
+    afterNextRender(() => document.getElementById(elementId)?.focus(), {
+      injector: this.injector,
+    });
   }
 }
