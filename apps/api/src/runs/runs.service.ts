@@ -14,6 +14,8 @@ import {
   RUN_EVALUATION_VERSION,
   RUN_EVENT_SCHEMA_VERSION,
 } from './run-domain.js';
+import { RunExecutor } from './run-executor.js';
+import { RUN_SCHEDULER, type RunScheduler } from './run-scheduler.js';
 import {
   buildRunSnapshot,
   RunSnapshotValidationError,
@@ -47,7 +49,11 @@ const START_EVENT_SEQUENCE = 1;
 
 @Injectable()
 export class RunsService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RunExecutor) private readonly runExecutor: RunExecutor,
+    @Inject(RUN_SCHEDULER) private readonly scheduler: RunScheduler,
+  ) {}
 
   /**
    * Starts one published revision, or replays an earlier start made with the
@@ -81,7 +87,7 @@ export class RunsService {
     }
 
     const source = await this.loadPublishedSource(request.planVersionId);
-    const startedAt = new Date();
+    const startedAt = this.scheduler.now();
     const snapshot = buildSnapshot(
       source,
       request,
@@ -128,6 +134,10 @@ export class RunsService {
         },
         { timeout: 10_000, maxWait: 5_000 },
       );
+
+      // The snapshot is committed; execution must not be awaited here. A
+      // failed/terminated HTTP connection cannot stop the scheduled run.
+      this.runExecutor.start(created.id);
 
       return { replayed: false, response: toResponse(created) };
     } catch (error) {

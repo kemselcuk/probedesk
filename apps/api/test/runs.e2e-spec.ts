@@ -14,6 +14,7 @@ import {
 } from '../src/prisma/generated/client.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { RUN_EVALUATION_VERSION } from '../src/runs/run-domain.js';
+import { RUN_SCHEDULER } from '../src/runs/run-scheduler.js';
 import { SIMULATOR_VERSION } from '../src/simulator/index.js';
 import {
   cookieHeader,
@@ -22,6 +23,7 @@ import {
   type TestUser,
 } from './support/auth-helpers.js';
 import { createTestApplication } from './support/create-test-application.js';
+import { ControlledRunScheduler } from './support/run-schedulers.js';
 import {
   createDraftOnlyRunFixture,
   createPublishedRunFixture,
@@ -71,6 +73,7 @@ describe('runs API (e2e)', () => {
   let viewer: ClientSession;
   let fixture: PublishedRunFixture;
   let draftOnly: { planId: string; revisionId: string };
+  const scheduler = new ControlledRunScheduler('paused');
 
   const server = () => app.getHttpServer();
   const testUserIds = () => [
@@ -81,7 +84,15 @@ describe('runs API (e2e)', () => {
   ];
 
   beforeAll(async () => {
-    app = await createTestApplication();
+    // This suite covers start semantics. Its scheduler stays paused so the
+    // asynchronous executor cannot race the snapshot assertions; the execution
+    // suite exercises the automatic start and completion instead.
+    app = await createTestApplication(
+      {},
+      {
+        overrides: [{ provide: RUN_SCHEDULER, useValue: scheduler }],
+      },
+    );
     prisma = app.get(PrismaService);
 
     await dropFailureTrigger();
@@ -123,6 +134,7 @@ describe('runs API (e2e)', () => {
     if (app) {
       await app.close();
     }
+    scheduler.dispose();
   });
 
   async function login(user: TestUser): Promise<ClientSession> {
