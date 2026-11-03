@@ -1,0 +1,55 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/prisma/generated"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Application roles. Exactly one role is assigned to each user.
+enum Role {
+  PLANNER
+  OPERATOR
+  VIEWER
+}
+
+/// One of the three pre-provisioned accounts. Email comparison is exact and
+/// case-sensitive at the database level; authentication normalises input later.
+model User {
+  id           String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  email        String    @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  sessions     Session[]
+
+  @@map("users")
+}
+
+/// Server-side session record. Only token hashes are stored, never raw tokens.
+model Session {
+  id            String    @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  tokenHash     String    @unique
+  userId        String    @db.Uuid
+  csrfTokenHash String
+  expiresAt     DateTime  @db.Timestamptz(6)
+  revokedAt     DateTime? @db.Timestamptz(6)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+/// Single simulated device profile; seeded data uses code as its stable key.
+model DeviceProfile {
+  id          String  @id @db.Uuid @default(dbgenerated("gen_random_uuid()"))
+  code        String  @unique
+  name        String
+  description String?
+
+  @@map("device_profiles")
+}

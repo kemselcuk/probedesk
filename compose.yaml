@@ -1,0 +1,32 @@
+# Local development database. The named volume keeps plan and run data across
+# container recreation.
+name: probedesk
+
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    container_name: probedesk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: probedesk
+      POSTGRES_PASSWORD: probedesk
+      POSTGRES_DB: probedesk
+    ports:
+      # Default follows the documented 5432. A machine with an existing
+      # PostgreSQL service can override the host port with
+      # PROBEDESK_DEV_DB_PORT and update DATABASE_URL accordingly.
+      - "127.0.0.1:${PROBEDESK_DEV_DB_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18 images keep PGDATA under /var/lib/postgresql/<major>/docker,
+      # so the volume must be mounted at the parent directory.
+      - probedesk-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U probedesk -d probedesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  probedesk-postgres-data:
+    name: probedesk-postgres-data

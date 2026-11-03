@@ -1,0 +1,22 @@
+# Isolated integration-test database. This file is standalone on purpose: it has
+# its own Compose project and no volume, so it can never attach to (or reset) the
+# development database volume declared in compose.yaml.
+name: probedesk-test
+
+services:
+  postgres-test:
+    image: postgres:18.1-alpine
+    container_name: probedesk-postgres-test
+    restart: "no"
+    environment:
+      POSTGRES_USER: probedesk
+      POSTGRES_PASSWORD: probedesk
+      POSTGRES_DB: probedesk_test
+    ports:
+      - "127.0.0.1:5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U probedesk -d probedesk_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s

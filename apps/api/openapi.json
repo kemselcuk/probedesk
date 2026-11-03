@@ -1,0 +1,162 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The process is running. This probe does not touch the database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Report that the API process is alive.",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The database answered a minimal query.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "checks"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "checks": {
+                      "type": "object",
+                      "properties": {
+                        "database": {
+                          "type": "string",
+                          "example": "ok"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database is unavailable; retry after it recovers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Report whether the API can serve requests, including database access.",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "ProbeDesk API",
+    "description": "Versioned measurement plans, deterministic simulated runs and run comparison. All routes are served under /api.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Liveness and readiness probes."
+    }
+  ],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "ApiFieldErrorDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Dotted field path, array indexes included.",
+            "example": "steps.1.maximum"
+          },
+          "code": {
+            "type": "string",
+            "example": "INVALID_VALUE"
+          },
+          "message": {
+            "type": "string",
+            "example": "maximum must be greater than or equal to minimum"
+          }
+        },
+        "required": [
+          "path",
+          "code",
+          "message"
+        ]
+      },
+      "ApiErrorDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "VALIDATION_ERROR"
+          },
+          "message": {
+            "type": "string",
+            "example": "The request contains invalid fields."
+          },
+          "requestId": {
+            "type": "string",
+            "description": "Correlation id also returned in the X-Request-Id header.",
+            "example": "5e4d1f0a-cf62-4d2f-9a36-7f3d32f9a0aa"
+          },
+          "fieldErrors": {
+            "description": "Present when field-level validation failed.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiFieldErrorDto"
+            }
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Safe, non-sensitive context for the error."
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "requestId"
+        ]
+      }
+    }
+  }
+}
