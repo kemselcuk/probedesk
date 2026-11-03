@@ -196,6 +196,77 @@ draft. An unknown run id is `404 NOT_FOUND`; a non-UUID id is
 `400 VALIDATION_ERROR`. Responses contain no password hash, session token,
 idempotency key, request hash or draft content.
 
+## Run history
+
+`GET /api/runs` returns a paginated history for a Planner, Operator or Viewer.
+Filters are `planId`, `status` (`RUNNING`, `COMPLETED`, `CANCELLED`,
+`INTERRUPTED`, `ERROR`), `outcome` (`PASSED`, `FAILED`), `from`, `to`, `page`
+(1-based) and `limit` (default 20, maximum 100). Unknown query parameters,
+non-UUID plan ids, unknown enum values, malformed dates and out-of-range
+pagination are `400 VALIDATION_ERROR` with `fieldErrors`.
+
+`from` is inclusive and `to` is exclusive; the range is `[from, to)` over
+`startedAt`. Both accept an ISO-8601 date (`2026-11-03`, interpreted as UTC
+midnight) or a date-time with an explicit timezone (`2026-11-03T12:00:00.000Z`
+or an offset). A timezone-less date-time is rejected rather than interpreted in
+the server's local zone. Results are ordered by `startedAt DESC, id DESC`, so
+runs that share a start timestamp still paginate deterministically.
+
+```json
+{
+  "items": [
+    {
+      "id": "…",
+      "planId": "…",
+      "planVersionId": "…",
+      "planName": "Power rail verification",
+      "versionNumber": 2,
+      "scenario": "NORMAL",
+      "seed": 123456789,
+      "status": "COMPLETED",
+      "outcome": "FAILED",
+      "startedAt": "2026-11-03T12:00:00.000Z",
+      "finishedAt": "2026-11-03T12:00:06.200Z",
+      "expectedSampleCount": 6,
+      "recordedSampleCount": 6,
+      "outOfToleranceCount": 2,
+      "firstFailure": {
+        "stepPosition": 2,
+        "stepName": "Current Draw",
+        "logicalStepId": "…",
+        "sampleIndex": 1
+      },
+      "partial": false,
+      "requestedBy": { "id": "…", "email": "operator@example.com", "role": "OPERATOR" }
+    }
+  ],
+  "page": 1,
+  "limit": 20,
+  "total": 7,
+  "totalPages": 1
+}
+```
+
+List items never contain step or measurement arrays. `expectedSampleCount` and
+`recordedSampleCount` are the sums of the immutable step rows; they equal the
+run counters written at start and execution time. `outOfToleranceCount` is the
+sum of every step counter. `firstFailure` is the earliest failing step by
+`position`, then the stored `firstFailureSampleIndex`; it is null when no
+recorded sample is out of tolerance. `partial` is true when the run is not
+`COMPLETED` or recorded samples are below expected, so CANCELLED, INTERRUPTED,
+ERROR and active runs are never shown as complete. An empty measurements set
+does not fabricate statistics: the run snapshot reports null step statistics
+and the history row reports zero recorded samples with `firstFailure: null`.
+
+`totalPages` is zero when no run matches. A page beyond `totalPages` returns
+`200` with an empty `items` array and the unchanged total. Plan-scoped queries
+can use the existing `(planId, startedAt, id)` index for both filtering and
+ordering, and status filters can use the `status` index. No index currently
+starts with `startedAt`, so unfiltered, date-only and outcome-only queries sort
+their candidate rows. No extra index was added for this endpoint; a
+`startedAt`-leading index is the possible next optimization if history volume
+requires it.
+
 ## Run event stream (SSE)
 
 `GET /api/runs/:id/events` streams the committed `RunEvent` rows for one run to

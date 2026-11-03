@@ -9,6 +9,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -24,6 +25,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiSecurity,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -38,12 +40,20 @@ import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import type { AuthContext } from '../auth/auth.types.js';
 import { ApiException } from '../common/errors/api.exception.js';
 import { ApiErrorDto } from '../common/openapi/api-error.dto.js';
-import { Role } from '../prisma/generated/client.js';
+import { Role, RunOutcome, RunStatus } from '../prisma/generated/client.js';
 import { StartRunDto } from './dto/start-run.dto.js';
 import { RunStartResponseDto } from './dto/run-start-response.dto.js';
 import { RunActiveDto, RunSnapshotDto } from './dto/run-snapshot.dto.js';
+import {
+  DEFAULT_RUN_HISTORY_LIMIT,
+  DEFAULT_RUN_HISTORY_PAGE,
+  ListRunsQueryDto,
+  MAX_RUN_HISTORY_LIMIT,
+} from './dto/list-runs-query.dto.js';
+import { RunHistoryPageDto } from './dto/run-history.dto.js';
 import { MAX_IDEMPOTENCY_KEY_LENGTH } from './run-start.js';
 import { RunCancellationService } from './run-cancel.service.js';
+import { RunHistoryService } from './run-history.service.js';
 import { RunSnapshotService } from './run-snapshot.service.js';
 import { RunsService } from './runs.service.js';
 
@@ -56,6 +66,7 @@ export class RunsController {
     private readonly runsService: RunsService,
     private readonly runSnapshotService: RunSnapshotService,
     private readonly runCancellationService: RunCancellationService,
+    private readonly runHistoryService: RunHistoryService,
   ) {}
 
   @Post()
@@ -123,6 +134,94 @@ export class RunsController {
 
     response.status(result.replayed ? HttpStatus.OK : HttpStatus.ACCEPTED);
     return result.response;
+  }
+
+  @Get()
+  @Header('Cache-Control', 'no-store')
+  @Roles(Role.PLANNER, Role.OPERATOR, Role.VIEWER)
+  @ApiSecurity('session')
+  @ApiOperation({
+    summary: 'List run history with filters and stable pagination.',
+  })
+  @ApiQuery({
+    name: 'planId',
+    required: false,
+    schema: { type: 'string', format: 'uuid' },
+    description: 'Only runs of this plan.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    schema: {
+      type: 'string',
+      enum: Object.values(RunStatus),
+      example: RunStatus.COMPLETED,
+    },
+    description: 'Only runs in this lifecycle state.',
+  })
+  @ApiQuery({
+    name: 'outcome',
+    required: false,
+    schema: {
+      type: 'string',
+      enum: Object.values(RunOutcome),
+      example: RunOutcome.PASSED,
+    },
+    description: 'Only runs with this final verdict.',
+  })
+  @ApiQuery({
+    name: 'from',
+    required: false,
+    schema: { type: 'string', example: '2026-11-03T00:00:00.000Z' },
+    description:
+      'Inclusive lower bound for startedAt. UTC ISO-8601 date or date-time with an explicit timezone.',
+  })
+  @ApiQuery({
+    name: 'to',
+    required: false,
+    schema: { type: 'string', example: '2026-11-04T00:00:00.000Z' },
+    description:
+      'Exclusive upper bound for startedAt. The range is [from, to). UTC ISO-8601 date or date-time with an explicit timezone.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    schema: {
+      type: 'integer',
+      minimum: 1,
+      default: DEFAULT_RUN_HISTORY_PAGE,
+      example: DEFAULT_RUN_HISTORY_PAGE,
+    },
+    description: '1-based page number.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    schema: {
+      type: 'integer',
+      minimum: 1,
+      maximum: MAX_RUN_HISTORY_LIMIT,
+      default: DEFAULT_RUN_HISTORY_LIMIT,
+      example: DEFAULT_RUN_HISTORY_LIMIT,
+    },
+    description: `Page size. Defaults to ${DEFAULT_RUN_HISTORY_LIMIT} and must not exceed ${MAX_RUN_HISTORY_LIMIT}.`,
+  })
+  @ApiOkResponse({
+    description:
+      'A page ordered by startedAt DESC, id DESC. Items contain aggregate sample counters and the earliest failure but never step or measurement arrays. Date filters are UTC and use the half-open [from, to) range.',
+    type: RunHistoryPageDto,
+  })
+  @ApiBadRequestResponse({
+    description:
+      'A filter, page or limit is malformed, limit exceeds 100, or an unknown query parameter was supplied.',
+    type: ApiErrorDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  list(@Query() query: ListRunsQueryDto): Promise<RunHistoryPageDto> {
+    return this.runHistoryService.list(query);
   }
 
   /**

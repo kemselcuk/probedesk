@@ -8,6 +8,7 @@ import {
 import { RunEventsService } from '../events/run-events.service.js';
 import { RunCancellationService } from './run-cancel.service.js';
 import { RunExecutor } from './run-executor.js';
+import { RunHistoryService } from './run-history.service.js';
 import { RunRecoveryService } from './run-recovery.service.js';
 import { RUN_SCHEDULER, RealRunScheduler } from './run-scheduler.js';
 import { RunSnapshotService } from './run-snapshot.service.js';
@@ -24,6 +25,7 @@ import { RunsService } from './runs.service.js';
   providers: [
     RunsService,
     RunCancellationService,
+    RunHistoryService,
     RunSnapshotService,
     RunExecutor,
     RunRecoveryService,

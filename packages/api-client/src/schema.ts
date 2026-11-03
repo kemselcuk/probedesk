@@ -96,7 +96,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List run history with filters and stable pagination. */
+        get: operations["RunsController_list"];
         put?: never;
         /** Start a published plan version as the single active run, or replay an idempotent retry. */
         post: operations["RunsController_start"];
@@ -459,18 +460,21 @@ export interface components {
             /** @example /api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events */
             eventsUrl: string;
         };
-        DeviceProfileDto: {
+        RunFirstFailureDto: {
             /**
-             * Format: uuid
-             * @example b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59
+             * @description 1-based position of the failing step inside the run.
+             * @example 2
              */
-            id: string;
-            /** @example DC_POWER_MODULE */
-            code: string;
-            /** @example DC Power Module */
-            name: string;
-            /** @example Deterministic simulated DC power module used for local demonstrations. */
-            description?: string | null;
+            stepPosition: number;
+            /** @example Current Draw */
+            stepName: string;
+            /** Format: uuid */
+            logicalStepId: string;
+            /**
+             * @description Zero-based index of the first out-of-tolerance sample.
+             * @example 1
+             */
+            sampleIndex: number;
         };
         RunRequestedByDto: {
             /** Format: uuid */
@@ -485,6 +489,86 @@ export interface components {
              * @enum {string}
              */
             role: "PLANNER" | "OPERATOR" | "VIEWER";
+        };
+        RunHistoryItemDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            planId: string;
+            /** Format: uuid */
+            planVersionId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example 1 */
+            versionNumber: number;
+            /**
+             * @example NORMAL
+             * @enum {string}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+            /** @example 123456789 */
+            seed: number;
+            /**
+             * @example COMPLETED
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+            /**
+             * @description Overall verdict; only a COMPLETED run has one.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            /** @example 6 */
+            expectedSampleCount: number;
+            /** @example 6 */
+            recordedSampleCount: number;
+            /**
+             * @description Sum of the stored step out-of-tolerance counters. Aggregate only; use the run snapshot for per-step values.
+             * @example 0
+             */
+            outOfToleranceCount: number;
+            /** @description Earliest failure by step position and sample index, or null when no recorded sample is out of tolerance. */
+            firstFailure: components["schemas"]["RunFirstFailureDto"] | null;
+            /**
+             * @description True when the run is not COMPLETED or its recorded sample count is below the expected count. Partial runs never hide their missing samples.
+             * @example false
+             */
+            partial: boolean;
+            requestedBy: components["schemas"]["RunRequestedByDto"];
+        };
+        RunHistoryPageDto: {
+            items: components["schemas"]["RunHistoryItemDto"][];
+            /** @example 1 */
+            page: number;
+            /** @example 20 */
+            limit: number;
+            /**
+             * @description Total number of runs matching the filters.
+             * @example 7
+             */
+            total: number;
+            /**
+             * @description Number of pages for this filter and limit. Zero when no run matches.
+             * @example 1
+             */
+            totalPages: number;
+        };
+        DeviceProfileDto: {
+            /**
+             * Format: uuid
+             * @example b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59
+             */
+            id: string;
+            /** @example DC_POWER_MODULE */
+            code: string;
+            /** @example DC Power Module */
+            name: string;
+            /** @example Deterministic simulated DC power module used for local demonstrations. */
+            description?: string | null;
         };
         RunStepStatisticsDto: {
             /**
@@ -1044,6 +1128,59 @@ export interface operations {
             };
             /** @description The database is unavailable, its migrations are unfinished or startup recovery is incomplete; retry after it recovers. */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    RunsController_list: {
+        parameters: {
+            query?: {
+                /** @description Inclusive lower bound for startedAt. UTC ISO-8601 date or date-time with an explicit timezone. */
+                from?: string;
+                /** @description Page size. Defaults to 20 and must not exceed 100. */
+                limit?: number;
+                /** @description Only runs with this final verdict. */
+                outcome?: "PASSED" | "FAILED";
+                /** @description 1-based page number. */
+                page?: number;
+                /** @description Only runs of this plan. */
+                planId?: string;
+                /** @description Only runs in this lifecycle state. */
+                status?: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+                /** @description Exclusive upper bound for startedAt. The range is [from, to). UTC ISO-8601 date or date-time with an explicit timezone. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page ordered by startedAt DESC, id DESC. Items contain aggregate sample counters and the earliest failure but never step or measurement arrays. Date filters are UTC and use the half-open [from, to) range. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunHistoryPageDto"];
+                };
+            };
+            /** @description A filter, page or limit is malformed, limit exceeds 100, or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

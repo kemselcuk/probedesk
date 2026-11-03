@@ -379,6 +379,138 @@
         "tags": [
           "runs"
         ]
+      },
+      "get": {
+        "operationId": "RunsController_list",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2026-11-03T00:00:00.000Z"
+            },
+            "description": "Inclusive lower bound for startedAt. UTC ISO-8601 date or date-time with an explicit timezone."
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "description": "Page size. Defaults to 20 and must not exceed 100."
+          },
+          {
+            "name": "outcome",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PASSED",
+                "FAILED"
+              ],
+              "example": "PASSED"
+            },
+            "description": "Only runs with this final verdict."
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            },
+            "description": "1-based page number."
+          },
+          {
+            "name": "planId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs of this plan."
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "RUNNING",
+                "COMPLETED",
+                "CANCELLED",
+                "INTERRUPTED",
+                "ERROR"
+              ],
+              "example": "COMPLETED"
+            },
+            "description": "Only runs in this lifecycle state."
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "2026-11-04T00:00:00.000Z"
+            },
+            "description": "Exclusive upper bound for startedAt. The range is [from, to). UTC ISO-8601 date or date-time with an explicit timezone."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page ordered by startedAt DESC, id DESC. Items contain aggregate sample counters and the earliest failure but never step or measurement arrays. Date filters are UTC and use the half-open [from, to) range.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunHistoryPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, page or limit is malformed, limit exceeds 100, or an unknown query parameter was supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List run history with filters and stable pagination.",
+        "tags": [
+          "runs"
+        ]
       }
     },
     "/api/runs/active": {
@@ -1555,32 +1687,35 @@
           "eventsUrl"
         ]
       },
-      "DeviceProfileDto": {
+      "RunFirstFailureDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "example": "b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59"
+          "stepPosition": {
+            "type": "number",
+            "minimum": 1,
+            "example": 2,
+            "description": "1-based position of the failing step inside the run."
           },
-          "code": {
+          "stepName": {
             "type": "string",
-            "example": "DC_POWER_MODULE"
+            "example": "Current Draw"
           },
-          "name": {
+          "logicalStepId": {
             "type": "string",
-            "example": "DC Power Module"
+            "format": "uuid"
           },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "example": "Deterministic simulated DC power module used for local demonstrations."
+          "sampleIndex": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1,
+            "description": "Zero-based index of the first out-of-tolerance sample."
           }
         },
         "required": [
-          "id",
-          "code",
-          "name"
+          "stepPosition",
+          "stepName",
+          "logicalStepId",
+          "sampleIndex"
         ]
       },
       "RunRequestedByDto": {
@@ -1609,6 +1744,201 @@
           "id",
           "email",
           "role"
+        ]
+      },
+      "RunHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "example": "NORMAL"
+          },
+          "seed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4294967295,
+            "example": 123456789
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "COMPLETED"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Overall verdict; only a COMPLETED run has one."
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "expectedSampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10000,
+            "example": 6
+          },
+          "recordedSampleCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 6
+          },
+          "outOfToleranceCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 0,
+            "description": "Sum of the stored step out-of-tolerance counters. Aggregate only; use the run snapshot for per-step values."
+          },
+          "firstFailure": {
+            "nullable": true,
+            "description": "Earliest failure by step position and sample index, or null when no recorded sample is out of tolerance.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunFirstFailureDto"
+              }
+            ]
+          },
+          "partial": {
+            "type": "boolean",
+            "example": false,
+            "description": "True when the run is not COMPLETED or its recorded sample count is below the expected count. Partial runs never hide their missing samples."
+          },
+          "requestedBy": {
+            "$ref": "#/components/schemas/RunRequestedByDto"
+          }
+        },
+        "required": [
+          "id",
+          "planId",
+          "planVersionId",
+          "planName",
+          "versionNumber",
+          "scenario",
+          "seed",
+          "status",
+          "outcome",
+          "startedAt",
+          "finishedAt",
+          "expectedSampleCount",
+          "recordedSampleCount",
+          "outOfToleranceCount",
+          "firstFailure",
+          "partial",
+          "requestedBy"
+        ]
+      },
+      "RunHistoryPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunHistoryItemDto"
+            }
+          },
+          "page": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "example": 20
+          },
+          "total": {
+            "type": "number",
+            "minimum": 0,
+            "example": 7,
+            "description": "Total number of runs matching the filters."
+          },
+          "totalPages": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1,
+            "description": "Number of pages for this filter and limit. Zero when no run matches."
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "DeviceProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "b7c5e4a8-7e3d-4a3f-9c1f-1f1d2c3b4a59"
+          },
+          "code": {
+            "type": "string",
+            "example": "DC_POWER_MODULE"
+          },
+          "name": {
+            "type": "string",
+            "example": "DC Power Module"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Deterministic simulated DC power module used for local demonstrations."
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name"
         ]
       },
       "RunStepStatisticsDto": {
