@@ -1,0 +1,706 @@
+<app-page-header title="Run Details" [subtitle]="headerSubtitle()">
+  <a mat-stroked-button routerLink="/runs">Back to Run History</a>
+  @if (loadStatus() === 'loaded' && snapshot() !== null) {
+    <button
+      mat-stroked-button
+      type="button"
+      id="refresh-run-button"
+      [disabled]="runs.refreshing()"
+      [attr.aria-busy]="runs.refreshing()"
+      (click)="refresh()"
+    >
+      {{ runs.refreshing() ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  }
+  @if (showCancelAction()) {
+    <button
+      mat-flat-button
+      type="button"
+      id="cancel-run-button"
+      class="cancel-run-button"
+      [disabled]="!canCancel()"
+      [attr.aria-busy]="runs.cancelPending()"
+      (click)="requestCancel()"
+    >
+      {{ runs.cancelPending() ? 'Cancelling…' : 'Cancel run' }}
+    </button>
+  }
+</app-page-header>
+
+<p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
+
+@if (missingRunId()) {
+  <section class="not-found" role="alert" aria-labelledby="missing-run-heading">
+    <h2 id="missing-run-heading">Choose a run</h2>
+    <p>
+      This address does not include a run id, so no recorded run can be loaded. Open Run History to
+      choose a run.
+    </p>
+    <a mat-flat-button routerLink="/runs">Open Run History</a>
+  </section>
+} @else {
+  @switch (loadStatus()) {
+    @case ('loaded') {
+      @if (snapshot(); as run) {
+        @if (!isOperator()) {
+          <p class="role-note" role="note">
+            Starting a run and cancelling a running run are Operator actions. Your role can review
+            this record, its copied rules, and its measurements.
+          </p>
+        } @else if (isRunning()) {
+          <p class="role-note" role="note">
+            Run again becomes available after this run reaches a terminal state.
+          </p>
+        }
+
+        @if (refreshError(); as failure) {
+          <section
+            id="refresh-error-panel"
+            class="inline-error"
+            role="alert"
+            tabindex="-1"
+            aria-labelledby="refresh-error-heading"
+          >
+            <h2 id="refresh-error-heading">The snapshot could not be refreshed</h2>
+            <p>
+              {{ failure.message }} The previously loaded snapshot is still displayed and may be
+              out of date.
+            </p>
+            @if (failure.requestId; as requestId) {
+              <p class="request-id">
+                Request ID: <code>{{ requestId }}</code>
+              </p>
+            }
+            <div class="error-actions">
+              <button mat-stroked-button type="button" (click)="refresh()">Try again</button>
+            </div>
+          </section>
+        }
+
+        @if (cancelFailure(); as failure) {
+          <section
+            id="cancel-error-panel"
+            class="inline-error"
+            role="alert"
+            tabindex="-1"
+            aria-labelledby="cancel-error-heading"
+          >
+            <h2 id="cancel-error-heading">{{ cancelErrorHeading() }}</h2>
+            <p>{{ cancelErrorMessage() }}</p>
+            @if (failure.requestId; as requestId) {
+              <p class="request-id">
+                Request ID: <code>{{ requestId }}</code>
+              </p>
+            }
+            <div class="error-actions">
+              <button mat-stroked-button type="button" (click)="refresh()">
+                Refresh snapshot
+              </button>
+              @if (failure.status === 401) {
+                <a mat-stroked-button routerLink="/login">Sign in again</a>
+              }
+            </div>
+          </section>
+        }
+
+        <section
+          id="run-snapshot-region"
+          class="run-summary"
+          tabindex="-1"
+          aria-labelledby="run-summary-heading"
+        >
+          <div class="run-heading">
+            <div class="run-heading-text">
+              <h2 id="run-summary-heading">{{ run.planName }}</h2>
+              <p class="run-meta-line">
+                Version {{ run.versionNumber }} · Run ID <code>{{ run.id }}</code>
+              </p>
+            </div>
+
+            @if (statusView(); as status) {
+              <span [class]="'status-badge status-badge--' + status.tone">
+                @switch (status.icon) {
+                  @case ('play') {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M8 5v14l11-7z" fill="currentColor" />
+                    </svg>
+                  }
+                  @case ('check') {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path
+                        d="m5 12 4 4L19 6"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                      />
+                    </svg>
+                  }
+                  @case ('cross') {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path
+                        d="M6 6l12 12M18 6 6 18"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="2"
+                      />
+                    </svg>
+                  }
+                  @case ('stop') {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <rect
+                        x="6"
+                        y="6"
+                        width="12"
+                        height="12"
+                        rx="2"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      />
+                    </svg>
+                  }
+                  @case ('pause') {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path
+                        d="M9 5v14M15 5v14"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-width="2"
+                      />
+                    </svg>
+                  }
+                  @case ('warning') {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path
+                        d="M12 8v5m0 3.5v.01M10.3 3.8 2.6 18a1.6 1.6 0 0 0 1.4 2.4h16a1.6 1.6 0 0 0 1.4-2.4L13.7 3.8a1.9 1.9 0 0 0-3.4 0Z"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                      />
+                    </svg>
+                  }
+                }
+                <span class="status-label">{{ status.label }}</span>
+              </span>
+            }
+          </div>
+
+          @if (statusView(); as status) {
+            <p class="status-detail">{{ status.detail }}</p>
+          }
+
+          @if (run.status === 'RUNNING') {
+            <p class="partial-note partial-note--running" role="note">
+              <strong>Provisional snapshot.</strong>
+              The run is still in progress. Counts and samples can still change.
+            </p>
+          } @else if (partialResults()) {
+            <p class="partial-note" role="note">
+              <strong>Partial results.</strong>
+              The run stopped before every expected sample was recorded. Missing samples are shown
+              as not recorded, never as zero.
+            </p>
+          }
+
+          @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
+            <p class="reason-code">
+              @if (run.reasonCode) {
+                Reason code: <code>{{ run.reasonCode }}</code>
+              } @else {
+                No reason code was recorded.
+              }
+            </p>
+          }
+
+          <div class="progress-block">
+            <p class="progress-label">
+              {{ progress(run.recordedSampleCount, run.expectedSampleCount) }}
+            </p>
+            @if (progressPercent() !== null) {
+              <div
+                class="progress-track"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="progressPercent()"
+                [attr.aria-label]="progress(run.recordedSampleCount, run.expectedSampleCount)"
+              >
+                <span class="progress-fill" [style.width.%]="progressPercent() ?? 0"></span>
+              </div>
+            }
+          </div>
+
+          <dl class="run-metadata">
+            <div>
+              <dt>Plan version</dt>
+              <dd>{{ run.planName }} · Version {{ run.versionNumber }}</dd>
+            </div>
+            <div>
+              <dt>Scenario</dt>
+              <dd>{{ scenario(run.scenario) }} ({{ run.scenario }})</dd>
+            </div>
+            <div>
+              <dt>Seed</dt>
+              <dd class="mono">{{ run.seed }}</dd>
+            </div>
+            <div>
+              <dt>Error probability</dt>
+              <dd>
+                @if (run.scenario === 'RANDOM') {
+                  @if (run.errorProbability !== null) {
+                    <code>{{ run.errorProbability }}</code>
+                  } @else {
+                    Not recorded
+                  }
+                } @else {
+                  Not used for this scenario
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Failing step</dt>
+              <dd>
+                @if (run.scenario === 'FORCED_FAILURE') {
+                  @if (failureStepName(); as name) {
+                    {{ name }}
+                  } @else {
+                    Not recorded
+                  }
+                } @else {
+                  Not used for this scenario
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{{ run.profile.name }} ({{ run.profile.code }})</dd>
+            </div>
+            <div>
+              <dt>Simulator version</dt>
+              <dd class="mono">{{ run.simulatorVersion }}</dd>
+            </div>
+            <div>
+              <dt>Evaluation version</dt>
+              <dd class="mono">{{ run.evaluationVersion }}</dd>
+            </div>
+            <div>
+              <dt>Requested by</dt>
+              <dd>{{ run.requestedBy.email }} ({{ run.requestedBy.role }})</dd>
+            </div>
+            <div>
+              <dt>Started at (UTC)</dt>
+              <dd>
+                <time [attr.datetime]="run.startedAt">
+                  {{ run.startedAt | date: 'medium' : 'UTC' }} UTC
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt>Finished at (UTC)</dt>
+              <dd>
+                @if (run.finishedAt !== null) {
+                  <time [attr.datetime]="run.finishedAt">
+                    {{ run.finishedAt | date: 'medium' : 'UTC' }} UTC
+                  </time>
+                } @else if (run.status === 'RUNNING') {
+                  Still running
+                } @else {
+                  Not recorded
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Snapshot event sequence</dt>
+              <dd class="mono">{{ run.lastEventSequence }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        @if (showRunAgain()) {
+          <mat-card class="rerun-card" appearance="outlined" aria-labelledby="rerun-heading">
+            <h2 id="rerun-heading" class="section-heading">Run again</h2>
+            <p class="section-hint">
+              Run again starts a new run with the same published plan version and settings. The
+              recorded run on this page stays in history unchanged.
+            </p>
+
+            <dl class="rerun-settings">
+              <div>
+                <dt>Plan version</dt>
+                <dd>{{ run.planName }} · Version {{ run.versionNumber }}</dd>
+              </div>
+              <div>
+                <dt>Scenario</dt>
+                <dd>{{ scenario(run.scenario) }} ({{ run.scenario }})</dd>
+              </div>
+              <div>
+                <dt>Seed</dt>
+                <dd class="mono">{{ run.seed }}</dd>
+              </div>
+              @if (run.scenario === 'RANDOM') {
+                <div>
+                  <dt>Error probability</dt>
+                  <dd>
+                    @if (run.errorProbability !== null) {
+                      <code>{{ run.errorProbability }}</code>
+                    } @else {
+                      Not recorded; Run again is unavailable.
+                    }
+                  </dd>
+                </div>
+              }
+              @if (run.scenario === 'FORCED_FAILURE') {
+                <div>
+                  <dt>Failing step</dt>
+                  <dd>
+                    @if (failureStepName(); as name) {
+                      {{ name }}
+                    } @else {
+                      Not recorded; Run again is unavailable.
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+
+            <div class="form-actions">
+              <button
+                mat-flat-button
+                type="button"
+                id="run-again-button"
+                [disabled]="!canRunAgain()"
+                [attr.aria-busy]="runs.startPending()"
+                aria-describedby="run-again-hint"
+                (click)="startAgain()"
+              >
+                {{ runs.startPending() ? 'Starting new run…' : 'Run again' }}
+              </button>
+              <p id="run-again-hint" class="submit-hint">
+                This creates a new run. The existing run is not modified.
+              </p>
+            </div>
+          </mat-card>
+
+          @if (startFailure(); as failure) {
+            <section
+              id="rerun-error-panel"
+              class="inline-error"
+              role="alert"
+              tabindex="-1"
+              aria-labelledby="rerun-error-heading"
+            >
+              <h2 id="rerun-error-heading">{{ startErrorHeading() }}</h2>
+              <p>{{ startErrorMessage() }}</p>
+
+              @if (startFieldErrors().length > 0) {
+                <ul class="field-errors">
+                  @for (fieldError of startFieldErrors(); track fieldError.path + fieldError.code) {
+                    <li>
+                      <code>{{ fieldError.path }}</code
+                      >: {{ fieldError.message }}
+                    </li>
+                  }
+                </ul>
+              }
+
+              @if (isActiveRunConflict()) {
+                @if (activeRunId(); as id) {
+                  <a mat-flat-button [routerLink]="['/runs', id, 'live']">Open active run</a>
+                } @else {
+                  <p class="detail-note">
+                    The response did not include an active run id. Open Run History to find the
+                    active run.
+                  </p>
+                  <a mat-stroked-button routerLink="/runs">Open Run History</a>
+                }
+              }
+
+              @if (isUnauthenticated()) {
+                <a mat-stroked-button routerLink="/login">Sign in again</a>
+              }
+
+              @if (isStartForbidden()) {
+                <a mat-stroked-button routerLink="/plans">Back to Test Plans</a>
+              }
+
+              @if (failure.error.requestId; as requestId) {
+                <p class="request-id">
+                  Request ID: <code>{{ requestId }}</code>
+                </p>
+              }
+            </section>
+          }
+        }
+
+        <section class="steps-section" aria-labelledby="steps-heading">
+          <h2 id="steps-heading" class="section-heading">Recorded steps</h2>
+          <p class="section-hint">
+            These step rules were copied into the run snapshot. Values are not re-read from the
+            current plan, so later plan changes cannot alter this record.
+          </p>
+
+          @if (run.steps.length === 0) {
+            <app-empty-state
+              heading="This run has no steps"
+              message="The snapshot contains no step rows, so no rules or measurements are shown. Nothing is inferred from the missing data."
+            />
+          } @else {
+            @for (step of run.steps; track step.runStepId) {
+              <mat-card class="step-card" appearance="outlined">
+                <div class="step-heading">
+                  <div>
+                    <h3 class="step-title">Step {{ step.position }}: {{ step.name }}</h3>
+                    <p class="step-subtitle">
+                      Unit {{ step.unit }} · {{ step.sampleCount | number }} expected samples ·
+                      interval {{ step.intervalMs | number }} ms
+                    </p>
+                  </div>
+                  <div class="step-badges">
+                    <span class="step-status" [attr.data-status]="step.status">
+                      {{ stepStatus(step.status) }}
+                    </span>
+                    @if (stepOutcome(step.outcome); as outcome) {
+                      <span class="step-outcome" [attr.data-outcome]="step.outcome">
+                        {{ outcome }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                @if (step.status === 'NOT_RUN') {
+                  <p class="step-note">
+                    This step did not start. No samples were recorded for it.
+                  </p>
+                } @else if (step.recordedCount < step.sampleCount) {
+                  <p class="step-note">
+                    Partial step: {{ step.recordedCount }} of {{ step.sampleCount }} samples were
+                    recorded. Missing samples are not shown as zero.
+                  </p>
+                }
+
+                <div class="step-detail-grid">
+                  <section class="step-panel" [attr.aria-labelledby]="'step-rules-' + step.runStepId">
+                    <h4 [id]="'step-rules-' + step.runStepId">Snapshot rules</h4>
+                    <dl class="step-rules">
+                      <div>
+                        <dt>Minimum</dt>
+                        <dd>{{ step.minimum }} {{ step.unit }}</dd>
+                      </div>
+                      <div>
+                        <dt>Maximum</dt>
+                        <dd>{{ step.maximum }} {{ step.unit }}</dd>
+                      </div>
+                      <div>
+                        <dt>Sample count</dt>
+                        <dd>{{ step.sampleCount | number }}</dd>
+                      </div>
+                      <div>
+                        <dt>Interval</dt>
+                        <dd>{{ step.intervalMs | number }} ms</dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  <section
+                    class="step-panel"
+                    [attr.aria-labelledby]="'step-counters-' + step.runStepId"
+                  >
+                    <h4 [id]="'step-counters-' + step.runStepId">Recorded summary</h4>
+                    <dl class="step-counters">
+                      <div>
+                        <dt>Recorded</dt>
+                        <dd>{{ step.recordedCount }} of {{ step.sampleCount }}</dd>
+                      </div>
+                      <div>
+                        <dt>Out of tolerance</dt>
+                        <dd>{{ step.outOfToleranceCount }}</dd>
+                      </div>
+                      <div>
+                        <dt>First failure index</dt>
+                        <dd>
+                          @if (step.firstFailureSampleIndex !== null) {
+                            {{ step.firstFailureSampleIndex }}
+                          } @else if (step.hasOutOfTolerance) {
+                            Not recorded
+                          } @else {
+                            None
+                          }
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  <section
+                    class="step-panel"
+                    [attr.aria-labelledby]="'step-statistics-' + step.runStepId"
+                  >
+                    <h4 [id]="'step-statistics-' + step.runStepId">Stored statistics</h4>
+                    <dl class="step-statistics">
+                      <div>
+                        <dt>Minimum</dt>
+                        <dd>
+                          @if (step.statistics.minimum !== null) {
+                            {{ step.statistics.minimum }} {{ step.unit }}
+                          } @else {
+                            Not available
+                          }
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Maximum</dt>
+                        <dd>
+                          @if (step.statistics.maximum !== null) {
+                            {{ step.statistics.maximum }} {{ step.unit }}
+                          } @else {
+                            Not available
+                          }
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Average</dt>
+                        <dd>
+                          @if (step.statistics.average !== null) {
+                            {{ step.statistics.average }} {{ step.unit }}
+                          } @else {
+                            Not available
+                          }
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Summary sample count</dt>
+                        <dd>
+                          @if (step.statistics.sampleCount !== null) {
+                            {{ step.statistics.sampleCount | number }}
+                          } @else {
+                            Not available
+                          }
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
+                </div>
+
+                <section
+                  class="measurements"
+                  [attr.aria-labelledby]="'step-measurements-' + step.runStepId"
+                >
+                  <h4 [id]="'step-measurements-' + step.runStepId">Recorded measurements</h4>
+                  @if (step.measurements.length === 0) {
+                    <p class="empty-note">No samples were recorded for this step.</p>
+                  } @else {
+                    <div class="table-scroll">
+                      <table>
+                        <caption class="visually-hidden">
+                          Recorded measurements for step {{ step.position }}: {{ step.name }} ({{ step.unit }})
+                        </caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Sample index</th>
+                            <th scope="col">Value</th>
+                            <th scope="col">Unit</th>
+                            <th scope="col">Tolerance</th>
+                            <th scope="col">Elapsed (ms)</th>
+                            <th scope="col">Recorded at (UTC)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (measurement of step.measurements; track measurement.sampleIndex) {
+                            <tr>
+                              <td>{{ measurement.sampleIndex }}</td>
+                              <td class="mono">{{ measurement.value }}</td>
+                              <td>{{ step.unit }}</td>
+                              <td>
+                                @if (measurement.isWithinTolerance) {
+                                  <span class="tolerance tolerance--within">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                      <path
+                                        d="m5 12 4 4L19 6"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                      />
+                                    </svg>
+                                    Within tolerance
+                                  </span>
+                                } @else {
+                                  <span class="tolerance tolerance--outside">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                      <path
+                                        d="M6 6l12 12M18 6 6 18"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-linecap="round"
+                                        stroke-width="2"
+                                      />
+                                    </svg>
+                                    Outside tolerance
+                                  </span>
+                                }
+                              </td>
+                              <td>{{ measurement.elapsedMs | number }}</td>
+                              <td>
+                                <time [attr.datetime]="measurement.recordedAt">
+                                  {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
+                                </time>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </section>
+              </mat-card>
+            }
+          }
+        </section>
+      } @else {
+        <app-empty-state
+          heading="No run snapshot"
+          message="The server returned no run snapshot to display. No status or result is assumed."
+        />
+      }
+    }
+    @case ('error') {
+      @if (loadError()?.status === 404) {
+        <section class="not-found" role="alert" aria-labelledby="run-not-found-heading">
+          <h2 id="run-not-found-heading">Run not found</h2>
+          <p>
+            This run does not exist or is not available to your role. No status, outcome, or
+            measurements are assumed.
+          </p>
+          <p class="request-id">Run ID: <code>{{ runId() }}</code></p>
+          @if (loadError()?.requestId; as requestId) {
+            <p class="request-id">
+              Request ID: <code>{{ requestId }}</code>
+            </p>
+          }
+          <div class="error-actions">
+            <a mat-flat-button routerLink="/runs">Back to Run History</a>
+            <button mat-stroked-button type="button" (click)="retryLoad()">Try again</button>
+          </div>
+        </section>
+      } @else {
+        <app-error-state
+          heading="The run snapshot could not be loaded"
+          [message]="loadError()?.message ?? 'The run snapshot could not be loaded.'"
+          [requestId]="loadError()?.requestId ?? null"
+          [retryable]="true"
+          retryLabel="Try again"
+          (retry)="retryLoad()"
+        />
+      }
+    }
+    @default {
+      <app-loading-state message="Loading run snapshot…" />
+    }
+  }
+}

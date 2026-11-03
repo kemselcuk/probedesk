@@ -62,7 +62,7 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | [P3-07 — İptal işlemi](P3-07.md) | Backend | In Review |
 | [P3-08 — Kesinti ve teknik hata yönetimi](P3-08.md) | Backend | In Review |
 | [P3-09 — Test başlatma formu](P3-09.md) | Frontend | In Review |
-| [P3-10 — Çalıştırma özeti ve kontrol işlemleri](P3-10.md) | Frontend | Planned |
+| [P3-10 — Çalıştırma özeti ve kontrol işlemleri](P3-10.md) | Frontend | In Review |
 
 ## Aşama 4 — Canlı durum ve bağlantı dayanıklılığı
 

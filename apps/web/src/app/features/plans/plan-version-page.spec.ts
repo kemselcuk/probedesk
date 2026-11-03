@@ -185,6 +185,40 @@ describe('PlanVersionPage', () => {
     expect(http.match(`/api/plans/${PLAN_ID}`)).toHaveLength(0);
   });
 
+  it('offers an Operator a Start run link for this published version', async () => {
+    const harness = await open('OPERATOR');
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+
+    flushVersionAndPublisher(http);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    const startRun = root.querySelector<HTMLAnchorElement>('#start-run-link');
+    expect(startRun?.textContent).toContain('Start run');
+    expect(startRun?.getAttribute('href')).toBe(`/runs/new?versionId=${VERSION_ID}`);
+    expect(http.match(`/api/plans/${PLAN_ID}`)).toHaveLength(0);
+  });
+
+  it.each(['PLANNER', 'VIEWER'] as const)(
+    'does not offer %s a Start run link',
+    async (role) => {
+      const harness = await open(role);
+      const root = rootOf(harness);
+      const http = TestBed.inject(HttpTestingController);
+
+      flushVersionAndPublisher(http);
+      if (role === 'PLANNER') {
+        http.expectOne(`/api/plans/${PLAN_ID}`).flush(PLAN_WITHOUT_DRAFT);
+      }
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      expect(root.querySelector('#start-run-link')).toBeNull();
+      expect(root.textContent).not.toContain('Start run');
+    },
+  );
+
   it('offers a Planner a new draft when no draft is open and navigates to the editor', async () => {
     const harness = await open('PLANNER');
     const root = rootOf(harness);

@@ -4,6 +4,16 @@
   } @else {
     <a mat-stroked-button routerLink="/plans">Back to plans</a>
   }
+  @if (isOperator() && facade.versionStatus() === 'loaded' && !versionPlanMismatch()) {
+    <a
+      mat-flat-button
+      id="start-run-link"
+      [routerLink]="['/runs/new']"
+      [queryParams]="{ versionId: versionId }"
+    >
+      Start run
+    </a>
+  }
 </app-page-header>
 
 @switch (facade.versionStatus()) {

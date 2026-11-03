@@ -71,7 +71,6 @@ const routeCases: readonly RouteCase[] = [
     title: 'Run Details',
     heading: 'Run Details',
     role: 'VIEWER',
-    task: 'P5-03',
   },
   {
     url: '/compare',
@@ -146,6 +145,19 @@ describe('application routes', () => {
             : { id: PLAN_ID, name: 'Deep link plan', draft: null },
         );
       }
+    }
+
+    for (const request of http.match(`/api/runs/${RUN_ID}`)) {
+      // The route smoke test only checks that the deep link opens the screen;
+      // the run detail states are covered by its own spec.
+      request.flush(
+        {
+          code: 'NOT_FOUND',
+          message: 'The run was not found.',
+          requestId: 'req-route-run-404',
+        },
+        { status: 404, statusText: 'Not Found' },
+      );
     }
   }
 

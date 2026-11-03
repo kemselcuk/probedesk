@@ -22,3 +22,21 @@ export type RunStatus = RunStartResponse['status'];
 
 /** Overall verdict, null until a completed run has one. */
 export type RunOutcome = RunStartResponse['outcome'];
+
+/** Full recorded run from GET /api/runs/:id and POST /api/runs/:id/cancel. */
+export type RunSnapshot = components['schemas']['RunSnapshotDto'];
+
+/** One recorded step with its copied rules, counters, and samples. */
+export type RunSnapshotStep = components['schemas']['RunSnapshotStepDto'];
+
+/** One recorded sample. `isWithinTolerance` is the server verdict. */
+export type RunMeasurement = components['schemas']['RunMeasurementDto'];
+
+/** Stored step summary. Every member is null for a step without samples. */
+export type RunStepStatistics = components['schemas']['RunStepStatisticsDto'];
+
+/** Step execution status, copied from the run's stored step row. */
+export type RunStepStatus = RunSnapshotStep['status'];
+
+/** Step verdict, null unless the step is COMPLETED. */
+export type RunStepOutcome = RunSnapshotStep['outcome'];

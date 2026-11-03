@@ -154,7 +154,13 @@ describe('AppShell', () => {
     const root = rootOf(harness);
     const startRun = findAction(root, 'Start run');
 
-    expect(startRun?.getAttribute('disabled')).not.toBeNull();
+    expect(startRun?.tagName).toBe('A');
+    expect(startRun?.getAttribute('href')).toBe('/plans');
+    expect(startRun?.getAttribute('disabled')).toBeNull();
+    expect(root.querySelector('#start-run-requirement')?.textContent).toContain(
+      'choose a published version on Test Plans',
+    );
+    expect(root.textContent).not.toContain('available with P3-09');
     expect(findAction(root, 'New plan')).toBeUndefined();
     expect(root.querySelector('.role-chip')?.textContent).toContain('Role: Operator');
   });

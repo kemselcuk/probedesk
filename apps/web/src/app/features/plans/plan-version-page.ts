@@ -63,6 +63,7 @@ export class PlanVersionPage {
   protected readonly formatDuration = formatDuration;
 
   protected readonly isPlanner = computed(() => this.auth.role() === 'PLANNER');
+  protected readonly isOperator = computed(() => this.auth.role() === 'OPERATOR');
   protected readonly publisher = computed(
     () =>
       this.facade.versions().find((version) => version.id === this.versionId)?.publishedBy ??

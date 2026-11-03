@@ -86,17 +86,16 @@
       }
 
       @if (canStartRun()) {
-        <button
+        <a
           mat-stroked-button
-          type="button"
+          routerLink="/plans"
           class="planned-action"
-          disabled
           aria-describedby="start-run-requirement"
         >
           Start run
-        </button>
+        </a>
         <p id="start-run-requirement" class="action-requirement">
-          Operator action · available with P3-09
+          Operator action · choose a published version on Test Plans.
         </p>
       }
 
