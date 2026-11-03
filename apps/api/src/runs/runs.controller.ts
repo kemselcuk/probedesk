@@ -1,10 +1,13 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   Header,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Post,
   Res,
   UseGuards,
@@ -17,11 +20,14 @@ import {
   ApiExtraModels,
   ApiForbiddenResponse,
   ApiHeader,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiSecurity,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentAuth } from '../auth/current-auth.decorator.js';
@@ -30,19 +36,25 @@ import { Roles } from '../auth/roles.decorator.js';
 import { RolesGuard } from '../auth/roles.guard.js';
 import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import type { AuthContext } from '../auth/auth.types.js';
+import { ApiException } from '../common/errors/api.exception.js';
 import { ApiErrorDto } from '../common/openapi/api-error.dto.js';
 import { Role } from '../prisma/generated/client.js';
 import { StartRunDto } from './dto/start-run.dto.js';
 import { RunStartResponseDto } from './dto/run-start-response.dto.js';
+import { RunActiveDto, RunSnapshotDto } from './dto/run-snapshot.dto.js';
 import { MAX_IDEMPOTENCY_KEY_LENGTH } from './run-start.js';
+import { RunSnapshotService } from './run-snapshot.service.js';
 import { RunsService } from './runs.service.js';
 
 @ApiTags('runs')
-@ApiExtraModels(ApiErrorDto)
+@ApiExtraModels(ApiErrorDto, RunActiveDto)
 @Controller('runs')
 @UseGuards(SessionAuthGuard, RolesGuard)
 export class RunsController {
-  constructor(private readonly runsService: RunsService) {}
+  constructor(
+    private readonly runsService: RunsService,
+    private readonly runSnapshotService: RunSnapshotService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
@@ -109,5 +121,77 @@ export class RunsController {
 
     response.status(result.replayed ? HttpStatus.OK : HttpStatus.ACCEPTED);
     return result.response;
+  }
+
+  /**
+   * Static route: it must stay registered before GET /runs/:id so the literal
+   * `active` is never parsed as a run id. Returning the body directly is
+   * required because Nest serialises a null handler result as an empty body;
+   * the contract is an explicit JSON null.
+   */
+  @Get('active')
+  @Header('Cache-Control', 'no-store')
+  @Roles(Role.PLANNER, Role.OPERATOR, Role.VIEWER)
+  @ApiSecurity('session')
+  @ApiOperation({
+    summary: 'Read the single running run summary, or JSON null when idle.',
+  })
+  @ApiOkResponse({
+    description:
+      'The RUNNING run summary. The response body is the JSON literal null when no run is active.',
+    schema: {
+      nullable: true,
+      allOf: [{ $ref: getSchemaPath(RunActiveDto) }],
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  async getActive(@Res() response: Response): Promise<void> {
+    const active = await this.runSnapshotService.findActive();
+    response.status(HttpStatus.OK).json(active);
+  }
+
+  @Get(':id')
+  @Header('Cache-Control', 'no-store')
+  @Roles(Role.PLANNER, Role.OPERATOR, Role.VIEWER)
+  @ApiSecurity('session')
+  @ApiOperation({
+    summary:
+      'Read the immutable run snapshot with its measurements and event cursor.',
+  })
+  @ApiOkResponse({
+    description:
+      'Run, copied step rules, measurements and lastEventSequence read from one consistent repeatable-read transaction. A RUNNING run is readable; terminal rule values are never re-evaluated from the live plan.',
+    type: RunSnapshotDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'The session is missing, expired or revoked.',
+    type: ApiErrorDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'The run does not exist.',
+    type: ApiErrorDto,
+  })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    format: 'uuid',
+    description: 'Run id.',
+  })
+  async getById(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<RunSnapshotDto> {
+    const snapshot = await this.runSnapshotService.findById(id);
+    if (!snapshot) {
+      throw new ApiException(
+        HttpStatus.NOT_FOUND,
+        'NOT_FOUND',
+        'The requested resource was not found.',
+      );
+    }
+
+    return snapshot;
   }
 }

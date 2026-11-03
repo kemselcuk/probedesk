@@ -158,8 +158,7 @@ outcome or counters are rejected with `400 VALIDATION_ERROR` and `fieldErrors`.
 A new run returns `202` with `runId`, `status: "RUNNING"`, `outcome: null` and
 the relative `snapshotUrl`/`eventsUrl`. The run row, every immutable `RunStep`
 copy and the `run.started` event commit in one transaction. Execution is not
-tied to the start HTTP connection; the executor and the snapshot/event endpoints
-are added by later Phase 3 tasks.
+tied to the start HTTP connection.
 
 Retrying the same user, key and normalized request returns the stored run with
 `200`, even after it reached a terminal status. Reusing the key with a different
@@ -167,6 +166,32 @@ request is `409 IDEMPOTENCY_CONFLICT`. Starting with a different key while one
 run is `RUNNING` is `409 RUN_ALREADY_ACTIVE` with `details.activeRunId`; the
 request is not queued. The database partial unique index on `RUNNING` rows is
 the final guarantee when two starts arrive concurrently.
+
+## Run snapshots
+
+`GET /api/runs/active` returns the single `RUNNING` run summary
+(`runId`, `planName`, `versionNumber`, `status`, `expectedSampleCount`,
+`recordedSampleCount`, `startedAt`, `scenario`) or the JSON literal `null` when
+no run is active. It never answers `404` for an idle system.
+
+`GET /api/runs/:id` returns the full immutable snapshot for a Planner, Operator
+or Viewer: run identity and settings, profile, copied step rules, counters,
+stored statistics and measurements in `sampleIndex` order. Decimal values are
+canonical six-fraction-digit strings. `lastEventSequence` is the initial SSE
+cursor.
+
+The run row, all steps, all measurements and `lastEventSequence` are read in one
+`REPEATABLE READ` transaction. A snapshot therefore always describes one
+committed state even while the executor is writing. Steps are ordered by
+`position`, measurements by `sampleIndex`. A partial step reports
+`statistics` with null numeric members rather than zero; completed steps return
+the summary stored by the executor. `hasOutOfTolerance` is true exactly when
+`outOfToleranceCount > 0`.
+
+Terminal runs remain readable and are never recomputed from the current plan or
+draft. An unknown run id is `404 NOT_FOUND`; a non-UUID id is
+`400 VALIDATION_ERROR`. Responses contain no password hash, session token,
+idempotency key, request hash or draft content.
 
 ## Tests
 

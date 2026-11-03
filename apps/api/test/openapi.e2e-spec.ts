@@ -42,6 +42,8 @@ describe('OpenAPI document (e2e)', () => {
       '/api/plans/{id}/drafts',
       '/api/plans/{id}/versions',
       '/api/runs',
+      '/api/runs/active',
+      '/api/runs/{id}',
     ]);
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
@@ -136,6 +138,24 @@ describe('OpenAPI document (e2e)', () => {
         }),
       ]),
     );
+    expect(document.paths['/api/runs/active']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(document.paths['/api/runs/active']?.get?.responses).toHaveProperty(
+      '200',
+    );
+    expect(document.paths['/api/runs/active']?.get?.responses).toHaveProperty(
+      '401',
+    );
+    expect(document.paths['/api/runs/{id}']?.get?.security).toEqual([
+      { session: [] },
+    ]);
+    expect(document.paths['/api/runs/{id}']?.get?.responses).toHaveProperty(
+      '200',
+    );
+    expect(document.paths['/api/runs/{id}']?.get?.responses).toHaveProperty(
+      '404',
+    );
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('201');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('400');
     expect(document.paths['/api/plans']?.post?.responses).toHaveProperty('403');
@@ -195,6 +215,11 @@ describe('OpenAPI document (e2e)', () => {
     expect(document.components?.schemas).toHaveProperty('DeviceProfileDto');
     expect(document.components?.schemas).toHaveProperty('StartRunDto');
     expect(document.components?.schemas).toHaveProperty('RunStartResponseDto');
+    expect(document.components?.schemas).toHaveProperty('RunActiveDto');
+    expect(document.components?.schemas).toHaveProperty('RunSnapshotDto');
+    expect(document.components?.schemas).toHaveProperty('RunSnapshotStepDto');
+    expect(document.components?.schemas).toHaveProperty('RunMeasurementDto');
+    expect(document.components?.schemas).toHaveProperty('RunStepStatisticsDto');
     expect(document.components?.schemas?.AuthUserDto).toMatchObject({
       required: ['id', 'email', 'role'],
     });

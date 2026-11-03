@@ -243,6 +243,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the single running run summary, or JSON null when idle. */
+        get: operations["RunsController_getActive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the immutable run snapshot with its measurements and event cursor. */
+        get: operations["RunsController_getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -495,6 +529,30 @@ export interface components {
             name: string;
             publishedBy: components["schemas"]["PublishedBySummaryDto"];
         };
+        RunActiveDto: {
+            /** Format: uuid */
+            runId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example 1 */
+            versionNumber: number;
+            /**
+             * @example RUNNING
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+            /** @example 6 */
+            expectedSampleCount: number;
+            /** @example 3 */
+            recordedSampleCount: number;
+            /** Format: date-time */
+            startedAt: string;
+            /**
+             * @example NORMAL
+             * @enum {string}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+        };
         StartRunDto: {
             /**
              * Format: uuid
@@ -541,6 +599,169 @@ export interface components {
             snapshotUrl: string;
             /** @example /api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events */
             eventsUrl: string;
+        };
+        RunRequestedByDto: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: email
+             * @example operator@example.com
+             */
+            email: string;
+            /**
+             * @example OPERATOR
+             * @enum {string}
+             */
+            role: "PLANNER" | "OPERATOR" | "VIEWER";
+        };
+        RunStepStatisticsDto: {
+            /**
+             * @description Smallest recorded sample, or null for a partial step.
+             * @example 4.980000
+             */
+            minimum: string | null;
+            /**
+             * @description Largest recorded sample, or null for a partial step.
+             * @example 5.020000
+             */
+            maximum: string | null;
+            /**
+             * @description Rounded average, or null for a partial step.
+             * @example 5.000000
+             */
+            average: string | null;
+            /**
+             * @description Sample count covered by the stored summary, or null when no summary exists.
+             * @example 100
+             */
+            sampleCount: number | null;
+        };
+        RunMeasurementDto: {
+            /** @example 0 */
+            sampleIndex: number;
+            /**
+             * @description Canonical six-fraction-digit measurement value.
+             * @example 5.000000
+             */
+            value: string;
+            /** @example true */
+            isWithinTolerance: boolean;
+            /** Format: date-time */
+            recordedAt: string;
+            /** @example 200 */
+            elapsedMs: number;
+        };
+        RunSnapshotStepDto: {
+            /** Format: uuid */
+            runStepId: string;
+            /** Format: uuid */
+            logicalStepId: string;
+            /** @description 1-based step order inside this run. */
+            position: number;
+            /** @example Output voltage */
+            name: string;
+            /** @example V */
+            unit: string;
+            /** @example 4.750000 */
+            minimum: string;
+            /** @example 5.250000 */
+            maximum: string;
+            /** @example 100 */
+            sampleCount: number;
+            /** @example 250 */
+            intervalMs: number;
+            /**
+             * @example RUNNING
+             * @enum {string}
+             */
+            status: "PENDING" | "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR" | "NOT_RUN";
+            /**
+             * @description Step verdict. Null unless the step is COMPLETED; a partial step can still report an out-of-tolerance sample.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** @example 42 */
+            recordedCount: number;
+            /** @example 0 */
+            outOfToleranceCount: number;
+            /**
+             * @description Index of the first out-of-tolerance sample, if any.
+             * @example null
+             */
+            firstFailureSampleIndex: number | null;
+            /**
+             * @description True exactly when outOfToleranceCount is greater than zero. Available even while outcome is null.
+             * @example false
+             */
+            hasOutOfTolerance: boolean;
+            statistics: components["schemas"]["RunStepStatisticsDto"];
+            /** @description Recorded samples ordered by ascending sampleIndex. */
+            measurements: components["schemas"]["RunMeasurementDto"][];
+        };
+        RunSnapshotDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            planId: string;
+            /** Format: uuid */
+            planVersionId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example 1 */
+            versionNumber: number;
+            profile: components["schemas"]["DeviceProfileDto"];
+            /**
+             * @example NORMAL
+             * @enum {string}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+            /** @example 123456789 */
+            seed: number;
+            /**
+             * @description Canonical probability for RANDOM, otherwise null.
+             * @example null
+             */
+            errorProbability: string | null;
+            /**
+             * Format: uuid
+             * @description Logical step selected for FORCED_FAILURE, otherwise null.
+             */
+            failureStepId: string | null;
+            /** @example sim-v1 */
+            simulatorVersion: string;
+            /** @example decimal-v1 */
+            evaluationVersion: string;
+            /**
+             * @example RUNNING
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+            /**
+             * @description Overall verdict; only a COMPLETED run has one.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            requestedBy: components["schemas"]["RunRequestedByDto"];
+            /**
+             * @description Safe technical reason code for an ERROR or cancellation.
+             * @example null
+             */
+            reasonCode: string | null;
+            /** @example 6 */
+            expectedSampleCount: number;
+            /** @example 6 */
+            recordedSampleCount: number;
+            /**
+             * @description Sequence of the last committed run event covered by this snapshot. Use it as the initial SSE cursor.
+             * @example 14
+             */
+            lastEventSequence: number;
+            /** @description Steps ordered by ascending position. */
+            steps: components["schemas"]["RunSnapshotStepDto"][];
         };
     };
     responses: never;
@@ -1257,6 +1478,76 @@ export interface operations {
             };
             /** @description RUN_ALREADY_ACTIVE for another active run (details.activeRunId), or IDEMPOTENCY_CONFLICT when the key was used with a different request. */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    RunsController_getActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The RUNNING run summary. The response body is the JSON literal null when no run is active. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunActiveDto"] | null;
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    RunsController_getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Run id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run, copied step rules, measurements and lastEventSequence read from one consistent repeatable-read transaction. A RUNNING run is readable; terminal rule values are never re-evaluated from the live plan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSnapshotDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The run does not exist. */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
