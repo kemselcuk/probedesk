@@ -210,9 +210,10 @@ Recorded evidence:
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs six jobs on pushes to `main` and pull
 requests: API quality, API integration against PostgreSQL 18, web quality, OpenAPI contract,
-Playwright E2E, and a required aggregate check. The recorded run for commit `3d27f2f` passed all
-six jobs ([run 41885922086](https://github.com/kemalselcuk/probedesk/actions/runs/41885922086),
-[evidence](docs/evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)). Failure
+Playwright E2E, and a required aggregate check. The release candidate `270a399` (`v0.1.0-rc.1`)
+passed all six jobs
+([run 41900767940](https://github.com/kemselcuk/probedesk/actions/runs/41900767940),
+[evidence](docs/evidence/phase-8-release.md)). Failure
 artifacts are retained for 7 days; no repository secrets or paid services are used.
 
 ## Project structure

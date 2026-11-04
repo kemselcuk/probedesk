@@ -38,7 +38,7 @@ kurulur. Öğretici dersler ve mülakat soru listeleri teslim kapsamına dahil d
 | P5 — geçmiş ve grafikler | Accepted | History, Details, tolerans grafikleri |
 | P6 — karşılaştırma | Accepted | Sürüm/kimlik/birim/örnekleme farkları |
 | P7 — bütünleşik kalite | Accepted | P7-01–P7-06; gerçek E2E ve CI koşusu kayıtlı |
-| P8 — yerel teslim | In Progress | P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 hazırlıkta |
+| P8 — yerel teslim | In Review | P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 kullanıcı kabulü bekliyor |
 
 Doğrulanan başlıca çıktılar:
 
@@ -49,14 +49,14 @@ Doğrulanan başlıca çıktılar:
 - Son yerel doğrulamada API birim `16` dosya / `118` test, web `36` dosya / `370` test, API
   entegrasyon `22` dosya / `197` test geçti; iki Playwright senaryosu gerçek stack üzerinde geçti
   ([verify kaydı](evidence/phase-8-docs.md), [E2E](evidence/phase-7-e2e.md)).
-- Kayıtlı GitHub Actions koşusu `3d27f2f` commit'inde altı işin tamamını geçti
-  ([CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
+- Sürüm adayı `v0.1.0-rc.1` (`270a399`) altı işin tamamını geçti
+  ([run 41900767940](https://github.com/kemselcuk/probedesk/actions/runs/41900767940);
+  önceki kayıtlar [CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
 - Delivery, aynı origin nginx proxy'si üzerinden deep link, SSE ve oturum yenilemeyi doğruladı
   ([Compose kanıtı](evidence/phase-8-compose.md)).
 
 Açık işler:
 
-- P8-06 sürüm adayı, nihai teslim commit'i ve güncel commit üzerinde CI.
 - Kullanıcı nihai kapsam/ürün kabulü.
 - P8-05 kısa demo videosu kullanıcı kararıyla kapsam dışıdır; yerine geçen bir zorunluluk yoktur.
 

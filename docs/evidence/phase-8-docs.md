@@ -134,7 +134,7 @@ Görseller çalışan Angular uygulamasından gerçek Chrome/Playwright koşular
 | Compose http://127.0.0.1:8080, SSE ve deep link | [phase-8-compose.md](phase-8-compose.md) |
 | API 118, web 370, entegrasyon 197 test | Bu belge, bölüm 1–2 |
 | Playwright 2 senaryo | [phase-7-e2e.md](phase-7-e2e.md) |
-| CI altı işin tamamı yeşil (`3d27f2f`) | [phase-7-ci.md](phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04) |
+| CI altı işin tamamı yeşil (`270a399`, `v0.1.0-rc.1`) | [phase-8-release.md](phase-8-release.md) |
 | Erişilebilirlik/klavye ve 1280/768 yerleşim | [phase-7-accessibility.md](phase-7-accessibility.md) |
 
 ## Kaldırılan veya düzeltilen eski iddialar
@@ -160,9 +160,9 @@ Görseller çalışan Angular uygulamasından gerçek Chrome/Playwright koşular
 ## Açık işler ve nihai kabule kalanlar
 
 1. **P8-05 demo videosu** kullanıcı kararıyla kapsam dışıdır; README'de video bağlantısı yoktur.
-2. **P8-06 sürüm adayı** ve nihai teslim commit'i P8-06 kapsamında hazırlanır.
+2. **P8-06 sürüm adayı** `v0.1.0-rc.1` (`270a399`) olarak hazırlanmıştır; kullanıcı ürün kabulü açıktır.
 3. **CI:** Sürüm adayı `270a399` için run `41900767940` altı işle yeşildir; önceki kayıtlar
-   `3d27f2f` ve `81a7f2c` içindir.
+   `270a399` için yeşildir; önceki kayıtlar `3d27f2f` ve `81a7f2c` içindir.
 4. **Bağımsız inceleme:** P8 incelemesi tamamlandı; kalan Medium doküman bulguları bu commit'te
    giderildi. Kartların teknik kabul durumu görev kartlarında kayıtlıdır.
 5. **Kullanıcı ürün kabulü:** [acceptance.md](../acceptance.md) ürün kutuları ve kullanıcı kabulü
