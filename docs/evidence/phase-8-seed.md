@@ -264,13 +264,10 @@ geliştirme veritabanında yıkıcı reset çalıştırılmadı.
 
 ## Kalan riskler
 
-- `npm run demo:reset` (veya benzeri) bir paket script'i olarak eklenmedi;
-  script doğrudan `npx tsx prisma/seed-reset.ts` ile çağrılıyor. Root/workspace
-  `package.json` bu görevin sahiplik alanı dışında olduğu için lead tarafından
-  eklenmeli.
+- `npm run demo:reset` paket script'i eklendi ve guard'lı `prisma/seed-reset.ts`
+  dosyasına bağlandı; yıkıcı reset yerel kullanıcı verisinde çalıştırılmadı.
 - Yerel geliştirme veritabanındaki eski, aynı adlı planlar silinmedi; temiz demo
   sunumu için korumalı reset veya yeni bir veritabanı kullanılmalı.
-- `docs/demo.md`, `docs/tasks/README.md` ve `docs/roadmap.md` bu worker'ın
-  sahiplik alanı dışında; durum/bağlantı güncellemeleri lead tarafından
-  yapılmalı.
-- Bu görev In Review'dır; bağımsız teknik inceleme ve kabul kaydı henüz yok.
+- `docs/demo.md`, `docs/tasks/README.md` ve `docs/roadmap.md` durum/bağlantı
+  güncellemeleri tamamlandı.
+- Bu görev `Accepted`; bağımsız inceleme kaydı `docs/evidence/phase-8-review.md`.

@@ -26,6 +26,17 @@ gerçekten üretildiğinde eklenir.
 - [Phase 4 kalan yeniden inceleme maddeleri](phase-4-remaining-checks.md): N-01
   commit izlenebilirliği, P4-06 gerçek snapshot/olay yarışı ve P4-07 gerçek
   SPA dönüşü, Sign out ve sunucu tarafı expiry kanıtı.
+- [Phase 5 geçmiş ve grafikler](phase-5-history-api.md), [karşılaştırma API](phase-6-compare-api.md),
+  [karşılaştırma UI](phase-6-compare-ui.md) ve [entegrasyon](phase-6-integration.md): History,
+  Details, grafikler ve sürüm karşılaştırması.
+- [Phase 6 incelemesi](phase-6-review.md) ve [Phase 7 incelemesi](phase-7-review.md): bağımsız
+  teknik incelemeler ve düzeltme kontrolleri.
+- [Phase 7 E2E](phase-7-e2e.md), [güvenlik/yarış](phase-7-security-race.md),
+  [erişilebilirlik](phase-7-accessibility.md), [test izolasyonu](phase-7-test-isolation.md) ve
+  [CI](phase-7-ci.md): ana demo, güvenlik, erişilebilirlik, izolasyon ve gerçek Actions koşuları.
+- [Phase 8 Compose](phase-8-compose.md), [seed](phase-8-seed.md), [temiz kurulum](phase-8-clean-install.md),
+  [dokümanlar](phase-8-docs.md), [inceleme](phase-8-review.md) ve [sürüm adayı](phase-8-release.md):
+  yerel teslim, demo verisi, kalıcılık, doküman doğrulaması ve RC paketi.
 
 ## Kayıt biçimi
 

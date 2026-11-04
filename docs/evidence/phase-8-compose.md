@@ -1,7 +1,7 @@
 # Phase 8 — yerel Compose teslimi kanıtı (P8-01)
 
-Durum: **Uygulandı ve yerelde doğrulandı; bağımsız inceleme bekliyor.**
-Bu belge ürün kabulü veya P8-03 temiz-kurulum kabulü değildir.
+Durum: **Uygulandı, yerelde doğrulandı ve bağımsız incelemeden geçti.** Bu belge ürün kabulü
+değildir; P8-03 temiz-kurulum ve kalıcılık ayrı kanıtta kayıtlıdır.
 
 - Tarih: 2026-11-04
 - Görev: [P8-01](../tasks/P8-01.md)
@@ -424,10 +424,9 @@ cookie veya gövde kaydetmez.
    zorlanmadı.** Canlı akış ve buffering kontrolü gerçek run ile yapıldı;
    T13/T14 kapsamındaki reconnect/cursor testleri API entegrasyon testlerinde
    ayrıca ele alınmalıdır.
-7. **Bağımsız inceleme yok.** Kart yalnızca `In Review` yapılabilir; ayrı
-   teknik inceleme ve P8-03 temiz kurulum/kalıcılık kabulü olmadan `Accepted`
-   değildir. `docs/tasks/README.md` ve `docs/roadmap.md` güncellemeleri bu
-   worker'ın sahiplik alanı dışında olduğu için lead'e bırakılmıştır.
+7. **Bağımsız inceleme tamamlandı.** `docs/evidence/phase-8-review.md` ve hedefli yeniden
+   inceleme; Critical/High yok. P8-03 temiz kurulum/kalıcılık kabulü ayrı kanıtta doğrulandı.
+   Görev kartı, dizin ve roadmap durumları aynı değişiklikte güncellendi.
 
 ## Kanıt bağlantıları
 

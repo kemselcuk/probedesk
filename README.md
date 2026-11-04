@@ -10,10 +10,10 @@ The repository contains a working local delivery: NestJS API, Angular UI, Postgr
 demo history, automated tests, and a Docker Compose stack served through an nginx same-origin
 proxy at `http://127.0.0.1:8080`.
 
-**Current status (2026-11-04):** phases 1–7 are technically accepted. Phase 8 delivery tasks
-P8-01–P8-04 and P8-06 are in progress; P8-05 (demo video) was waived by the user. The final product
-acceptance belongs to the user and has not been recorded. The application is a localhost demo,
-not a hosted production service.
+**Current status (2026-11-04):** phases 1–7 and delivery tasks P8-01–P8-04 are technically
+accepted. The P8-06 release candidate is in review; P8-05 (demo video) was waived by the user.
+The final product acceptance belongs to the user and has not been recorded. The application is a
+localhost demo, not a hosted production service.
 
 ## What it does
 
@@ -241,11 +241,11 @@ compose.test.yaml        Standalone isolated integration-test database
 - **Chrome-verified UI.** Browser verification used real Chrome/Chromium. Safari, Firefox, and
   physical mobile devices were not verified; responsive checks covered 1280 px and 768 px
   layouts only.
-- **Acceptance is still open.** Phases 1–7 are technically accepted. P8-01–P8-04 are in review,
-  the demo video (P8-05) was waived by the user, the release-candidate package (P8-06) is being
-  prepared, and final user acceptance has not been recorded.
-- **Evidence is commit-scoped.** The recorded CI run is for commit `3d27f2f`. Documentation
-  changes made afterwards are not themselves CI-verified until the lead commits and pushes them.
+- **Acceptance is still open.** Phases 1–7 and P8-01–P8-04 are technically accepted. The P8-06
+  release candidate is in review, the demo video (P8-05) was waived by the user, and final user
+  acceptance has not been recorded.
+- **Evidence is commit-scoped.** CI results and screenshots are tied to the commit recorded in
+  the evidence files; later documentation-only changes are re-verified on the release candidate.
 - **No coverage or performance claims.** Test counts and durations are reproduced from real
   reports; no coverage percentage, benchmark, or capacity figure is claimed.
 - **Zero additional infrastructure cost.** All delivered tooling is local/open source and CI uses

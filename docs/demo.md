@@ -2,7 +2,7 @@
 
 Görevler: [P8-02](tasks/P8-02.md), [P8-03](tasks/P8-03.md). Durum:
 **Hazır örnek veriler ve fixture'lar gerçek seed koduyla üretildi ve doğrulandı; demo videosu
-henüz yok.** Bu belge ürün
+kullanıcı kararıyla kapsam dışıdır.** Bu belge ürün
 kabulü değildir; kullanıcı nihai kabulü [acceptance.md](acceptance.md) içinde ayrıca bekleniyor.
 
 ## Doğrulanmış demo ortamı

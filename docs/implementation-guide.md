@@ -107,7 +107,7 @@ kullanıcıdadır.
 ## Sonraki uygulama oturumuna verilebilecek başlangıç metni
 
 > ProbeDesk için `docs/implementation-guide.md` dosyasını ve gösterdiği sözleşmeleri oku. P1–P7
-> teknik kabulden geçti; P8-01–P8-04 incelemede; P8-06 hazırlıkta; P8-05 kullanıcı kararıyla kapsam
+> teknik kabulden geçti; P8-01–P8-04 kabul edildi; P8-06 incelemede; P8-05 kullanıcı kararıyla kapsam
 > dışı. Önce mevcut görev
 > kartlarının durumunu ve kanıtlarını doğrula, tamamlanmış işi yeniden yapma. Yeni işi roadmap ve
 > görev kartı sırasıyla, gerçek test/CI çıktısı ve ayrı inceleme kaydıyla ilerlet. Nihai ürün

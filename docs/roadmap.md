@@ -1,6 +1,6 @@
 # Ayrıntılı uygulama yol haritası
 
-Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1–P7 ve P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 sürüm adayı hazırlanıyor. Phase 1–7 çalışır durumda; teslim paketi tamamlanıyor.
+Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1–P7 ve P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 sürüm adayı In Review (kullanıcı ürün kabulü bekliyor). Phase 1–7 çalışır durumda; teslim paketi tamamlanıyor.
 
 ## Sıra ve sahiplik
 
@@ -20,7 +20,7 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 | 5 | Geçmiş ve grafikler | 6 | Accepted |
 | 6 | Karşılaştırma ve sürüm tutarlılığı | 6 | Accepted |
 | 7 | Bütünleşik kalite ve CI | 6 | Accepted |
-| 8 | Yerel teslim ve kanıt | 6 | In Progress |
+| 8 | Yerel teslim ve kanıt | 6 | In Review |
 
 Toplam 62 görev. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
 

@@ -665,3 +665,78 @@ SSE: 200 text/event-stream, Transfer-Encoding: chunked, Content-Encoding yok
 **Sonuç:** Yeni Critical/High yok. P8-01, P8-02 ve P8-03 teknik olarak kabul edilebilir;
 P8-04 kalan Medium belge tutarsızlıkları nedeniyle koşullu; P8-05 kullanıcı kararıyla
 deferred; P8-06 tamamlanmadı. Hiçbir kart `Accepted` yapılmadı.
+
+---
+
+## Final docs re-check (`81a7f2c`)
+
+- Tarih: 2026-11-04. Kapsam: salt-okunur doküman denetimi; ürün kodu değiştirilmedi, yalnızca bu
+  dosya yazıldı. Ağır test/CI yeniden çalıştırılmadı. Bu bölüm `81a7f2c` içeriğini değerlendirir;
+  kontrol sırasında çalışma ağacında eşzamanlı değişiklikler oluştu (bkz. son not).
+- Geçen kontroller:
+  - P7 için "In Review" ifadesi kalmadı; P8-05 "Planned" değil ve video dosyası/bağlantısı yok
+    (`git ls-files` içinde video artifact'i yok).
+  - P8-01–P8-04 kartları `Accepted`; `docs/tasks/README.md:116-119` ve `docs/roadmap.md:3`
+    aynı durumu veriyor. P8-06 `In Progress`; kabul kutuları açık, kanıt alanları "Henüz yok".
+  - GitHub Actions `41899919132` (`81a7f2c`) 6/6 **success** (gh ile salt-okunur doğrulandı).
+  - README delivery komutu `docker compose --profile delivery ps -a` (`README.md:88`);
+    `migrate`/`seed` delivery profilinde ve README'deki npm giriş noktaları package.json/workspace
+    script'lerinde mevcut.
+  - `docs/acceptance.md` nihai kullanıcı kabulü vermiyor (`:3`, `:63`, `:68`); video maddesi
+    `[ ]` ve "kapsam dışı" notlu (`:55`), tamamlanmış gibi işaretlenmemiş.
+  - Göreli Markdown bağlantı taraması: 139 dosya, 1070 göreli bağlantı/görsel, **0 kırık**
+    (HTML anchor'lar dahil).
+- Kalan Medium çelişkiler:
+  - `README.md:14` "P8-01–P8-04 and P8-06 are in progress" ve `README.md:244` "P8-01–P8-04 are
+    in review" diyor; kartlar, görev dizini ve roadmap `Accepted` diyor.
+  - `docs/testing.md:153` hâlâ "P8-01–P8-04 `In Review`" yazıyor.
+  - `docs/implementation-guide.md:110` sonraki oturum metninde "P8-01–P8-04 incelemede" diyor.
+  - `docs/tasks/P8-04.md:70-73` "kalan Medium doküman tutarsızlıkları bu commit'te giderildi" ve
+    "P7/P8 durumları tüm belgelere işlendi" diyor; yukarıdaki satırlar bu iddiayı çürütüyor.
+    P8-04'ün inceleme kaydı bu haliyle kendi kabulünü tam desteklemiyor.
+- Kalan Low notlar:
+  - `docs/evidence/phase-8-docs.md:3-4,25` hâlâ kartın `In Review` olduğunu söylüyor; dosya aynı
+    commit'te güncellenmiş olmasına rağmen başlık eski kalmış.
+  - `docs/acceptance.md:61-62` "P7/P8 bağımsız incelemeleri bekliyor" diyor; P7 ve P8 inceleme
+    kayıtları mevcut, yalnızca P8-06 nihai incelemesi açık.
+  - `docs/demo.md:4-5` "demo videosu henüz yok" ifadesini koruyor; aynı dosyanın `:127` bölümü
+    videoyu kapsam dışı sayıyor. Yanlış video bağlantısı yok.
+  - `docs/tasks/README.md:120` "Deferred (user)" ile karttaki "Deferred (user decision)" kısaltması
+    farklı; anlam aynı.
+  - `docs/evidence/phase-8-seed.md:267-270` hâlâ `demo:reset` paket script'inin eklenmediğini
+    söylüyor; kök `package.json` ve `apps/api` script'i mevcut (önceki L-2).
+  - `docs/evidence/README.md:9-28` P5–P8 kanıt kayıtlarını indekslemiyor (önceki L-3).
+- **Sonuç:** P8-01–P8-03 dokümantasyonu teknik olarak kabul edilebilir. P8-04, yukarıdaki Medium
+  durum satırları düzeltilmeden tam tutarlı değil. `81a7f2c` itibarıyla P8-06 kartı `In Progress`;
+  bu commit için CI 6/6 yeşil, ancak nihai sürüm commit'i/tag'i ve kullanıcı ürün kabulü açık.
+  Bu bölüm hiçbir kartı `Accepted` yapmaz.
+- **Son not (eşzamanlı çalışma ağacı):** Bu kontrol sırasında başka bir worker README:14'ü,
+  `docs/roadmap.md`, `docs/tasks/README.md` ve P8-06 kartını güncelledi; P8-06 `In Review` oldu ve
+  `docs/evidence/phase-8-release.md` eklendi. Bu değişiklikler `81a7f2c` commit'ine dahil değildir;
+  yukarıdaki bulgular commit tabanı için geçerlidir. README:244, `docs/testing.md:153`,
+  `docs/implementation-guide.md:110` ve P8-04 kartındaki iddia çalışma ağacında da değişmemiştir.
+
+---
+
+## Lead follow-up verification (working tree after `81a7f2c`)
+
+The Medium/Low documentation items listed in the final docs re-check are fixed in the
+release-candidate working tree; product code was not changed:
+
+- `README.md` now says P8-01–P8-04 are technically accepted, P8-06 is in review and P8-05 is
+  waived; the delivery command uses `docker compose --profile delivery ps -a`.
+- `docs/testing.md`, `docs/implementation-guide.md`, `docs/README.md`, `docs/roadmap.md`,
+  `docs/tasks/README.md` and `docs/tasks/P8-06.md` use the same statuses.
+- `docs/demo.md`, `docs/requirements.md`, `docs/acceptance.md` and `docs/evidence/phase-8-docs.md`
+  mark the video as user-waived, not pending and not delivered.
+- `docs/evidence/phase-8-seed.md` records that `npm run demo:reset` now exists; the evidence index
+  lists P5–P8 records.
+- No video file, video link or video-only tooling remains.
+
+Verification after these edits: a relative-link sweep over `README.md` plus all `docs/**/*.md`
+found **140 files, 1096 relative links/images, 0 broken**. `git diff` for this round contains
+documentation, evidence and task-status changes only.
+
+**Result:** the remaining Medium documentation contradiction is closed. P8-01–P8-04 are documented
+as technically accepted; P8-06 is `In Review` pending the release-candidate tag/CI and the user's
+product acceptance. This note is the lead's factual verification, not a second independent review.

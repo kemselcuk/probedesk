@@ -1,7 +1,7 @@
 # Phase 8 — README ve teknik belgeler kanıtı (P8-04)
 
-Durum: **Uygulandı ve yerelde doğrulandı; bağımsız inceleme bekliyor.** Bu belge ürün kabulü
-değildir. Kart `In Review`; `Accepted` için ayrı teknik inceleme gerekir.
+Durum: **Uygulandı, yerelde doğrulandı ve teknik incelemeden geçti.** Bu belge ürün kabulü
+değildir. Kart `Accepted`; nihai ürün kabulü kullanıcıdadır.
 
 - Tarih: 2026-11-04
 - Görev: [P8-04](../tasks/P8-04.md) — README ve teknik belgeler
@@ -22,7 +22,7 @@ değildir. Kart `In Review`; `Accepted` için ayrı teknik inceleme gerekir.
 - `docs/testing.md` — uygulanan test katmanları, doğrulanan komutlar ve gerçek CI durumu.
 - `docs/acceptance.md` — yalnızca gerçek kanıtı olan teslim maddeleri işaretlendi; ürün ve kullanıcı
   kabulü açık bırakıldı.
-- `docs/tasks/P8-04.md` — `In Review`, kabul ölçütleri ve kanıt alanları.
+- `docs/tasks/P8-04.md` — `Accepted`, kabul ölçütleri ve kanıt alanları.
 - `docs/evidence/phase-8-docs.md` — bu kayıt.
 
 ## Çalıştırılan komutlar ve gerçek sonuçlar
