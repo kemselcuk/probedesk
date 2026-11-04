@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6 In Review; P7–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
+Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6-01–P6-06 Accepted (teknik kabul, 2026-11-04); P7–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -91,12 +91,12 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P6-01 — Karşılaştırma API'si](P6-01.md) | Backend | In Review |
-| [P6-02 — Karşılaştırma seçimi ve route](P6-02.md) | Frontend | In Review |
-| [P6-03 — Sonuç ve kural farkları](P6-03.md) | Frontend | In Review |
-| [P6-04 — İki serili karşılaştırma grafikleri](P6-04.md) | Frontend | In Review |
-| [P6-05 — Birim ve örnekleme farkları](P6-05.md) | Entegrasyon | In Review |
-| [P6-06 — Sürüm tutarlılığı regresyonu](P6-06.md) | Entegrasyon | In Review |
+| [P6-01 — Karşılaştırma API'si](P6-01.md) | Backend | Accepted |
+| [P6-02 — Karşılaştırma seçimi ve route](P6-02.md) | Frontend | Accepted |
+| [P6-03 — Sonuç ve kural farkları](P6-03.md) | Frontend | Accepted |
+| [P6-04 — İki serili karşılaştırma grafikleri](P6-04.md) | Frontend | Accepted |
+| [P6-05 — Birim ve örnekleme farkları](P6-05.md) | Entegrasyon | Accepted |
+| [P6-06 — Sürüm tutarlılığı regresyonu](P6-06.md) | Entegrasyon | Accepted |
 
 ## Aşama 7 — Bütünleşik kalite ve CI
 

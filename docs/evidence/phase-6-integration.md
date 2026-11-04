@@ -61,9 +61,9 @@ node scripts/phase-6-compare-check.mjs
 
 ## Sınırlar
 
-- Birim/örnekleme farkı gerçek tarayıcıda ayrı bir fixture ile çizilmedi; backend e2e ve
-  dual-chart bileşen testleri kapsıyor. P7-01 Playwright kapsamında genişletilecek.
-- Grafik seri aç/kapat düğmeleri gerçek tarayıcıda ayrıca tıklanmadı; bileşen testleri var.
+- Birim ve örnekleme farkları Playwright testinde gerçek tarayıcıda doğrulandı; silinen/eklenen
+  adımın gerçek tarayıcıdaki tek taraflı gösterimi yalnız API e2e ve bileşen testleriyle kapsandı.
+- Seri aç/kapat düğmeleri gerçek tarayıcıda tıklandı; diğer serinin verisi değişmedi.
 - Bu demo ürün kabulü değildir; bağımsız Faz 6 incelemesi gerekir.
 
 
