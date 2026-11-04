@@ -81,6 +81,84 @@ describe('AuthFacade', () => {
     expect(auth.error()).toBeNull();
   });
 
+  it('retries session discovery after a transient failure', () => {
+    const auth = TestBed.inject(AuthFacade);
+    const http = TestBed.inject(HttpTestingController);
+    let firstResult: AuthenticatedUser | null | undefined;
+    let retriedResult: AuthenticatedUser | null | undefined;
+
+    auth.loadSession().subscribe((user) => {
+      firstResult = user;
+    });
+    http.expectOne('/api/auth/me').flush(
+      {
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'The session service is unavailable.',
+        requestId: 'req-session-503',
+      },
+      { status: 503, statusText: 'Service Unavailable' },
+    );
+
+    expect(firstResult).toBeNull();
+    expect(auth.status()).toBe('unknown');
+    expect(auth.user()).toBeNull();
+    expect(auth.error()).toMatchObject({
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+      requestId: 'req-session-503',
+    });
+
+    auth.loadSession().subscribe((user) => {
+      retriedResult = user;
+    });
+    http.expectOne('/api/auth/me').flush(PLANNER);
+
+    expect(retriedResult).toEqual(PLANNER);
+    expect(auth.user()).toEqual(PLANNER);
+    expect(auth.status()).toBe('authenticated');
+    expect(auth.error()).toBeNull();
+  });
+
+  it('does not let a stale session response erase a later login', () => {
+    const auth = TestBed.inject(AuthFacade);
+    const http = TestBed.inject(HttpTestingController);
+
+    auth.loadSession().subscribe();
+    const staleSession = http.expectOne('/api/auth/me');
+
+    auth
+      .login(of({ email: PLANNER.email, password: 'demo-password' }))
+      .subscribe();
+    http.expectOne('/api/auth/login').flush(PLANNER);
+
+    staleSession.flush(ERROR_BODY, {
+      status: 401,
+      statusText: 'Unauthorized',
+    });
+
+    expect(auth.user()).toEqual(PLANNER);
+    expect(auth.status()).toBe('authenticated');
+    expect(auth.isAuthenticated()).toBe(true);
+  });
+
+  it('does not let a stale session response re-authenticate after logout', () => {
+    const auth = TestBed.inject(AuthFacade);
+    const http = TestBed.inject(HttpTestingController);
+
+    auth.loadSession().subscribe();
+    const staleSession = http.expectOne('/api/auth/me');
+
+    auth.logout().subscribe();
+    http
+      .expectOne('/api/auth/logout')
+      .flush(null, { status: 204, statusText: 'No Content' });
+
+    staleSession.flush(PLANNER);
+
+    expect(auth.user()).toBeNull();
+    expect(auth.status()).toBe('anonymous');
+  });
+
   it('signs in with one POST and exposes the pending state', () => {
     const auth = TestBed.inject(AuthFacade);
     const http = TestBed.inject(HttpTestingController);

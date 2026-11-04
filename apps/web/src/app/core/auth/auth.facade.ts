@@ -37,6 +37,12 @@ export class AuthFacade {
   private readonly pendingState = signal(false);
   private readonly errorState = signal<ApiErrorView | null>(null);
   private sessionRequest$: Observable<AuthenticatedUser | null> | null = null;
+  /**
+   * Invalidates every in-flight session discovery when the authoritative
+   * session changes. A slow `/auth/me` response from before a login/logout must
+   * never overwrite the state established by the newer action.
+   */
+  private sessionGeneration = 0;
 
   readonly user = this.sessionStore.user;
   readonly role = this.sessionStore.role;
@@ -66,19 +72,38 @@ export class AuthFacade {
     }
 
     if (this.sessionRequest$ === null) {
+      const generation = this.sessionGeneration;
+      this.errorState.set(null);
+
       this.sessionRequest$ = this.authApi.me().pipe(
         map((user) => {
+          if (generation !== this.sessionGeneration) {
+            // The session was changed by a newer login/logout while this
+            // request was in flight. Report the current authoritative state
+            // instead of the stale response.
+            return this.user();
+          }
+
           this.sessionStore.authenticate(user);
           return user;
         }),
         catchError((error: unknown) => {
           const view = this.errorNormalizer.normalize(error);
+
+          if (generation !== this.sessionGeneration) {
+            return of(this.user());
+          }
+
           if (view.status === 401) {
             this.sessionStore.markAnonymous();
             return of(null);
           }
 
+          // A transient failure is not an anonymous session. Clear the shared
+          // request so a later caller can retry; until then the status stays
+          // `unknown` and the error remains visible.
           this.errorState.set(view);
+          this.sessionRequest$ = null;
           return of(null);
         }),
         shareReplay({ bufferSize: 1, refCount: false }),
@@ -105,6 +130,7 @@ export class AuthFacade {
 
         return this.authApi.login(credentials).pipe(
           tap((user) => {
+            this.sessionGeneration += 1;
             this.sessionRequest$ = null;
             this.sessionStore.authenticate(user);
           }),
@@ -130,6 +156,9 @@ export class AuthFacade {
 
     this.pendingState.set(true);
     this.errorState.set(null);
+    // Any session discovery started before this sign-out belongs to the old
+    // session, even if the sign-out request fails later.
+    this.sessionGeneration += 1;
 
     return this.authApi.logout().pipe(
       tap(() => this.clearSession()),
@@ -152,6 +181,7 @@ export class AuthFacade {
   }
 
   private clearSession(): void {
+    this.sessionGeneration += 1;
     this.sessionRequest$ = null;
     this.sessionStore.markAnonymous();
   }
