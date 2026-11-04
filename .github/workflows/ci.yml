@@ -64,7 +64,7 @@ jobs:
   api_integration:
     name: API integration (PostgreSQL 18)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:18.1-alpine
@@ -82,7 +82,7 @@ jobs:
     env:
       # The migration helper refuses to run when TEST_DATABASE_URL aliases the
       # development database. The development URL only needs a distinct
-      # identity on the same CI server; current jobs never connect to it.
+      # identity on the same CI server; this job never connects to it.
       DATABASE_URL: postgresql://probedesk:probedesk@127.0.0.1:5432/probedesk_dev?schema=public
       TEST_DATABASE_URL: postgresql://probedesk:probedesk@127.0.0.1:5432/probedesk_test?schema=public
     steps:
@@ -99,10 +99,15 @@ jobs:
       - name: Install dependencies
         run: npx --yes npm@11.6.2 ci --no-audit --no-fund
 
-      - name: Migrate the isolated test database
+      - name: Migrate the empty test database
         run: npx --yes npm@11.6.2 run db:migrate:test --workspace apps/api
 
-      - name: Run API integration and E2E tests
+      # The process lifecycle specs start apps/api/dist/main.js with real
+      # signals, so the deployable build must exist before the suite runs.
+      - name: Build API for process lifecycle tests
+        run: npx --yes npm@11.6.2 run build --workspace apps/api
+
+      - name: Run API integration and process tests
         run: >-
           npx --yes npm@11.6.2 run test:e2e --workspace apps/api --
           --reporter=default --reporter=junit
@@ -191,10 +196,88 @@ jobs:
       - name: Check OpenAPI and generated-client drift
         run: npx --yes npm@11.6.2 run openapi:check
 
+  e2e:
+    name: Playwright E2E (PostgreSQL 18)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:18.1-alpine
+        env:
+          POSTGRES_USER: probedesk
+          POSTGRES_PASSWORD: probedesk
+          POSTGRES_DB: probedesk_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U probedesk -d probedesk_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # `prepare` creates probedesk_e2e_test on this service and applies every
+      # migration plus the additive demo seed.
+      E2E_DATABASE_URL: postgresql://probedesk:probedesk@127.0.0.1:5432/probedesk_e2e_test?schema=public
+      E2E_API_PORT: "3100"
+      E2E_WEB_PORT: "4300"
+      E2E_API_URL: http://127.0.0.1:3100
+      E2E_BASE_URL: http://127.0.0.1:4300
+      # ubuntu-latest ships Google Chrome; the workflow verifies the binary
+      # before the suite instead of silently assuming a browser is present.
+      PW_CHANNEL: chrome
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npx --yes npm@11.6.2 ci --no-audit --no-fund
+
+      - name: Verify Google Chrome
+        run: google-chrome --version
+
+      - name: Build API
+        run: npx --yes npm@11.6.2 run build --workspace apps/api
+
+      - name: Build web
+        run: npx --yes npm@11.6.2 run build --workspace apps/web
+
+      - name: Create, migrate and seed the E2E database
+        run: node scripts/e2e-isolated.mjs prepare
+
+      # scripts/ci-e2e.mjs gives DATABASE_URL to the API child only. The
+      # Playwright child receives E2E_DATABASE_URL without DATABASE_URL, so the
+      # cleanup guard cannot confuse the E2E database with a development one.
+      - name: Run Playwright against the built app
+        env:
+          E2E_LOG_DIR: ${{ runner.temp }}/e2e-logs
+        run: node scripts/ci-e2e.mjs --reporter=list --reporter=html
+
+      - name: Confirm the E2E database is clean
+        run: node scripts/e2e-isolated.mjs status
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-${{ github.run_attempt }}
+          path: |
+            test-results/
+            playwright-report/
+            ${{ runner.temp }}/e2e-logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
   ci_required:
     name: CI required
     if: always()
-    needs: [api_quality, api_integration, web_quality, contract]
+    needs: [api_quality, api_integration, web_quality, contract, e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -204,13 +287,15 @@ jobs:
           API_INTEGRATION: ${{ needs.api_integration.result }}
           WEB_QUALITY: ${{ needs.web_quality.result }}
           CONTRACT: ${{ needs.contract.result }}
+          E2E: ${{ needs.e2e.result }}
         run: |
           failed=0
           for entry in \
             "API quality=$API_QUALITY" \
             "API integration=$API_INTEGRATION" \
             "Web quality=$WEB_QUALITY" \
-            "OpenAPI contract=$CONTRACT"
+            "OpenAPI contract=$CONTRACT" \
+            "Playwright E2E=$E2E"
           do
             name="${entry%%=*}"
             result="${entry#*=}"
