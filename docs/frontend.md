@@ -2,6 +2,10 @@
 
 Birincil gereksinimler: REQ-03–06, REQ-15–22. Görev: [P0-04](tasks/P0-04.md). Backend eşit ağırlıktaki ürün parçasıdır; frontend geliştirmesi aşamalara dağıtılır.
 
+## Kullanıcı tarafından yetkilendirilen görsel yenileme
+
+2026-11-04 UI yenilemesi için ölçü, tipografi, renk, bileşen ve ekran düzeninin ayrıntılı hedefi [UI yenileme planıdır](ui-modernization-plan.md). UI-01–UI-08 henüz Planned; mevcut ekran davranışları aşağıdaki sözleşmede kalır. Yeni plan görsel yerleşimi ve açıklama hiyerarşisini değiştirir, backend/verdict/rol/API davranışını değiştirmez.
+
 ## Yapı ve route'lar
 
 Standalone bileşenler, feature route'ları ve Angular Material/CDK kullanılır. Typed Reactive Forms açık tercihidir; farklı form sistemiyle kendiliğinden değiştirilmez.

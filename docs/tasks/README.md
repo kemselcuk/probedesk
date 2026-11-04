@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6-01–P6-06 Accepted (teknik kabul, 2026-11-04); P7-01–P7-06 Accepted (teknik kabul, 2026-11-04); P8-01–P8-04 Accepted (teknik kabul, 2026-11-04); P8-05 kullanıcı kararıyla kapsam dışı; P8-06 In Review (kullanıcı ürün kabulü bekliyor). Nihai ürün kabulü kullanıcıdadır.
+İlk ürün paketi **62 görev**:  P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6-01–P6-06 Accepted (teknik kabul, 2026-11-04); P7-01–P7-06 Accepted (teknik kabul, 2026-11-04); P8-01–P8-04 Accepted (teknik kabul, 2026-11-04); P8-05 kullanıcı kararıyla kapsam dışı; P8-06 In Review (kullanıcı ürün kabulü bekliyor). Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -126,3 +126,19 @@ Her kart: amaç/çıktı, değişiklik alanı, bağımlılıklar, REQ bağlantı
 
 Ayrıntılar: [başlangıç rehberi](../implementation-guide.md), [test/inceleme sözleşmesi](../testing.md), [nihai kabul](../acceptance.md).
 
+
+
+## UI yenileme kampanyası — 2026-11-04
+
+İlk ürün paketinin 62 kartına ek **8 UI görevi** vardır; toplam kart sayısı 70 olur. Bu kampanya eski P1–P8 kabul kayıtlarını yeniden açmaz. Kullanıcı yeni görünümün uygulanmasını yetkilendirdi; henüz uygulanmış veya görsel kabul verilmiş değildir. Ana sözleşme: [ayrıntılı UI planı](../ui-modernization-plan.md).
+
+| Görev | Kapsam | Durum |
+|---|---|---|
+| [UI-01](UI-01.md) | Ortak tasarım tokenları ve Material ölçeği | Planned |
+| [UI-02](UI-02.md) | Shell, Login ve ortak durumlar | Planned |
+| [UI-03](UI-03.md) | Test Plans ve Published Version | Planned |
+| [UI-04](UI-04.md) | Plan Editor bilgi hiyerarşisi | Planned |
+| [UI-05](UI-05.md) | Start Run ve Live Run görünümü | Planned |
+| [UI-06](UI-06.md) | Run History ve Run Details yoğunluğu | Planned |
+| [UI-07](UI-07.md) | Compare Runs ve ortak grafik tasarımı | Planned |
+| [UI-08](UI-08.md) | Responsive, erişilebilirlik ve bütünleşik görsel teslim | Planned |

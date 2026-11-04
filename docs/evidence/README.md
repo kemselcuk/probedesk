@@ -60,3 +60,7 @@ Gerçek kanıt eklendiğinde teslim commit'iyle ilişkilendirilir. Uygun bir alt
 Gerçek token/parola/cookie kaydedilmez. Başarısız çıktı gizlenmez. Çalıştırılmayan kontrol `Passed` olmaz. Coverage ve hız ölçümü uydurulmaz. Örnek ekran tasarımı çalışan uygulama kanıtı diye sunulmaz.
 
 Doküman bağlantı kontrolü gibi kontroller uygulamanın çalıştığını kanıtlamaz. Her kontrol kendi kapsamıyla raporlanır.
+
+## UI yenileme başlangıcı
+
+[Gerçek başlangıç UI incelemesi](ui-refresh/baseline.md): localhost Plans/History/Details/Compare ekranları ve Grafana Play referans ölçüleri. Bu kayıt yeni tasarımın uygulanmış olduğunu göstermez; UI-01–UI-08 Planned.

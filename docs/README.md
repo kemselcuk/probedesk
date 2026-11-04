@@ -59,3 +59,7 @@ teknik kararlar birlikte uyarlanır. Çelişkiler sessizce yorumlanarak uygulama
 
 README İngilizcedir; diğer plan belgeleri Türkçedir. Uygulama metinleri, kullanıcıya dönük API
 mesajları ve örnek plan/adım adları İngilizcedir.
+
+## UI yenileme ek planı
+
+Kullanıcının 2026-11-04 talebiyle [ayrıntılı UI yenileme planı](ui-modernization-plan.md) ve UI-01–UI-08 kartları eklendi. İlk ürün paketinden ayrı bu kampanya henüz Planned; görsel kabul değildir. [Başlangıç incelemesi ve gerçek ekranlar](evidence/ui-refresh/baseline.md) uygulayıcıya referans sağlar.
