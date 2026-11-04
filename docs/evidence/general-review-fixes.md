@@ -74,7 +74,8 @@ Start→Live navigasyonunu doğruluyor.
 Kalıcı testler:
 - API: `auth.e2e-spec.ts` → `restores a lost or mismatched CSRF cookie for an existing session`
   (eski token 403, yeni token 200, sonraki `/me` Set-Cookie üretmiyor).
-- Web: `auth.interceptor.spec.ts` → CSRF retry ve rol 403'ünde retry yok testleri.
+- Web: `auth.interceptor.spec.ts` → CSRF retry, refresh/retry hataları ve rol/origin 403'ünde
+  retry yok testleri.
 
 Gerçek delivery HTTP kontrolü:
 
@@ -82,6 +83,38 @@ Gerçek delivery HTTP kontrolü:
 login:200
 me-without-csrf:200 refreshed:yes rotated:yes
 logout-with-refreshed-csrf:204
+```
+
+### R7 — recovery/retry hatası ilk CSRF 403'üne dönüşüyordu — KAPANDI
+
+İnceleme tabanı `0ec57d6` üzerinde iki hedefli regresyon, iç `catchError`'ın `/auth/me` veya retry
+hatasını yutup ilk 403'ü yaydığını gösterdi. Bu sarmalayıcı kaldırıldı; artık:
+
+- `/auth/me` 401 → dışarı 401; oturum anonimleşiyor, `returnUrl` ve `reason=session-expired` ile
+  login yönlendirmesi çalışıyor.
+- Retry 401 → dışarı 401; aynı session-expired yolu çalışıyor.
+- `/auth/me` 503 → dışarı 503, kendi `requestId`'siyle; retry yapılmıyor.
+- Retry 503 → dışarı 503, retry'nin kendi `requestId`'siyle; ilk 403 maskelenmiyor.
+- Retry tekrar CSRF 403 → dışarı ikinci 403; üçüncü istek/ikinci refresh yok.
+- Başarılı recovery, rol 403, origin 403 ve auth endpoint muafiyeti korunuyor.
+
+Kalıcı testler: `apps/web/src/app/core/auth/auth.interceptor.spec.ts` (11 test), özellikle
+`propagates a 401 from the csrf refresh...`, `propagates a 401 from the retried request...`,
+`propagates a 503 from the csrf refresh...`, `propagates a 503 from the retried request...`,
+`stops after one retry...`, `does not recover a csrf failure on an exempt auth endpoint`,
+`does not refresh or retry a same-origin 403`.
+
+Doğrulama:
+
+```text
+npm run test:web
+→ 36 dosya / 384 test geçti
+
+npm run verify
+→ exit 0; API 118, web 384 test; build; OpenAPI current
+
+npm run test:e2e --workspace apps/api
+→ 22 dosya / 200 test geçti (41.58 s)
 ```
 
 ### 6. Özel port nginx yönlendirmesi ve eski doküman/CI bağlantıları — KAPANDI
@@ -97,7 +130,7 @@ logout-with-refreshed-csrf:204
 
 ```text
 npm run verify
-→ exit 0; API 16 dosya/118 test; web 36 dosya/377 test; build; OpenAPI current
+→ exit 0; API 16 dosya/118 test; web 36 dosya/384 test; build; OpenAPI current
 
 npm run test:e2e --workspace apps/api
 → 22 dosya / 200 test geçti (33.00 s)

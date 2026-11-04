@@ -60,13 +60,14 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
           return throwError(() => error);
         }
 
+        // Preserve the real outcome of the refresh and of the single retry:
+        // a 401 from `/auth/me` or from the retried request must reach the
+        // outer unauthorized handler (anonymous state + login redirect); a
+        // 5xx must surface its own status/body/requestId, not the initial 403.
         return injector
           .get(CsrfRecoveryService)
           .refresh()
-          .pipe(
-            switchMap(() => next(withCurrentCsrfHeader(request))),
-            catchError(() => throwError(() => error)),
-          );
+          .pipe(switchMap(() => next(withCurrentCsrfHeader(request))));
       }),
     ),
   );

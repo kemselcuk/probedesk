@@ -26,7 +26,7 @@ Yerel doğrulama (aynı ağaç):
 
 ```text
 npm run verify
-→ exit 0; API 16 dosya/118 test; web 36 dosya/377 test; build; OpenAPI current
+→ exit 0; API 16 dosya/118 test; web 36 dosya/384 test; build; OpenAPI current
 
 npm run test:e2e --workspace apps/api
 → 22 dosya / 200 test geçti (33.00 s)
