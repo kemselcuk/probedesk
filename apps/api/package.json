@@ -34,7 +34,8 @@
     "db:reset:test": "tsx test/scripts/reset-test-database.ts",
     "predemo:seed": "npm run db:generate",
     "demo:seed": "tsx prisma/seed.ts",
-    "openapi:emit": "tsx src/common/openapi/emit-openapi.ts"
+    "openapi:emit": "tsx src/common/openapi/emit-openapi.ts",
+    "demo:reset": "tsx prisma/seed-reset.ts"
   },
   "dependencies": {
     "@nestjs/common": "12.3.2",

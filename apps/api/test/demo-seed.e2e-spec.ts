@@ -1,11 +1,8 @@
 import * as argon2 from 'argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/prisma/generated/client.js';
-import {
-  DEMO_DEVICE_PROFILES,
-  DEMO_USERS,
-  DEMO_USER_EMAILS,
-} from '../prisma/seed-data.js';
+import { DEMO_USERS, DEMO_USER_EMAILS } from '../prisma/seed-data.js';
+import { deleteDemoSeedFixture } from '../prisma/seed-demo-cleanup.js';
 import { seedDemoDeviceProfiles } from '../prisma/seed-device-profiles.js';
 import { seedDemoUsers } from '../prisma/seed-users.js';
 
@@ -28,8 +25,7 @@ describe('demo user seed (e2e)', () => {
       }),
     });
 
-    await cleanupDemoUsers();
-    await cleanupDemoProfiles();
+    await deleteDemoSeedFixture(prisma);
   });
 
   afterAll(async () => {
@@ -37,27 +33,9 @@ describe('demo user seed (e2e)', () => {
       return;
     }
 
-    await cleanupDemoUsers();
-    await cleanupDemoProfiles();
+    await deleteDemoSeedFixture(prisma);
     await prisma.$disconnect();
   });
-
-  async function cleanupDemoUsers(): Promise<void> {
-    await prisma.session.deleteMany({
-      where: { user: { email: { in: [...DEMO_USER_EMAILS] } } },
-    });
-    await prisma.user.deleteMany({
-      where: { email: { in: [...DEMO_USER_EMAILS] } },
-    });
-  }
-
-  async function cleanupDemoProfiles(): Promise<void> {
-    await prisma.deviceProfile.deleteMany({
-      where: {
-        code: { in: DEMO_DEVICE_PROFILES.map((profile) => profile.code) },
-      },
-    });
-  }
 
   it('creates exactly three Argon2id accounts without storing plaintext', async () => {
     const summary = await seedDemoUsers(prisma);
