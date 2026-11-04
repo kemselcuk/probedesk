@@ -244,8 +244,9 @@ compose.test.yaml        Standalone isolated integration-test database
 - **Acceptance is still open.** Phases 1–7 and P8-01–P8-04 are technically accepted. The P8-06
   release candidate is in review, the demo video (P8-05) was waived by the user, and final user
   acceptance has not been recorded.
-- **Evidence is commit-scoped.** CI results and screenshots are tied to the commit recorded in
-  the evidence files; later documentation-only changes are re-verified on the release candidate.
+- **Evidence is commit-scoped.** The release candidate `v0.1.0-rc.1` is commit `270a399`; its
+  six-job CI run is [41900767940](https://github.com/kemselcuk/probedesk/actions/runs/41900767940)
+  (all green). Documentation-only follow-ups keep their own commit history.
 - **No coverage or performance claims.** Test counts and durations are reproduced from real
   reports; no coverage percentage, benchmark, or capacity figure is claimed.
 - **Zero additional infrastructure cost.** All delivered tooling is local/open source and CI uses

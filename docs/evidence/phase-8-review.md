@@ -740,3 +740,21 @@ documentation, evidence and task-status changes only.
 **Result:** the remaining Medium documentation contradiction is closed. P8-01–P8-04 are documented
 as technically accepted; P8-06 is `In Review` pending the release-candidate tag/CI and the user's
 product acceptance. This note is the lead's factual verification, not a second independent review.
+
+### Independent verification of lead follow-up
+
+- Read-only pass over the release-candidate tree at `270a399` (base `81a7f2c`); product code was
+  not changed. The fixes are present at `README.md:13-15,244-246`, `docs/testing.md:153`,
+  `docs/implementation-guide.md:110`, `docs/evidence/phase-8-docs.md:3-4,25`,
+  `docs/demo.md:4-5,127`, `docs/evidence/phase-8-seed.md:267-273`,
+  `docs/tasks/README.md:120-121` and `docs/evidence/README.md:29-38`.
+- P8-06 is `In Review`; its two open criteria match `docs/acceptance.md:43,49,56,63` (final RC
+  commit/tag/CI and user acceptance open). No video file, link or video-only tooling exists.
+- Relative-link sweep: **140 files / 1096 links / 0 broken**.
+- **No Medium contradiction remains.** Low residuals: `docs/tasks/P8-04.md:70-81` still cites
+  `ac571cc` for the follow-up fixes (update the SHA to `270a399` or the final RC commit);
+  `docs/evidence/phase-8-docs.md:148-150`
+  keeps a historical "video henüz yok" note; `docs/tasks/P0-05.md:27` still carries an old
+  "nihai video akışı" criterion; `docs/tasks/P8-05.md:11,21-24` keeps the original deferred scope.
+- P8-01–P8-04 documentation is technically acceptable. P8-06 remains `In Review`; no card was
+  marked `Accepted` by this check.

@@ -146,8 +146,8 @@ Görseller çalışan Angular uygulamasından gerçek Chrome/Playwright koşular
 - `docs/README.md` ve `docs/implementation-guide.md` artık Phase 1 iskeleti anlatmıyor; P1–P6
   `Accepted`, P7/P8 inceleme durumu ve açık işler yazılı.
 - `docs/demo.md`'deki "seed veya video henüz üretilmedi" ve planlı fixture metni kaldırıldı;
-  gerçek üç hesap, iki sürüm, dört run ve hata indeksi yazıldı. Video için "henüz yok" ifadesi
-  korundu.
+  gerçek üç hesap, iki sürüm, dört run ve hata indeksi yazıldı. Video başlangıçta "henüz yok"
+  olarak yazıldı; ardından kullanıcı kararıyla kapsam dışına alındı.
 - `docs/testing.md` başlığındaki "P4–P8 davranış testleri henüz yazılmadı" ve "komutlar planlanan
   giriş noktalarıdır" ifadeleri kaldırıldı; uygulanan katmanlar ve gerçek CI koşusu eklendi.
   `planlanan-komutlar` anchor'ı eski görev kartı bağlantıları kırılmasın diye korundu.
@@ -161,7 +161,8 @@ Görseller çalışan Angular uygulamasından gerçek Chrome/Playwright koşular
 
 1. **P8-05 demo videosu** kullanıcı kararıyla kapsam dışıdır; README'de video bağlantısı yoktur.
 2. **P8-06 sürüm adayı** ve nihai teslim commit'i P8-06 kapsamında hazırlanır.
-3. **CI:** Kayıtlı yeşil koşu `3d27f2f` içindir. Nihai teslim commit'i için CI yeniden çalıştırılır.
+3. **CI:** Sürüm adayı `270a399` için run `41900767940` altı işle yeşildir; önceki kayıtlar
+   `3d27f2f` ve `81a7f2c` içindir.
 4. **Bağımsız inceleme:** P8 incelemesi tamamlandı; kalan Medium doküman bulguları bu commit'te
    giderildi. Kartların teknik kabul durumu görev kartlarında kayıtlıdır.
 5. **Kullanıcı ürün kabulü:** [acceptance.md](../acceptance.md) ürün kutuları ve kullanıcı kabulü

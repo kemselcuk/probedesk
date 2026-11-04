@@ -46,15 +46,15 @@ kabulü açıktır; demo videosu kullanıcı kararıyla kapsam dışıdır; işa
   seed/API ile doğrulandı ([P8-02](evidence/phase-8-seed.md), [demo](demo.md)).
 - [x] OpenAPI ile gerçek API ve üretilen istemci uyumlu. — `npm run openapi:check` güncel;
   CI `contract` işi geçti ([verify](evidence/phase-8-docs.md), [CI](evidence/phase-7-ci.md)).
-- [ ] GitHub Actions teslim commit'i üzerinde geçti. — `3d27f2f` için altı işin tamamı geçti, ancak
-  docs/P8 değişikliklerini içeren nihai teslim commit'i henüz oluşmadı.
+- [x] GitHub Actions teslim commit'i üzerinde geçti. — `270a399` (`v0.1.0-rc.1`) için altı işin
+  tamamı geçti ([run 41900767940](https://github.com/kemselcuk/probedesk/actions/runs/41900767940)).
 - [x] Test/coverage/süre sayıları gerçek raporlardan alınmış. — API 118, web 370, entegrasyon
   197, Playwright 2 test; süreler gerçek raporlardan. Coverage yüzdesi iddia edilmiyor.
 - [x] README çalışan ekran görüntüsü ve gerçek kanıt bağlantıları içeriyor. — Dört gerçek ekran
   görüntüsü ve kanıt bağlantıları doğrulandı; demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [ ] Kısa video dosyası açılıyor; ana demo sonuçlarını gösteriyor. — Kullanıcı kararıyla kapsam dışı (video yok).
-- [ ] Belgeler, CI ve görseller aynı teslim sürümüyle ilişkilendirilmiş. — P8-06 nihai commit
-  bağlantısı bekliyor; demo videosu kullanıcı kararıyla kapsam dışıdır.
+- [x] Belgeler, CI ve görseller aynı teslim sürümüyle ilişkilendirilmiş. — `v0.1.0-rc.1` →
+  `270a399`; demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [x] Ek altyapı maliyeti hedefi korunmuş; onaysız ücretli hizmet yok. — Yerel Compose ve ücretsiz
   standart GitHub runner kullanılıyor; ücretli servis/secret eklenmedi. Hesap faturalama durumu
   dışarıdan ayrıca denetlenmedi.
@@ -66,7 +66,7 @@ kabulü açıktır; demo videosu kullanıcı kararıyla kapsam dışıdır; işa
 
 Teknik doğrulama 2026-11-04'te tamamlandı: P7 ve P8 bağımsız incelemeleri, `npm run verify`,
 22 dosya/197 API entegrasyon testi, iki Playwright senaryosu ve Compose delivery smoke testi.
-Sürüm adayı `v0.1.0-rc.1` paketi [phase-8-release.md](evidence/phase-8-release.md) içinde kayıtlıdır.
+Sürüm adayı `v0.1.0-rc.1` (`270a399`) paketi [phase-8-release.md](evidence/phase-8-release.md) içinde kayıtlıdır.
 **Kullanıcı ürün kabulü, nihai kapsam ve yayın kararı henüz verilmemiştir; bu maddeler açıktır.**
 Demo videosu kullanıcı kararıyla kapsam dışıdır. Teknik doğrulama kayıtları
 [kanıt dizininde](evidence/README.md) listelenir; bunlar nihai kabul yerine geçmez.

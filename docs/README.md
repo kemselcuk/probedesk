@@ -50,10 +50,10 @@ teknik kararlar birlikte uyarlanır. Çelişkiler sessizce yorumlanarak uygulama
   sonrasında planlar ve run geçmişi korundu.
 - Gerçek Chrome/Playwright ana demo ve karşılaştırma senaryoları geçti; API birim/entegrasyon ve
   Angular testleri gerçek PostgreSQL/TestBed üzerinde çalıştırıldı.
-- Kayıtlı GitHub Actions koşusu `3d27f2f` commit'inde altı işin tamamını geçti
-  ([CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)). Nihai teslim
-  commit'i için CI henüz çalıştırılmadı.
-- Demo videosu **kullanıcı kararıyla kapsam dışıdır**; README'de video bağlantısı yoktur ve P8-05 `Deferred (user)` durumundadır.
+- Sürüm adayı `v0.1.0-rc.1` (`270a399`) altı işin tamamında yeşil
+  ([run 41900767940](https://github.com/kemselcuk/probedesk/actions/runs/41900767940); önceki
+  kayıtlar [CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
+- Demo videosu **kullanıcı kararıyla kapsam dışıdır**; README'de video bağlantısı yoktur ve P8-05 `Deferred (user decision)` durumundadır.
 - Nihai kapsam, aşama ve ürün kabulü kullanıcıya aittir; hiçbir aşama yalnızca kartı kapandı diye
   ürün kabulü sayılmaz.
 

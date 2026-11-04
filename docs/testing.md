@@ -150,7 +150,7 @@ için gerekçe değildir. İnceleme tarihi, kimliği ve bulguları görev kartı
 inceleme yapılmış gibi işaretlenmez.
 
 Görev akışı: `Planned → In Progress → In Review → Accepted`. Düzeltme gerekiyorsa `In Progress`e
-döner. P1–P7 ve P8-01–P8-04 `Accepted`; P8-05 `Deferred (user)`; P8-06 `In Review` (kullanıcı ürün kabulü bekliyor).
+döner. P1–P7 ve P8-01–P8-04 `Accepted`; P8-05 `Deferred (user decision)`; P8-06 `In Review` (kullanıcı ürün kabulü bekliyor).
 P0 belgeleri `In Review` durumundadır ve bağımsız kullanıcı kabulü henüz kaydedilmemiştir.
 
 ## Kanıt

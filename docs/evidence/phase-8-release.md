@@ -1,7 +1,7 @@
 # Phase 8 — sürüm adayı ve teslim paketi
 
 - Tarih: 2026-11-04
-- Aday sürüm: `v0.1.0-rc.1`
+- Aday sürüm: `v0.1.0-rc.1` → commit `270a399`
 - Kapsam: P8-01–P8-04 teknik kabulü, P8-05 kullanıcı waiver'ı, P8-06 sürüm adayı.
 - Nihai ürün kabulü: **Kullanıcıda açık.** Bu belge ürün kabulü değildir.
 
@@ -10,13 +10,15 @@
 Sürüm adayından önceki doküman/kabul commit'i `81a7f2c` üzerinde:
 
 ```text
-GitHub Actions run 41899919132
+GitHub Actions run 41900767940 (270a399, release candidate)
 API quality            success
 API integration        success
 OpenAPI contract       success
 Web quality            success
 Playwright E2E         success
 CI required            success
+
+Önceki taban 81a7f2c / run 41899919132: 6/6 success
 ```
 
 Yerel doğrulama (aynı ağaç):
@@ -76,5 +78,6 @@ Bağlantı kontrolü: README + `docs/` kapsamındaki 16 dosyada 349 göreli bağ
 
 ## Etiket
 
-`v0.1.0-rc.1` etiketi, bu dosyayı içeren release-candidate commit'i CI'da yeşil olduktan sonra
-atılır. Etiketin hedef commit'i ve CI koşusu, teslim yanıtında ve P8-06 kartında kayıtlıdır.
+`v0.1.0-rc.1` etiketi `270a399` commit'ine atıldı ve `origin`e push edildi. Bu commit'in CI koşusu
+`41900767940` altı işin tamamında yeşildir. Etiketin hedefi ve koşu bağlantısı P8-06 kartında da
+kayıtlıdır.
