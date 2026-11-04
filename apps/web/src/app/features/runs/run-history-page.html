@@ -1,6 +1,6 @@
 <app-page-header
   title="Run History"
-  subtitle="Filter recorded runs by plan, status, outcome, and UTC date. Counters come from the history summary; measurement arrays stay on the details screen."
+  subtitle="Recorded runs across plans, with filters and comparison selection."
 />
 
 <mat-card class="filters-card" appearance="outlined">
@@ -9,15 +9,12 @@
     class="filters"
     (ngSubmit)="applyFilters()"
     novalidate
+    aria-label="Run filters"
     aria-describedby="history-filter-hint"
   >
-    <div class="filters-heading">
-      <h2>Filters</h2>
-      <p id="history-filter-hint" class="filter-hint">
-        Filters and the page number are stored in the address bar, so refreshing or opening a run
-        and coming back restores the same view. A filter change returns to page 1.
-      </p>
-    </div>
+    <p id="history-filter-hint" class="visually-hidden">
+      Filters and the page number are stored in the address bar. A filter change returns to page 1.
+    </p>
 
     <div class="filter-grid">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan-field">
@@ -35,7 +32,7 @@
         </select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="status-field">
         <mat-label>Status</mat-label>
         <select matNativeControl id="history-status" formControlName="status">
           <option value="">Any status</option>
@@ -47,7 +44,7 @@
         </select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="outcome-field">
         <mat-label>Outcome</mat-label>
         <select matNativeControl id="history-outcome" formControlName="outcome">
           <option value="">Any outcome</option>
@@ -56,29 +53,29 @@
         </select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="from-field">
         <mat-label>From date (UTC)</mat-label>
         <input matInput type="date" id="history-from" formControlName="from" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="to-field">
         <mat-label>To date (UTC, exclusive)</mat-label>
         <input matInput type="date" id="history-to" formControlName="to" />
       </mat-form-field>
-    </div>
 
-    <div class="filter-actions">
-      @if (hasActiveFilters()) {
-        <button
-          mat-stroked-button
-          type="button"
-          id="clear-history-filters"
-          (click)="clearFilters()"
-        >
-          Clear filters
-        </button>
-      }
-      <span class="filter-note">The To date is exclusive; the range is [From, To) in UTC.</span>
+      <div class="filter-actions">
+        @if (hasActiveFilters()) {
+          <button
+            mat-stroked-button
+            type="button"
+            id="clear-history-filters"
+            (click)="clearFilters()"
+          >
+            Clear filters
+          </button>
+        }
+        <span class="filter-note">Range is [From, To) in UTC.</span>
+      </div>
     </div>
   </form>
 
@@ -116,7 +113,7 @@
       to continue.
     </p>
     @if (history.error()?.requestId; as requestId) {
-      <p class="request-id">Request ID: <code>{{ requestId }}</code></p>
+      <p class="request-id">Request ID: <code class="pd-code">{{ requestId }}</code></p>
     }
     <a mat-flat-button routerLink="/login">Sign in again</a>
   </section>
@@ -173,7 +170,7 @@
             <p class="result-range" aria-live="polite">{{ resultRange() }}</p>
           </div>
 
-          <p class="compare-hint" id="compare-hint">
+          <p class="compare-hint visually-hidden" id="compare-hint">
             Select up to two terminal runs of the same plan, then choose Compare. Different versions
             of that plan are allowed; a running run cannot be compared.
           </p>
@@ -204,42 +201,50 @@
                 </button>
               }
             </div>
-            @if (!canCompare()) {
-              <p id="compare-selection-reason" class="compare-reason">
+            @if (!canCompare() && compareSelection().length > 0) {
+              <p
+                id="compare-selection-reason"
+                class="compare-reason"
+                [class.compare-reason--error]="compareSelection().length > 1"
+              >
+                {{ compareBlockedReason() }}
+              </p>
+            } @else if (!canCompare()) {
+              <p id="compare-selection-reason" class="visually-hidden">
                 {{ compareBlockedReason() }}
               </p>
             }
           </div>
 
-          <p class="table-scroll-hint" id="run-history-table-hint">
-            The table is wider than the screen. Scroll horizontally, or focus the table and use the
-            arrow keys, to reach Samples, Out of tolerance, First failure, and Details.
+          <p class="visually-hidden" id="run-history-table-hint">
+            The table is wider than the screen at narrow widths. Scroll horizontally, or focus the
+            table and use the arrow keys, to reach Samples and Details.
           </p>
           <div
-            class="table-scroll"
+            class="pd-table-wrap"
             id="run-history-table"
             role="region"
             tabindex="0"
             aria-label="Recorded runs table"
             aria-describedby="run-history-table-hint"
           >
-            <table>
+            <table class="pd-table history-table">
               <caption class="visually-hidden">
                 Recorded runs, newest first. Each row shows summary counters only; open Run Details
-                for the recorded rules and measurement table.
+                for finished time, recorded rules, the first failure, and the measurement table.
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">Compare</th>
-                  <th scope="col">Result</th>
-                  <th scope="col">Plan</th>
-                  <th scope="col">Scenario / seed</th>
-                  <th scope="col">Started (UTC)</th>
-                  <th scope="col">Finished (UTC)</th>
-                  <th scope="col">Samples</th>
-                  <th scope="col">Out of tolerance</th>
-                  <th scope="col">First failure</th>
-                  <th scope="col">Details</th>
+                  <th scope="col" class="col-compare">Compare</th>
+                  <th scope="col" class="col-result">Result</th>
+                  <th scope="col" class="col-plan">Plan / version</th>
+                  <th scope="col" class="col-scenario">Scenario / seed</th>
+                  <th scope="col" class="col-started">Started UTC</th>
+                  <th scope="col" class="col-samples">
+                    Samples / <abbr title="Out of tolerance">OOT</abbr>
+                    <span class="visually-hidden">out of tolerance</span>
+                  </th>
+                  <th scope="col" class="col-details">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,6 +263,9 @@
                     </td>
                     <td>
                       <app-run-status-badge [status]="run.status" [outcome]="run.outcome" />
+                      @if (run.status === 'RUNNING') {
+                        <span class="cell-detail">Still running</span>
+                      }
                     </td>
                     <td class="plan-cell">
                       <span class="plan-name">{{ run.planName }}</span>
@@ -267,29 +275,35 @@
                           · Plan {{ run.planId.slice(0, 8) }}
                         }
                       </span>
+                      @if (run.firstFailure; as failure) {
+                        <span class="cell-detail failure-detail">
+                          First failure: Step {{ failure.stepPosition }}: {{ failure.stepName }} ·
+                          Sample index {{ failure.sampleIndex }}
+                        </span>
+                      }
                     </td>
                     <td>
                       <span>{{ scenario(run.scenario) }}</span>
                       <span class="cell-detail">Seed {{ run.seed }}</span>
                     </td>
-                    <td>
-                      <time [attr.datetime]="run.startedAt">
-                        {{ run.startedAt | date: 'medium' : 'UTC' }} UTC
+                    <td class="started-cell">
+                      <time
+                        [attr.datetime]="run.startedAt"
+                        [attr.title]="(run.startedAt | date: 'medium' : 'UTC') + ' UTC'"
+                      >
+                        {{ run.startedAt | date: 'MMM d, HH:mm' : 'UTC' }} UTC
                       </time>
                     </td>
-                    <td>
-                      @if (run.finishedAt !== null) {
-                        <time [attr.datetime]="run.finishedAt">
-                          {{ run.finishedAt | date: 'medium' : 'UTC' }} UTC
-                        </time>
-                      } @else if (run.status === 'RUNNING') {
-                        Still running
-                      } @else {
-                        Not recorded
-                      }
-                    </td>
-                    <td>
-                      <span>{{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}</span>
+                    <td class="samples-cell">
+                      <span class="samples-count">
+                        {{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}
+                      </span>
+                      <span
+                        class="cell-detail violation-detail"
+                        [class.violation-detail--active]="run.outOfToleranceCount > 0"
+                      >
+                        {{ run.outOfToleranceCount }} out of tolerance
+                      </span>
                       @if (isPartialRun(run)) {
                         <span class="partial-chip">Partial</span>
                       } @else if (isStoppedRun(run)) {
@@ -297,23 +311,8 @@
                       }
                     </td>
                     <td>
-                      <span [class.violation-count]="run.outOfToleranceCount > 0">
-                        {{ run.outOfToleranceCount }}
-                      </span>
-                    </td>
-                    <td>
-                      @if (run.firstFailure; as failure) {
-                        <span class="failure-step">
-                          Step {{ failure.stepPosition }}: {{ failure.stepName }}
-                        </span>
-                        <span class="cell-detail">Sample index {{ failure.sampleIndex }}</span>
-                      } @else {
-                        <span class="cell-detail">None</span>
-                      }
-                    </td>
-                    <td>
                       <a
-                        mat-stroked-button
+                        mat-button
                         [routerLink]="['/runs', run.id]"
                         [attr.aria-label]="detailsLabel(run)"
                       >

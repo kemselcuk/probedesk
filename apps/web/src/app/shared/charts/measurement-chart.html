@@ -8,8 +8,8 @@
     <div class="chart-heading-text">
       <h4 [id]="headingId()">Measurement chart — {{ step().name }} ({{ step().unit }})</h4>
       <p class="chart-caption">
-        X axis: elapsed time in milliseconds. Y axis: recorded value in {{ step().unit }}. The
-        shaded area and dashed lines show the tolerance copied into this run snapshot.
+        Elapsed time (ms) vs recorded value in {{ step().unit }}; the shaded band is the snapshot
+        tolerance.
       </p>
     </div>
     <button

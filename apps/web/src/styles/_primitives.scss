@@ -140,6 +140,7 @@
 .pd-table-wrap {
   max-width: 100%;
   overflow-x: auto;
+  contain: paint;
   border: 1px solid var(--pd-border);
   border-radius: var(--pd-radius-card);
   background: var(--pd-surface);

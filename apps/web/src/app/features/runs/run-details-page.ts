@@ -22,6 +22,7 @@ import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
+import { formatDuration } from '../plans/plan-draft-form';
 import { CancelRunDialog } from './cancel-run-dialog';
 import type { CancelRunDialogData } from './cancel-run-dialog';
 import {
@@ -104,6 +105,7 @@ export class RunDetailsPage {
   protected readonly cancelFailure = this.runs.cancelError;
   protected readonly announcement = signal('');
   protected readonly selectedSample = signal<MeasurementSelection | null>(null);
+  protected readonly selectedStepId = signal<string | null>(null);
 
   /**
    * A selection is kept only while the exact logical step and sample index
@@ -124,6 +126,56 @@ export class RunDetailsPage {
   protected readonly statusView = computed(() => {
     const run = this.snapshot();
     return run === null ? null : runStatusView(run.status, run.outcome);
+  });
+
+  /**
+   * A failed run opens its first out-of-tolerance step; a valid run opens the
+   * first step. The user can open any other step from the step list.
+   */
+  protected readonly defaultStepId = computed(() => {
+    const run = this.snapshot();
+    if (run === null || run.steps.length === 0) {
+      return null;
+    }
+
+    const failing = run.steps.find(
+      (step) =>
+        step.hasOutOfTolerance ||
+        step.firstFailureSampleIndex !== null ||
+        step.outcome === 'FAILED',
+    );
+    return (failing ?? run.steps[0]).logicalStepId;
+  });
+
+  protected readonly selectedStepKey = computed(
+    () => this.selectedStepId() ?? this.defaultStepId(),
+  );
+
+  protected isStepSelected(step: RunSnapshotStep): boolean {
+    return this.selectedStepKey() === step.logicalStepId;
+  }
+
+  /** Only the selected step panel is visible; every panel stays in the DOM. */
+  protected selectStep(step: RunSnapshotStep): void {
+    this.selectedStepId.set(step.logicalStepId);
+  }
+
+  protected readonly durationLabel = computed(() => {
+    const run = this.snapshot();
+    if (run === null) {
+      return 'Not recorded';
+    }
+    if (run.finishedAt === null) {
+      return run.status === 'RUNNING' ? 'Still running' : 'Not recorded';
+    }
+
+    const started = Date.parse(run.startedAt);
+    const finished = Date.parse(run.finishedAt);
+    if (!Number.isFinite(started) || !Number.isFinite(finished) || finished < started) {
+      return 'Not recorded';
+    }
+
+    return formatDuration(finished - started);
   });
 
   protected readonly isRunning = computed(() => this.snapshot()?.status === 'RUNNING');
@@ -361,6 +413,7 @@ export class RunDetailsPage {
       this.runId.set(nextRunId);
       this.attempt.reset();
       this.selectedSample.set(null);
+      this.selectedStepId.set(null);
       this.announcement.set('');
       this.runs.clearStartError();
       this.runs.clearCancelError();
@@ -372,6 +425,15 @@ export class RunDetailsPage {
       const run = this.snapshot();
       if (selection !== null && run !== null && findSelectedMeasurement(run, selection) === null) {
         this.selectedSample.set(null);
+      }
+
+      const selectedStep = this.selectedStepId();
+      if (
+        selectedStep !== null &&
+        run !== null &&
+        !run.steps.some((step) => step.logicalStepId === selectedStep)
+      ) {
+        this.selectedStepId.set(null);
       }
     });
   }
@@ -479,6 +541,29 @@ export class RunDetailsPage {
       });
   }
 
+  protected stepStatusBadgeClass(status: string): string {
+    switch (status) {
+      case 'COMPLETED':
+        return 'pd-badge--success';
+      case 'RUNNING':
+        return 'pd-badge--primary';
+      case 'ERROR':
+        return 'pd-badge--danger';
+      case 'INTERRUPTED':
+        return 'pd-badge--warning';
+      default:
+        return 'pd-badge--neutral';
+    }
+  }
+
+  protected stepOutcomeBadgeClass(outcome: string): string {
+    return outcome === 'PASSED'
+      ? 'pd-badge--success'
+      : outcome === 'FAILED'
+        ? 'pd-badge--danger'
+        : 'pd-badge--neutral';
+  }
+
   protected scenario = scenarioLabel;
   protected stepStatus = stepStatusLabel;
   protected stepOutcome = stepOutcomeLabel;
@@ -502,8 +587,9 @@ export class RunDetailsPage {
       return;
     }
 
-    this.selectedSample.set(selection);
     const { step, measurement } = resolved;
+    this.selectedSample.set(selection);
+    this.selectedStepId.set(step.logicalStepId);
     const tolerance = measurement.isWithinTolerance ? 'Within tolerance' : 'Outside tolerance';
     this.announcement.set(
       `${tolerance}: sample ${measurement.sampleIndex} of step ${step.position}, ${step.name}, value ${measurement.value} ${step.unit}, elapsed ${measurement.elapsedMs} ms. The measurement row is focused in the table.`,
@@ -569,6 +655,7 @@ export class RunDetailsPage {
       return;
     }
 
+    this.selectedStepId.set(step.logicalStepId);
     this.announcement.set(
       `Measurement table for step ${step.position}, ${step.name}, is focused. It contains the same recorded values and backend tolerance results as the chart.`,
     );
