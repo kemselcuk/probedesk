@@ -451,3 +451,26 @@ Delivery profiline idempotent `seed` servisi eklendi (`apps/api/Dockerfile` `see
 - `operator@probedesk.local` login → 200; `/api/plans` → tek `Power Supply Validation`,
   latest version 2.
 - Bu, boş veritabanında migration + demo seed + API + web zincirinin çalıştığını gösterir.
+
+
+## Host Node/PostgreSQL olmadan entry point (2026-11-04)
+
+Host Node.js ve PostgreSQL ikilileri PATH'ten çıkarılarak:
+
+```text
+env -i HOME="$HOME" PATH=/usr/local/bin:/usr/bin:/bin docker --version
+→ Docker version 29.9.2
+
+env -i HOME="$HOME" PATH=/usr/local/bin:/usr/bin:/bin docker compose --profile delivery ps -a
+→ api healthy, web healthy, postgres healthy, migrate Exited(0), seed Exited(0)
+```
+
+`npm` build'leri, migration ve seed container içinde çalıştı; host'ta Node veya
+PostgreSQL kullanılmadı. Bu makinede host araçları kurulu olduğu için tamamen boş
+bir işletim sistemi kurulumu ayrıca denenmedi.
+
+## Seed log düzeltmesi
+
+Tekrarlanan seed'de `seed-device-profiles` önce `create` denediği için PostgreSQL
+`duplicate key` ERROR'u loglanıyordu. Profil önce `findUnique` ile aranacak şekilde
+düzeltildi; ikinci seed artık hata üretmeden mevcut profili atlıyor.

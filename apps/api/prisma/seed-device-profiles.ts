@@ -18,6 +18,14 @@ export async function seedDemoDeviceProfiles(
   let created = 0;
 
   for (const profile of DEMO_DEVICE_PROFILES) {
+    const existing = await prisma.deviceProfile.findUnique({
+      where: { code: profile.code },
+      select: { id: true },
+    });
+    if (existing !== null) {
+      continue;
+    }
+
     try {
       await prisma.deviceProfile.create({
         data: {

@@ -55,6 +55,6 @@ korundu ve plan/run geçmişi değişmedi.
   korumalıdır.
 - Gerçek Chrome deep-link/SSE kontrolü P8-01 kanıtında (`phase-8-compose.md`)
   kayıtlıdır; bu görev migration/seed/persistence zincirini doğrular.
-- Host'ta Node/PostgreSQL olmadan çalışma, container içi build ile P8-01'de
-  doğrulandı; bu makinede host araçları da kurulu olduğu için tamamen boş host
-  ayrıca denenmedi.
+- Compose komutları host `node`/`postgresql` ikilileri PATH dışındayken de
+  çalıştırıldı (`env -i PATH=/usr/local/bin:/usr/bin:/bin docker compose ...`);
+  tamamen boş bir işletim sistemi ayrıca denenmedi.
