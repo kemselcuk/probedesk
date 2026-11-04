@@ -75,7 +75,6 @@ const routeCases: readonly RouteCase[] = [
     title: 'Compare Runs',
     heading: 'Compare Runs',
     role: 'VIEWER',
-    task: 'P6-02',
   },
   {
     url: '/not-authorized',

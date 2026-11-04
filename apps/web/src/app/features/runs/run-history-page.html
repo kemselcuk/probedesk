@@ -82,6 +82,20 @@
     </div>
   </form>
 
+  @if (invalidUrlFilters().length > 0) {
+    <p class="filter-warning" role="alert" id="history-invalid-filter-warning">
+      {{ invalidFilterMessage() }}
+      <button
+        mat-stroked-button
+        type="button"
+        id="remove-invalid-url-filters"
+        (click)="removeInvalidUrlFilters()"
+      >
+        Remove invalid filters
+      </button>
+    </p>
+  }
+
   @if (plans.plansStatus() === 'error') {
     <p class="filter-warning" role="status">
       Plan names could not be loaded. The current plan filter still applies.
@@ -119,7 +133,12 @@
             heading="This page is out of range"
             [message]="outOfRangeMessage()"
           >
-            <button mat-flat-button type="button" id="history-first-page" (click)="goToPage(1)">
+            <button
+              mat-flat-button
+              type="button"
+              id="history-first-page"
+              (click)="goToPage(1)"
+            >
               Go to first page
             </button>
             <button
@@ -150,14 +169,47 @@
       } @else {
         <section class="history-section" aria-labelledby="history-results-heading">
           <div class="results-heading">
-            <h2 id="history-results-heading">Recorded runs</h2>
+            <h2 id="history-results-heading" tabindex="-1">Recorded runs</h2>
             <p class="result-range" aria-live="polite">{{ resultRange() }}</p>
           </div>
 
           <p class="compare-hint" id="compare-hint">
-            Comparison is not available yet. Selecting up to two runs prepares the future compare
-            screen.
+            Select up to two terminal runs of the same plan, then choose Compare. Different versions
+            of that plan are allowed; a running run cannot be compared.
           </p>
+
+          <div class="compare-bar">
+            <p class="compare-selection-status" role="status">
+              {{ compareSelectionSummary() }}
+            </p>
+            <div class="compare-actions">
+              <button
+                mat-flat-button
+                type="button"
+                id="compare-selected-runs"
+                [disabled]="!canCompare()"
+                [attr.aria-describedby]="canCompare() ? 'compare-hint' : 'compare-selection-reason'"
+                (click)="compareSelected()"
+              >
+                Compare
+              </button>
+              @if (compareSelection().length > 0) {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  id="clear-compare-selection"
+                  (click)="clearCompareSelection()"
+                >
+                  Clear selection
+                </button>
+              }
+            </div>
+            @if (!canCompare()) {
+              <p id="compare-selection-reason" class="compare-reason">
+                {{ compareBlockedReason() }}
+              </p>
+            }
+          </div>
 
           <div class="table-scroll" id="run-history-table" tabindex="-1">
             <table>
@@ -187,16 +239,10 @@
                         type="checkbox"
                         [id]="'compare-' + run.id"
                         [checked]="isSelectedForComparison(run.id)"
-                        [disabled]="!isSelectedForComparison(run.id) && isCompareSelectionFull()"
+                        [disabled]="isCompareCheckboxDisabled(run)"
                         aria-describedby="compare-hint"
-                        [attr.aria-label]="
-                          'Select ' +
-                          run.planName +
-                          ' version ' +
-                          run.versionNumber +
-                          ' for a future comparison'
-                        "
-                        (change)="toggleCompare(run.id, $event)"
+                        [attr.aria-label]="compareCheckboxLabel(run)"
+                        (change)="toggleCompare(run, $event)"
                       />
                     </td>
                     <td>
@@ -228,8 +274,10 @@
                     </td>
                     <td>
                       <span>{{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}</span>
-                      @if (run.partial) {
+                      @if (isPartialRun(run)) {
                         <span class="partial-chip">Partial</span>
+                      } @else if (isStoppedRun(run)) {
+                        <span class="stopped-chip">All samples recorded; stopped</span>
                       }
                     </td>
                     <td>

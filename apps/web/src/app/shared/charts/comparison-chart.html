@@ -1,0 +1,137 @@
+<section class="comparison-chart" [attr.aria-labelledby]="headingId()">
+  <div class="chart-header">
+    <div class="chart-heading-text">
+      <h4 [id]="headingId()">
+        Comparison chart — {{ left().step.name }} ({{ left().step.unit }})
+      </h4>
+      <p class="chart-caption">
+        X axis: each run's own elapsed time in milliseconds. Y axis: recorded value in
+        {{ left().step.unit }}. Samples are not aligned by index or interpolated. Each run keeps its
+        own dashed tolerance band.
+      </p>
+    </div>
+    <button
+      mat-stroked-button
+      type="button"
+      class="reset-view"
+      [disabled]="!chartReady()"
+      (click)="resetView()"
+    >
+      Reset view
+    </button>
+  </div>
+
+  <div class="series-controls" role="group" aria-label="Chart series visibility">
+    <button
+      type="button"
+      class="series-toggle series-toggle--left"
+      data-side="left"
+      [attr.aria-pressed]="leftVisible()"
+      [attr.aria-label]="
+        'Left series, ' +
+        seriesLabel(left()) +
+        ': ' +
+        (leftVisible() ? 'hide' : 'show') +
+        ', ' +
+        leftPoints().length +
+        ' recorded samples'
+      "
+      (click)="toggleSide('left')"
+    >
+      <span class="series-swatch series-swatch--left" aria-hidden="true"></span>
+      <span class="series-name">Left · {{ seriesLabel(left()) }}</span>
+      <span class="series-meta">{{ leftPoints().length }} samples</span>
+      <span class="toggle-action">{{ leftVisible() ? 'Hide' : 'Show' }}</span>
+    </button>
+
+    <button
+      type="button"
+      class="series-toggle series-toggle--right"
+      data-side="right"
+      [attr.aria-pressed]="rightVisible()"
+      [attr.aria-label]="
+        'Right series, ' +
+        seriesLabel(right()) +
+        ': ' +
+        (rightVisible() ? 'hide' : 'show') +
+        ', ' +
+        rightPoints().length +
+        ' recorded samples'
+      "
+      (click)="toggleSide('right')"
+    >
+      <span class="series-swatch series-swatch--right" aria-hidden="true"></span>
+      <span class="series-name">Right · {{ seriesLabel(right()) }}</span>
+      <span class="series-meta">{{ rightPoints().length }} samples</span>
+      <span class="toggle-action">{{ rightVisible() ? 'Hide' : 'Show' }}</span>
+    </button>
+  </div>
+
+  <div class="chart-frame">
+    <canvas
+      #chartCanvas
+      role="img"
+      [attr.aria-label]="canvasLabel()"
+      [attr.aria-describedby]="summaryId()"
+    ></canvas>
+
+    @if (bothHidden()) {
+      <p class="chart-overlay" role="note">
+        Both series are hidden. Recorded data and backend results are unchanged; enable Left or
+        Right to see the stored samples again.
+      </p>
+    } @else if (!hasAnyPoints()) {
+      <p class="chart-overlay" role="note">
+        No plottable samples were recorded for either run. The axes and both copied tolerances are
+        still shown; no value or result is inferred.
+      </p>
+    }
+
+    @if (chartUnavailable()) {
+      <p class="chart-overlay chart-overlay--warning" role="note">
+        The comparison chart could not be drawn in this browser. The accessible summary and both
+        measurement tables below still show every recorded value and stored result.
+      </p>
+    }
+  </div>
+
+  @if (emptySeriesText(); as text) {
+    <p class="empty-series-note" role="note">{{ text }}</p>
+  }
+
+  <ul class="chart-legend" aria-label="Comparison chart legend">
+    <li>
+      <span class="line-swatch line-swatch--left" aria-hidden="true"></span>
+      Left run · Version {{ left().versionNumber }}
+    </li>
+    <li>
+      <span class="line-swatch line-swatch--right" aria-hidden="true"></span>
+      Right run · Version {{ right().versionNumber }}
+    </li>
+    <li>
+      <span class="band-swatch band-swatch--left" aria-hidden="true"></span>
+      Left tolerance {{ left().step.minimum }} – {{ left().step.maximum }}
+      {{ left().step.unit }}
+    </li>
+    <li>
+      <span class="band-swatch band-swatch--right" aria-hidden="true"></span>
+      Right tolerance {{ right().step.minimum }} – {{ right().step.maximum }}
+      {{ right().step.unit }}
+    </li>
+    <li>
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <circle cx="8" cy="8" r="5" fill="#00695c" />
+      </svg>
+      Within tolerance (circle)
+    </li>
+    <li>
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <rect x="4" y="4" width="8" height="8" transform="rotate(45 8 8)" fill="#b3261e" />
+      </svg>
+      Outside tolerance (diamond)
+    </li>
+  </ul>
+
+  <p [id]="summaryId()" class="visually-hidden">{{ summary() }}</p>
+  <p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
+</section>

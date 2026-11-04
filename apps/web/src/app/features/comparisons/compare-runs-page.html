@@ -1,0 +1,354 @@
+<app-page-header title="Compare Runs" [subtitle]="subtitle()">
+  <a mat-stroked-button routerLink="/runs">Back to Run History</a>
+  @if (activePair() !== null) {
+    <button mat-stroked-button type="button" id="change-runs" (click)="openSelectionPanel()">
+      Change runs
+    </button>
+    <button mat-stroked-button type="button" id="swap-runs" (click)="swapSides()">
+      Swap sides
+    </button>
+    <button mat-stroked-button type="button" id="clear-comparison" (click)="clearComparison()">
+      Clear comparison
+    </button>
+  }
+</app-page-header>
+
+<p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
+
+@if (linkError(); as message) {
+  <section
+    id="compare-link-error"
+    class="inline-error"
+    role="alert"
+    aria-labelledby="compare-link-error-heading"
+  >
+    <h2 id="compare-link-error-heading">This comparison link cannot be opened</h2>
+    <p>{{ message }}</p>
+    <div class="error-actions">
+      <button mat-stroked-button type="button" (click)="openSelectionPanel()">Choose runs</button>
+      <a mat-stroked-button routerLink="/runs">Open Run History</a>
+    </div>
+  </section>
+}
+
+@if (selectionOpen()) {
+  <mat-card
+    class="selection-card"
+    appearance="outlined"
+    aria-labelledby="compare-selection-heading"
+  >
+    <h2 id="compare-selection-heading">Choose two runs</h2>
+    <p class="selection-hint">
+      Both runs must be terminal and belong to the same plan. Different versions of that plan are
+      allowed. Names and positions may change between versions; shared steps are matched by
+      logicalStepId. Running runs are disabled here and are rejected by the API as well.
+    </p>
+
+    @if (runOptionsError(); as failure) {
+      <div class="inline-error" role="alert">
+        <h3>The recent runs could not be loaded</h3>
+        <p>{{ failure.message }}</p>
+        @if (failure.requestId; as requestId) {
+          <p class="request-id">Request ID: <code>{{ requestId }}</code></p>
+        }
+        <div class="error-actions">
+          <button mat-stroked-button type="button" (click)="retryRunOptions()">Retry run list</button>
+        </div>
+      </div>
+    }
+
+    @if (runOptionsLoading()) {
+      <p class="loading-note" role="status">Loading recent runs…</p>
+    }
+
+    <form [formGroup]="selectionForm" (ngSubmit)="applySelection()" novalidate>
+      <div class="selection-grid">
+        <mat-form-field appearance="outline">
+          <mat-label>Left run</mat-label>
+          <select
+            matNativeControl
+            id="compare-left-run"
+            formControlName="leftRunId"
+            (change)="onLeftChange()"
+          >
+            <option value="">Choose a terminal run</option>
+            @for (run of runOptions(); track run.id) {
+              <option [value]="run.id" [disabled]="isOptionDisabled(run, draft().rightRunId)">
+                {{ optionLabel(run) }}{{ optionState(run) ? ' · ' + optionState(run) : '' }}
+              </option>
+            }
+            @if (unknownDraftRun('left'); as unknownId) {
+              <option [value]="unknownId">
+                Selected run {{ unknownId }} · not in the latest 100
+              </option>
+            }
+          </select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Right run</mat-label>
+          <select
+            matNativeControl
+            id="compare-right-run"
+            formControlName="rightRunId"
+            (change)="onRightChange()"
+          >
+            <option value="">Choose a terminal run</option>
+            @for (run of runOptions(); track run.id) {
+              <option [value]="run.id" [disabled]="isOptionDisabled(run, draft().leftRunId)">
+                {{ optionLabel(run) }}{{ optionState(run) ? ' · ' + optionState(run) : '' }}
+              </option>
+            }
+            @if (unknownDraftRun('right'); as unknownId) {
+              <option [value]="unknownId">
+                Selected run {{ unknownId }} · not in the latest 100
+              </option>
+            }
+          </select>
+        </mat-form-field>
+      </div>
+
+      <p class="selection-note">
+        @if (runOptionsTotal() > 0) {
+          Showing {{ runOptions().length }} of {{ runOptionsTotal() }} matching recent runs.
+        }
+        Running runs stay visible but disabled. A pair outside the latest 100 can still be
+        submitted; the server checks both ids.
+      </p>
+
+      @if (draftValidation().valid) {
+        <p class="selection-ok" role="status">
+          Ready to compare. The server will repeat the terminal, distinct-run, and same-plan checks.
+        </p>
+      } @else if (draft().leftRunId.length > 0 || draft().rightRunId.length > 0) {
+        <p class="selection-error" role="status">{{ draftValidation().reason }}</p>
+      }
+
+      @if (draftNotice(); as notice) {
+        <p class="selection-note" role="note">{{ notice }}</p>
+      }
+
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          type="submit"
+          id="apply-comparison-selection"
+          [disabled]="!canApplySelection()"
+        >
+          Compare selected runs
+        </button>
+        <button mat-stroked-button type="button" (click)="clearComparison()">
+          Clear selection
+        </button>
+        <button mat-stroked-button type="button" (click)="closeSelectionPanel()">Cancel</button>
+      </div>
+    </form>
+  </mat-card>
+}
+
+@if (loading()) {
+  <app-loading-state message="Loading the comparison…" />
+} @else if (error(); as failure) {
+  <section
+    id="comparison-error"
+    class="inline-error"
+    role="alert"
+    aria-labelledby="comparison-error-heading"
+  >
+    <h2 id="comparison-error-heading">{{ errorHeading() }}</h2>
+    <p>{{ errorMessage() }}</p>
+    @if (failure.requestId; as requestId) {
+      <p class="request-id">Request ID: <code>{{ requestId }}</code></p>
+    }
+    <div class="error-actions">
+      @if (canRetry()) {
+        <button mat-stroked-button type="button" id="retry-comparison" (click)="retry()">
+          Try again
+        </button>
+      }
+      @if (showChooseRunsAction()) {
+        <button
+          mat-stroked-button
+          type="button"
+          id="choose-different-runs"
+          (click)="openSelectionPanel()"
+        >
+          Choose different runs
+        </button>
+      }
+      @if (isUnauthenticated()) {
+        <a mat-stroked-button routerLink="/login">Sign in again</a>
+      }
+      <a mat-stroked-button routerLink="/runs">Open Run History</a>
+    </div>
+  </section>
+} @else if (result(); as comparison) {
+  <section class="comparison-summary" aria-labelledby="comparison-summary-heading">
+    <div class="section-heading-row">
+      <h2 id="comparison-summary-heading">Run summaries</h2>
+      <button mat-stroked-button type="button" id="reload-comparison" (click)="retry()">
+        Reload comparison
+      </button>
+    </div>
+
+    <div class="run-card-grid">
+      @for (card of runCards(); track card.key) {
+        <article class="run-card" [attr.data-side]="card.key">
+          <header class="run-card-header">
+            <div>
+              <p class="side-label">{{ card.label }}</p>
+              <h3>{{ card.run.planName }} · Version {{ card.run.versionNumber }}</h3>
+            </div>
+            <app-run-status-badge
+              [status]="card.run.status"
+              [outcome]="card.run.outcome"
+            />
+          </header>
+
+          <p class="status-detail">{{ statusDetail(card.run) }}</p>
+
+          <dl class="run-meta">
+            <div>
+              <dt>Plan version</dt>
+              <dd>Version {{ card.run.versionNumber }}</dd>
+            </div>
+            <div>
+              <dt>Scenario</dt>
+              <dd>{{ scenario(card.run.scenario) }} ({{ card.run.scenario }})</dd>
+            </div>
+            <div>
+              <dt>Seed</dt>
+              <dd class="mono">{{ card.run.seed }}</dd>
+            </div>
+            <div>
+              <dt>Started (UTC)</dt>
+              <dd>
+                <time [attr.datetime]="card.run.startedAt">
+                  {{ card.run.startedAt | date: 'medium' : 'UTC' }} UTC
+                </time>
+              </dd>
+            </div>
+            <div>
+              <dt>Finished (UTC)</dt>
+              <dd>
+                @if (card.run.finishedAt !== null) {
+                  <time [attr.datetime]="card.run.finishedAt">
+                    {{ card.run.finishedAt | date: 'medium' : 'UTC' }} UTC
+                  </time>
+                } @else {
+                  Not recorded
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Recorded samples</dt>
+              <dd>{{ card.run.recordedSampleCount }} of {{ card.run.expectedSampleCount }}</dd>
+            </div>
+            <div>
+              <dt>Steps</dt>
+              <dd>{{ card.run.stepCount }}</dd>
+            </div>
+            <div>
+              <dt>Out-of-tolerance samples</dt>
+              <dd>{{ card.run.outOfToleranceCount }}</dd>
+            </div>
+            <div>
+              <dt>Run ID</dt>
+              <dd class="mono">{{ card.run.id }}</dd>
+            </div>
+            @if (card.run.reasonCode !== null) {
+              <div>
+                <dt>Reason code</dt>
+                <dd class="mono">{{ card.run.reasonCode }}</dd>
+              </div>
+            } @else if (card.run.status !== 'COMPLETED') {
+              <div>
+                <dt>Reason code</dt>
+                <dd>Not recorded</dd>
+              </div>
+            }
+          </dl>
+
+          @if (partialChip(card.run); as chip) {
+            <span class="partial-chip">{{ chip }}</span>
+          }
+
+          <p class="data-note">{{ dataNote(card.run) }}</p>
+
+          <a mat-stroked-button [routerLink]="['/runs', card.run.id]">Open run details</a>
+        </article>
+      }
+    </div>
+
+    @if (version(); as note) {
+      <section
+        class="version-note"
+        [class.version-note--same]="note.sameVersion"
+        aria-labelledby="version-note-heading"
+      >
+        <h3 id="version-note-heading">{{ note.heading }}</h3>
+        <p>{{ note.message }}</p>
+      </section>
+    }
+
+    @if (scenarioDifference(); as note) {
+      <p class="scenario-note" role="note">{{ note }}</p>
+    }
+
+    <dl class="count-grid">
+      <div>
+        <dt>Shared steps</dt>
+        <dd>{{ counts().matched }}</dd>
+      </div>
+      <div>
+        <dt>Only in right run</dt>
+        <dd>{{ counts().added }}</dd>
+      </div>
+      <div>
+        <dt>Only in left run</dt>
+        <dd>{{ counts().removed }}</dd>
+      </div>
+      <div>
+        <dt>Changed rule fields</dt>
+        <dd>{{ counts().changedFields }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="steps-section" aria-labelledby="step-differences-heading">
+    <h2 id="step-differences-heading">Step differences</h2>
+    <p class="section-hint">
+      Shared steps are matched only by logicalStepId. The server reports changed rule fields;
+      added and removed steps stay one-sided. A step's unit change gets two separate chart panels
+      and no numeric delta.
+    </p>
+
+    @if (counts().matched === 0) {
+      <p class="no-shared-note" role="note">
+        No logicalStepId exists in both runs. Any steps below are shown only in the run that
+        recorded them; the missing side is not zero-filled.
+      </p>
+    }
+
+    @if (stepViews().length === 0) {
+      <app-empty-state
+        heading="No steps to compare"
+        message="Both run snapshots contain no steps. No chart, statistic, or verdict is inferred."
+      />
+    } @else {
+      @for (view of stepViews(); track view.key) {
+        <app-comparison-step-card [view]="view" />
+      }
+    }
+  </section>
+} @else if (!selectionOpen() && !linkError()) {
+  <app-empty-state
+    heading="Choose two runs to compare"
+    message="Select two terminal runs of the same plan in Run History, or choose them here. The comparison is stored in the address bar so a refresh opens the same pair."
+  >
+    <button mat-flat-button type="button" id="choose-runs" (click)="openSelectionPanel()">
+      Choose runs
+    </button>
+    <a mat-stroked-button routerLink="/runs">Open Run History</a>
+  </app-empty-state>
+}

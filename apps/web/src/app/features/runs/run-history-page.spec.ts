@@ -350,62 +350,6 @@ describe('RunHistoryPage', () => {
     expect(tableText).not.toContain('Cancelled');
   });
 
-
-  it('shows an out-of-range page state instead of an empty history', async () => {
-    const harness = await openLoaded(
-      historyPage([], { page: 3, total: 2, totalPages: 1 }),
-      '/runs?page=3',
-    );
-    const root = rootOf(harness);
-
-    expect(root.textContent).toContain('This page is out of range');
-    expect(root.textContent).toContain('The history contains 2 runs across 1 page');
-    expect(root.textContent).not.toContain('No runs recorded yet');
-    expect(root.querySelector('#history-first-page')).not.toBeNull();
-    expect(root.querySelector('#history-last-page')).not.toBeNull();
-
-    root.querySelector<HTMLButtonElement>('#history-first-page')?.click();
-    await settle(harness);
-    const request = expectHistoryRequest();
-    expect(request.request.params.get('page')).toBe('1');
-    request.flush(historyPage([FAILED_ITEM]));
-    await settle(harness);
-    expect(root.textContent).toContain('Recorded runs');
-  });
-
-  it('does not label a stopped run with every sample as partial', async () => {
-    const cancelledWithoutMissingSamples = historyItem({
-      status: 'CANCELLED',
-      outcome: null,
-      partial: false,
-      recordedSampleCount: 10,
-      expectedSampleCount: 10,
-    });
-    const harness = await openLoaded(historyPage([cancelledWithoutMissingSamples]));
-    const root = rootOf(harness);
-
-    expect(root.textContent).toContain('Cancelled');
-    expect(root.textContent).not.toContain('Partial');
-
-  });
-
-  it('labels a stopped run with missing samples as partial', async () => {
-    const harness = await openLoaded(
-      historyPage([
-        historyItem({
-          status: 'CANCELLED',
-          outcome: null,
-          partial: true,
-          recordedSampleCount: 4,
-        }),
-      ]),
-    );
-    const root = rootOf(harness);
-
-    expect(root.textContent).toContain('Cancelled');
-    expect(root.textContent).toContain('Partial');
-  });
-
   it('shows a distinct loading state, empty state, and error state with retry', async () => {
     const harness = await open();
     const root = rootOf(harness);
@@ -525,6 +469,226 @@ describe('RunHistoryPage', () => {
     expect(root.textContent).toContain('Page 1 of 2');
   });
 
+  it('shows an out-of-range state instead of the empty history state', async () => {
+    const harness = await openLoaded(
+      historyPage([], { page: 999, total: 36, totalPages: 2 }),
+      '/runs?page=999',
+    );
+    const root = rootOf(harness);
+
+    expect(root.textContent).toContain('This page is out of range');
+    expect(root.textContent).not.toContain('No runs recorded yet');
+    expect(root.textContent).not.toContain('No runs match these filters');
+    expect(root.textContent).toContain('36 runs');
+    expect(root.textContent).toContain('2 pages');
+    expect(root.textContent).toContain('page 999');
+    expect(root.querySelector('table')).toBeNull();
+
+    findButton(root, 'Go to first page')?.click();
+    await settle(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/runs');
+    const firstPage = expectHistoryRequest();
+    expect(firstPage.request.params.get('page')).toBe('1');
+    firstPage.flush(historyPage([historyItem()]));
+    await settle(harness);
+
+    expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
+    expect(root.textContent).toContain('Showing 1-1 of 1 runs');
+  });
+
+  it('keeps filters when moving from an out-of-range page to the last valid page', async () => {
+    const harness = await openLoaded(
+      historyPage([], { page: 9, total: 36, totalPages: 2 }),
+      '/runs?status=COMPLETED&page=9',
+    );
+    const root = rootOf(harness);
+
+    findButton(root, 'Go to last page')?.click();
+    await settle(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/runs?status=COMPLETED&page=2');
+    const lastPage = expectHistoryRequest();
+    expect(lastPage.request.params.get('status')).toBe('COMPLETED');
+    expect(lastPage.request.params.get('page')).toBe('2');
+    lastPage.flush(
+      historyPage([historyItem()], { page: 2, total: 36, totalPages: 2 }),
+    );
+    await settle(harness);
+
+    expect(root.textContent).toContain('Page 2 of 2');
+    expect(root.querySelector('select#history-status')).toHaveProperty(
+      'value',
+      'COMPLETED',
+    );
+  });
+
+  it('moves focus to the results heading after page navigation', async () => {
+    const harness = await openLoaded(
+      historyPage([historyItem()], { total: 21, totalPages: 2 }),
+    );
+    const root = rootOf(harness);
+
+    const next = findButton(root, 'Next page');
+    next?.focus();
+    next?.click();
+    await settle(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/runs?page=2');
+    expectHistoryRequest().flush(
+      historyPage([historyItem({ id: RUN_2_ID })], {
+        page: 2,
+        total: 21,
+        totalPages: 2,
+      }),
+    );
+    await settle(harness);
+
+    const heading = root.querySelector<HTMLElement>('#history-results-heading');
+    expect(heading?.textContent).toContain('Recorded runs');
+    expect(document.activeElement).toBe(heading);
+  });
+
+  it('does not label a cancelled run with all samples as Partial', async () => {
+    const harness = await openLoaded(
+      historyPage([
+        historyItem({
+          status: 'CANCELLED',
+          outcome: null,
+          recordedSampleCount: 1,
+          expectedSampleCount: 1,
+          partial: true,
+        }),
+      ]),
+    );
+    const row = rootOf(harness).querySelector('tbody tr');
+
+    expect(row?.textContent).toContain('Cancelled');
+    expect(row?.textContent).toContain('1 of 1');
+    expect(row?.textContent).not.toContain('Partial');
+    expect(row?.textContent).toContain('All samples recorded; stopped');
+  });
+
+  it('labels a stopped run with missing samples as Partial', async () => {
+    const harness = await openLoaded(
+      historyPage([
+        historyItem({
+          status: 'INTERRUPTED',
+          outcome: null,
+          recordedSampleCount: 1,
+          expectedSampleCount: 4,
+          partial: true,
+        }),
+      ]),
+    );
+    const row = rootOf(harness).querySelector('tbody tr');
+
+    expect(row?.textContent).toContain('Interrupted');
+    expect(row?.textContent).toContain('1 of 4');
+    expect(row?.textContent).toContain('Partial');
+    expect(row?.textContent).not.toContain('All samples recorded; stopped');
+  });
+
+  it('disambiguates filter options when two plans share a name', async () => {
+    const duplicateA = {
+      ...PLAN_LIST[0],
+      latestPublishedVersion: {
+        id: VERSION_ID,
+        versionNumber: 2,
+        publishedAt: '2026-11-01T10:00:00.000Z',
+      },
+    };
+    const duplicateB = {
+      ...PLAN_LIST[0],
+      id: OTHER_PLAN_ID,
+      latestPublishedVersion: {
+        id: RUN_ID,
+        versionNumber: 7,
+        publishedAt: '2026-11-02T10:00:00.000Z',
+      },
+    };
+    const harness = await open();
+    const root = rootOf(harness);
+
+    respondToPlans([duplicateA, duplicateB]);
+    expectHistoryRequest().flush(historyPage([historyItem()]));
+    await settle(harness);
+
+    const options = Array.from(
+      root.querySelectorAll<HTMLOptionElement>('#history-plan option'),
+    );
+    expect(options).toHaveLength(3);
+    expect(options[1]?.textContent).toContain('Power rail verification');
+    expect(options[1]?.textContent).toContain('version 2');
+    expect(options[1]?.textContent).toContain(PLAN_ID.slice(0, 8));
+    expect(options[2]?.textContent).toContain('Power rail verification');
+    expect(options[2]?.textContent).toContain('version 7');
+    expect(options[2]?.textContent).toContain(OTHER_PLAN_ID.slice(0, 8));
+    expect(options[1]?.textContent).not.toBe(options[2]?.textContent);
+  });
+
+  it('warns about invalid URL filters, ignores them, and removes them', async () => {
+    const harness = await open('/runs?status=BOGUS&page=abc&from=notadate');
+    const root = rootOf(harness);
+
+    respondToPlans();
+    const request = expectHistoryRequest();
+    expect(request.request.params.get('status')).toBeNull();
+    expect(request.request.params.get('page')).toBe('1');
+    expect(request.request.params.get('from')).toBeNull();
+    request.flush(historyPage([historyItem()]));
+    await settle(harness);
+
+    expect(root.textContent).toContain('filter values that cannot be used');
+    expect(root.textContent).toContain('Status "BOGUS"');
+    expect(root.textContent).toContain('Page "abc"');
+    expect(root.textContent).toContain('From date "notadate"');
+    expect(root.querySelector<HTMLSelectElement>('#history-status')?.value).toBe('');
+    expect(root.querySelector<HTMLInputElement>('#history-from')?.value).toBe('');
+
+    findButton(root, 'Remove invalid filters')?.click();
+    await settle(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/runs');
+    const cleaned = expectHistoryRequest();
+    expect(cleaned.request.params.get('status')).toBeNull();
+    expect(cleaned.request.params.get('page')).toBe('1');
+    expect(cleaned.request.params.get('from')).toBeNull();
+    cleaned.flush(historyPage([historyItem()]));
+    await settle(harness);
+
+    expect(root.textContent).not.toContain('filter values that cannot be used');
+  });
+
+  it('keeps valid URL filters when removing only the invalid values', async () => {
+    const harness = await open(
+      '/runs?status=COMPLETED&outcome=NOPE&from=notadate&page=abc',
+    );
+    const root = rootOf(harness);
+
+    respondToPlans();
+    const request = expectHistoryRequest();
+    expect(request.request.params.get('status')).toBe('COMPLETED');
+    expect(request.request.params.get('outcome')).toBeNull();
+    expect(request.request.params.get('from')).toBeNull();
+    expect(request.request.params.get('page')).toBe('1');
+    request.flush(historyPage([historyItem()]));
+    await settle(harness);
+
+    findButton(root, 'Remove invalid filters')?.click();
+    await settle(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/runs?status=COMPLETED');
+    const cleaned = expectHistoryRequest();
+    expect(cleaned.request.params.get('status')).toBe('COMPLETED');
+    expect(cleaned.request.params.get('outcome')).toBeNull();
+    expect(cleaned.request.params.get('from')).toBeNull();
+    cleaned.flush(historyPage([historyItem()]));
+    await settle(harness);
+
+    expect(root.querySelector<HTMLSelectElement>('#history-status')?.value).toBe('COMPLETED');
+  });
+
   it('labels Running, Cancelled, Interrupted, Error, Passed, and Failed distinctly', async () => {
     const harness = await openLoaded(
       historyPage([
@@ -551,12 +715,35 @@ describe('RunHistoryPage', () => {
     expect(rows[1]?.querySelector('.status-badge svg')).not.toBeNull();
   });
 
-  it('marks partial summaries and exposes compare selection hooks only', async () => {
+  it('selects at most two terminal runs and explains the same-plan rule', async () => {
     const harness = await openLoaded(
       historyPage([
-        historyItem({ id: RUN_ID, status: 'CANCELLED', outcome: null, partial: true, recordedSampleCount: 1 }),
-        historyItem({ id: RUN_2_ID, status: 'INTERRUPTED', outcome: null, partial: true, recordedSampleCount: 2 }),
+        historyItem({
+          id: RUN_ID,
+          status: 'CANCELLED',
+          outcome: null,
+          partial: true,
+          recordedSampleCount: 1,
+        }),
+        historyItem({
+          id: RUN_2_ID,
+          status: 'INTERRUPTED',
+          outcome: null,
+          partial: true,
+          recordedSampleCount: 2,
+        }),
         historyItem({ id: RUN_3_ID }),
+        historyItem({
+          id: '88888888-8888-4888-8888-888888888888',
+          planId: OTHER_PLAN_ID,
+          planName: 'Thermal soak',
+        }),
+        historyItem({
+          id: '99999999-9999-4999-8999-999999999999',
+          status: 'RUNNING',
+          outcome: null,
+          finishedAt: null,
+        }),
       ]),
     );
     const root = rootOf(harness);
@@ -565,8 +752,10 @@ describe('RunHistoryPage', () => {
     );
 
     expect(root.textContent).toContain('Partial');
-    expect(root.textContent).toContain('Selecting up to two runs');
-    expect(checkboxes).toHaveLength(3);
+    expect(root.textContent).toContain('Select up to two terminal runs');
+    expect(checkboxes).toHaveLength(5);
+    expect(checkboxes[4]?.disabled).toBe(true);
+    expect(checkboxes[4]?.getAttribute('aria-label')).toContain('still running');
 
     checkboxes[0]?.click();
     harness.detectChanges();
@@ -576,12 +765,92 @@ describe('RunHistoryPage', () => {
     expect(checkboxes[0]?.checked).toBe(true);
     expect(checkboxes[1]?.checked).toBe(true);
     expect(checkboxes[2]?.disabled).toBe(true);
-    expect(root.textContent).toContain('Selected for a future comparison');
-    expect(root.querySelector('app-run-history-page a[href="/compare"]')).toBeNull();
+    expect(root.textContent).toContain('2 of 2 selected');
+    expect(
+      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled,
+    ).toBe(false);
+    expect(
+      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.textContent,
+    ).toContain('Compare');
 
     checkboxes[0]?.click();
     harness.detectChanges();
     expect(checkboxes[2]?.disabled).toBe(false);
+    expect(
+      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled,
+    ).toBe(true);
+  });
+
+  it('blocks a different-plan pair and does not navigate', async () => {
+    const harness = await openLoaded(
+      historyPage([
+        historyItem({ id: RUN_ID }),
+        historyItem({
+          id: RUN_2_ID,
+          planId: OTHER_PLAN_ID,
+          planName: 'Thermal soak',
+        }),
+      ]),
+    );
+    const root = rootOf(harness);
+    const checkboxes = Array.from(
+      root.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]'),
+    );
+
+    checkboxes[0]?.click();
+    checkboxes[1]?.click();
+    harness.detectChanges();
+
+    expect(
+      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled,
+    ).toBe(true);
+    expect(root.textContent).toContain('Choose two runs of the same plan');
+
+    root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.click();
+    await settle(harness);
+
+    expect(TestBed.inject(Router).url).toBe('/runs');
+    expect(
+      httpClient().match((request) => request.url === '/api/comparisons'),
+    ).toHaveLength(0);
+  });
+
+  it('opens the comparison route with both selected run ids', async () => {
+    const harness = await openLoaded(
+      historyPage([historyItem({ id: RUN_ID }), historyItem({ id: RUN_2_ID })]),
+    );
+    const root = rootOf(harness);
+    const checkboxes = Array.from(
+      root.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]'),
+    );
+
+    checkboxes[0]?.click();
+    checkboxes[1]?.click();
+    harness.detectChanges();
+
+    root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.click();
+    await settle(harness);
+
+    expect(TestBed.inject(Router).url).toBe(
+      `/compare?leftRunId=${RUN_ID}&rightRunId=${RUN_2_ID}`,
+    );
+
+    const comparisonRequest = httpClient().expectOne(
+      (request) => request.url === '/api/comparisons',
+    );
+    expect(comparisonRequest.request.params.get('leftRunId')).toBe(RUN_ID);
+    expect(comparisonRequest.request.params.get('rightRunId')).toBe(RUN_2_ID);
+    comparisonRequest.flush(
+      {
+        code: 'NOT_FOUND',
+        message: 'One of the runs was not found.',
+        requestId: 'req-history-compare-404',
+      },
+      { status: 404, statusText: 'Not Found' },
+    );
+    await settle(harness);
+
+    expect(root.textContent).toContain('One of the runs was not found');
   });
 
   it('keeps the current plan filter when the plan list cannot be loaded', async () => {
