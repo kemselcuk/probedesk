@@ -260,7 +260,7 @@ jobs:
         run: node scripts/ci-e2e.mjs --reporter=list --reporter=html
 
       - name: Confirm the E2E database is clean
-        run: node scripts/e2e-isolated.mjs status
+        run: node scripts/e2e-isolated.mjs assert-baseline
 
       - name: Upload Playwright failure artifacts
         if: failure()

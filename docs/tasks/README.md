@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6-01–P6-06 Accepted (teknik kabul, 2026-11-04); P7–P8 Planned. Nihai ürün kabulü kullanıcıdadır.
+Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6-01–P6-06 Accepted (teknik kabul, 2026-11-04); P7 In Review; P8 In Progress. Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -107,7 +107,7 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | [P7-03 — Yarış ve kesinti testleri](P7-03.md) | Backend | In Review |
 | [P7-04 — Erişilebilirlik ve hata deneyimi](P7-04.md) | Frontend | In Review |
 | [P7-05 — Test verisi ve izolasyon](P7-05.md) | Entegrasyon | In Review |
-| [P7-06 — Tam CI pipeline'ı](P7-06.md) | Entegrasyon | Planned |
+| [P7-06 — Tam CI pipeline'ı](P7-06.md) | Entegrasyon | In Review |
 
 ## Aşama 8 — Yerel teslim, kanıt ve video
 

@@ -262,6 +262,33 @@ function assertSameHistory(before, after, label) {
   console.log(`[e2e-isolated] ${label}: history and demo fixture digests unchanged`);
 }
 
+async function assertBaseline() {
+  const connectionString = resolveDatabaseUrl();
+  const { database } = assertSafeDatabase(connectionString);
+  const counts = await snapshot(connectionString, 'probedesk-e2e-baseline');
+  const expected = {
+    plans: 1,
+    planRevisions: 2,
+    runs: 4,
+    activeRuns: 0,
+    sessions: 0,
+    demoUsers: 3,
+    demoProfiles: 1,
+  };
+  const mismatches = Object.entries(expected).filter(
+    ([key, value]) => counts[key] !== value,
+  );
+  if (mismatches.length > 0) {
+    throw new Error(
+      `[e2e-isolated] ${database} is not at the seeded baseline: ` +
+        mismatches
+          .map(([key, value]) => `${key} expected ${value}, got ${counts[key]}`)
+          .join('; '),
+    );
+  }
+  console.log(`[e2e-isolated] ${database}: seeded baseline unchanged`);
+}
+
 async function prepare() {
   const connectionString = resolveDatabaseUrl();
   const { url, database } = assertSafeDatabase(connectionString);
@@ -342,8 +369,12 @@ try {
     await seedCheck();
   } else if (command === 'status') {
     await status();
+  } else if (command === 'assert-baseline') {
+    await assertBaseline();
   } else {
-    fail(`Unknown command "${command}". Use prepare, seed-check or status.`);
+    fail(
+      `Unknown command "${command}". Use prepare, seed-check, status or assert-baseline.`,
+    );
   }
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));

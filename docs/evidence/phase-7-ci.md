@@ -255,7 +255,7 @@ Bu belge aşağıdakileri **yapılmış** saymaz:
 
 ## Gerçek GitHub Actions koşusu (2026-11-04)
 
-- Koşu: [41885922086](https://github.com/kemalselcuk/probedesk/actions/runs/41885922086), commit `3d27f2f`, `main` push.
+- Koşu: [41885922086](https://github.com/kemselcuk/probedesk/actions/runs/41885922086), commit `3d27f2f`, `main` push.
 - Sonuç: **API quality success · API integration success · Web quality success · OpenAPI contract success · Playwright E2E success · CI required success** (6/6).
 - E2E işi gerçek PostgreSQL service, migration/seed, API readiness ve Chrome/Playwright ile iki senaryoyu çalıştırdı; artifact yalnız hata durumunda 7 gün.
 - Bu koşu, temiz checkout'ta `npm ci` (npm 11.6.2), `.nvmrc` Node kurulumu, servis health check'i ve Playwright Chrome başlatmasını kapsar.

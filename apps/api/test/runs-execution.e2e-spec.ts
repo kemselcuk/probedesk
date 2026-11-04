@@ -944,7 +944,10 @@ describe('sequential run execution (e2e)', () => {
       });
       shutdownScheduler.releasePending();
 
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      await waitFor(
+        () => shutdownExecutor.activeExecutionCount === 0,
+        'shutdown finalization to settle',
+      );
 
       const stored = await prisma.testRun.findUniqueOrThrow({
         where: { id: runId },
