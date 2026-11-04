@@ -296,16 +296,16 @@ async function startRun(
 
   await expect(page.locator('#start-run-submit')).toBeEnabled();
   await page.locator('#start-run-submit').click();
-  await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
-  const runId = new URL(page.url()).pathname.split('/').pop();
+  // A fresh start is RUNNING and must land on the live screen without any
+  // test-only deep-link navigation.
+  await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}\/live$/);
+  const runId = new URL(page.url()).pathname.split('/')[2];
   expect(runId).toMatch(/^[0-9a-f-]{36}$/);
   return runId!;
 }
 
 async function openLive(page: Page, runId: string): Promise<void> {
-  // The Start Run success route is Run Details; the documented live route is
-  // `/runs/:runId/live` and is opened explicitly here to observe progress.
-  await page.goto(`/runs/${runId}/live`);
+  await expect(page).toHaveURL(new RegExp(`/runs/${runId}/live$`));
   await expect(page.locator('#live-run-summary-heading')).toHaveText(PLAN_NAME);
 }
 

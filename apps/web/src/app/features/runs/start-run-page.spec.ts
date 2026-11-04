@@ -154,11 +154,11 @@ describe('StartRunPage', () => {
   }
 
   /**
-   * A successful start navigates to the real run details route, so the screen
-   * immediately issues GET /api/runs/:id. Answering it proves the navigation
-   * lands on Run Details and leaves no request open for the next test.
+   * A successful start navigates to the real live or details route, so the
+   * screen immediately issues GET /api/runs/:id. Answering it proves the
+   * navigation and leaves no request open for the next test.
    */
-  async function flushRunDetailsNavigation(
+  async function flushRunNavigation(
     harness: RouterTestingHarness,
     runId: string,
   ): Promise<void> {
@@ -241,9 +241,9 @@ describe('StartRunPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(router.url).toBe(`/runs/${CREATED_RUN_ID}`);
-    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Run Details');
-    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
+    expect(router.url).toBe(`/runs/${CREATED_RUN_ID}/live`);
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Live Run');
+    await flushRunNavigation(harness, CREATED_RUN_ID);
   });
 
   it('navigates with the replayed runId on a 200 response', async () => {
@@ -268,7 +268,7 @@ describe('StartRunPage', () => {
     harness.detectChanges();
 
     expect(router.url).toBe(`/runs/${CREATED_RUN_ID}`);
-    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
+    await flushRunNavigation(harness, CREATED_RUN_ID);
   });
 
   it('switches scenario fields and sends the selected force-failure step only', async () => {
@@ -316,7 +316,7 @@ describe('StartRunPage', () => {
 
     request.flush(CREATED_RUN_RESPONSE, { status: 202, statusText: 'Accepted' });
     await harness.fixture.whenStable();
-    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
+    await flushRunNavigation(harness, CREATED_RUN_ID);
   });
 
   it('sends the RANDOM probability as decimal text', async () => {
@@ -345,7 +345,7 @@ describe('StartRunPage', () => {
 
     request.flush(CREATED_RUN_RESPONSE, { status: 202, statusText: 'Accepted' });
     await harness.fixture.whenStable();
-    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
+    await flushRunNavigation(harness, CREATED_RUN_ID);
   });
 
   it('validates the uint32 seed and the 0..1 probability before submitting', async () => {
@@ -462,7 +462,7 @@ describe('StartRunPage', () => {
     expect(idempotencyKey(changed)).not.toBe(firstKey);
     changed.flush(CREATED_RUN_RESPONSE, { status: 202, statusText: 'Accepted' });
     await harness.fixture.whenStable();
-    await flushRunDetailsNavigation(harness, CREATED_RUN_ID);
+    await flushRunNavigation(harness, CREATED_RUN_ID);
   });
 
   it('links to the active run on 409 RUN_ALREADY_ACTIVE', async () => {

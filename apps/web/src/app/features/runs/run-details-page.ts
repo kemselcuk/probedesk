@@ -460,7 +460,13 @@ export class RunDetailsPage {
       .subscribe({
         next: (result) => {
           this.attempt.reset();
-          void this.router.navigate(['/runs', result.runId]);
+          // The new run follows the same navigation contract as Start Run:
+          // live while RUNNING, details for a terminal idempotent replay.
+          void this.router.navigate(
+            result.status === 'RUNNING'
+              ? ['/runs', result.runId, 'live']
+              : ['/runs', result.runId],
+          );
         },
         error: () => {
           if (this.runs.startError()?.error.code === 'IDEMPOTENCY_CONFLICT') {

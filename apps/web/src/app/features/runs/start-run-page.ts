@@ -198,7 +198,13 @@ export class StartRunPage {
       .subscribe({
         next: (result) => {
           this.attempt.reset();
-          void this.router.navigate(['/runs', result.runId]);
+          // A fresh start is RUNNING and belongs on the live screen. A 200
+          // replay of an already-terminal run opens its immutable details.
+          void this.router.navigate(
+            result.status === 'RUNNING'
+              ? ['/runs', result.runId, 'live']
+              : ['/runs', result.runId],
+          );
         },
         error: () => {
           this.applyFieldErrors();

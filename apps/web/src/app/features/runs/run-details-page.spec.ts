@@ -798,22 +798,22 @@ describe('RunDetailsPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(router.url).toBe(`/runs/${NEW_RUN_ID}`);
+    expect(router.url).toBe(`/runs/${NEW_RUN_ID}/live`);
 
-    const detailsRequest = http.expectOne(`/api/runs/${NEW_RUN_ID}`);
-    expect(detailsRequest.request.method).toBe('GET');
-    detailsRequest.flush(
+    const liveRequest = http.expectOne(`/api/runs/${NEW_RUN_ID}`);
+    expect(liveRequest.request.method).toBe('GET');
+    liveRequest.flush(
       {
         code: 'NOT_FOUND',
         message: 'The run was not found.',
-        requestId: 'req-rerun-details-404',
+        requestId: 'req-rerun-live-404',
       },
       { status: 404, statusText: 'Not Found' },
     );
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Run Details');
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Live Run');
   });
 
   it('runs again with the stored RANDOM probability as decimal text', async () => {
@@ -852,13 +852,13 @@ describe('RunDetailsPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(TestBed.inject(Router).url).toBe(`/runs/${NEW_RUN_ID}`);
-    const detailsRequest = http.expectOne(`/api/runs/${NEW_RUN_ID}`);
-    detailsRequest.flush(
+    expect(TestBed.inject(Router).url).toBe(`/runs/${NEW_RUN_ID}/live`);
+    const liveRequest = http.expectOne(`/api/runs/${NEW_RUN_ID}`);
+    liveRequest.flush(
       {
         code: 'NOT_FOUND',
         message: 'The run was not found.',
-        requestId: 'req-rerun-random-details-404',
+        requestId: 'req-rerun-random-live-404',
       },
       { status: 404, statusText: 'Not Found' },
     );
