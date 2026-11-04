@@ -49,8 +49,8 @@ Doğrulanan başlıca çıktılar:
 - Son yerel doğrulamada API birim `16` dosya / `118` test, web `36` dosya / `370` test, API
   entegrasyon `22` dosya / `197` test geçti; iki Playwright senaryosu gerçek stack üzerinde geçti
   ([verify kaydı](evidence/phase-8-docs.md), [E2E](evidence/phase-7-e2e.md)).
-- Sürüm adayı `v0.1.0-rc.2` (`10798fa`) altı işin tamamını geçti
-  ([run 41916047120](https://github.com/kemselcuk/probedesk/actions/runs/41916047120);
+- Sürüm adayı `v0.1.0-rc.3` (`0d76dcf`) altı işin tamamını geçti
+  ([run 41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810);
   önceki kayıtlar [CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
 - Delivery, aynı origin nginx proxy'si üzerinden deep link, SSE ve oturum yenilemeyi doğruladı
   ([Compose kanıtı](evidence/phase-8-compose.md)).

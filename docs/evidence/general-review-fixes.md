@@ -2,8 +2,8 @@
 
 - Tarih: 2026-11-04
 - İnceleme tabanı: `67a6738` (`GENERAL-REVIEW.local.md`, yerel/ignore).
-- Düzeltme commit'leri: `3f15ab9`, `76b2b6f`, `c2e3660`, `44de016`, `6f889a8`; kanıt commit'i
-  `10798fa` (`v0.1.0-rc.2`, CI `41916047120`).
+- Düzeltme commit'leri: `3f15ab9`, `76b2b6f`, `c2e3660`, `44de016`, `6f889a8`; R7 düzeltmesi
+  `0d76dcf` (`v0.1.0-rc.3`, CI `41918727810`).
 - Kapsam: auth oturum yaşam döngüsü, CSRF kurtarma, UUID kanonikleştirme, Start/Run Again
   navigasyonu, nginx özel port yönlendirmesi ve eski doküman/CI bağlantıları.
 - Video kullanıcı kararıyla kapsam dışıdır; bu turda video çalışması yapılmadı.

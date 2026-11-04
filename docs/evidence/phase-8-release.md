@@ -1,16 +1,16 @@
 # Phase 8 — sürüm adayı ve teslim paketi
 
 - Tarih: 2026-11-04
-- Aday sürüm: `v0.1.0-rc.2` → commit `10798fa`
+- Aday sürüm: `v0.1.0-rc.3` → commit `0d76dcf`
 - Kapsam: P8-01–P8-04 teknik kabulü, P8-05 kullanıcı waiver'ı, P8-06 sürüm adayı.
 - Nihai ürün kabulü: **Kullanıcıda açık.** Bu belge ürün kabulü değildir.
 
 ## Doğrulanan taban
 
-Sürüm adayı commit'i `10798fa` üzerinde; önceki doğrulanmış taban `81a7f2c` idi:
+Sürüm adayı commit'i `0d76dcf` üzerinde; önceki doğrulanmış taban `81a7f2c` idi:
 
 ```text
-GitHub Actions run 41916047120 (10798fa, release candidate v0.1.0-rc.2)
+GitHub Actions run 41918727810 (0d76dcf, release candidate v0.1.0-rc.3)
 API quality            success
 API integration        success
 OpenAPI contract       success
@@ -18,6 +18,7 @@ Web quality            success
 Playwright E2E         success
 CI required            success
 
+Önceki aday 10798fa / run 41916047120: 6/6 success
 Önceki aday 270a399 / run 41900767940: 6/6 success
 Önceki taban 81a7f2c / run 41899919132: 6/6 success
 ```
@@ -79,16 +80,16 @@ Bağlantı kontrolü: README + `docs/` kapsamındaki 141 dosyada 1098 göreli ba
 
 ## Etiket
 
-`v0.1.0-rc.1` etiketi `270a399` commit'ine atıldı ve `origin`e push edildi. Bu commit'in CI koşusu
-`41900767940` altı işin tamamında yeşildir. Genel inceleme düzeltmeleri sonrasında `v0.1.0-rc.2`
-etiketi `10798fa` commit'ine atandı ve `origin`e push edildi; CI koşusu `41916047120` altı işin
-tamamında yeşildir. Güncel sürüm adayı rc.2'dir.
+`v0.1.0-rc.1` etiketi `270a399`, `v0.1.0-rc.2` etiketi `10798fa`, `v0.1.0-rc.3` etiketi `0d76dcf`
+commit'lerine atandı ve `origin`e push edildi. Güncel sürüm adayı rc.3'tür; CI koşusu
+`41918727810` altı işin tamamında yeşildir. Önceki rc.2 koşusu `41916047120`, rc.1 koşusu
+`41900767940` de 6/6 yeşildi.
 
-## Genel inceleme sonrası düzeltmeler ve rc.2
+## Genel inceleme düzeltmeleri ve rc.3
 
 `v0.1.0-rc.1` sonrasında yapılan genel kod incelemesi altı doğrulanmış bulgu ortaya çıkardı; düzeltmeler
 `3f15ab9`, `76b2b6f`, `c2e3660`, `44de016` ve `6f889a8` commit'lerinde, kanıtları
 [general-review-fixes.md](general-review-fixes.md) içindedir. Bunlar yalnız doküman değil çalışma
 zamanı davranışı değiştirdiği için `v0.1.0-rc.1` süperseded olur. Yeni sürüm adayı
-**`v0.1.0-rc.2`**, bu kanıtı içeren `10798fa` commit'ine atandı; CI koşusu `41916047120` altı işin
-tamamında yeşildir. Nihai etiket hedefi ve koşu bağlantısı P8-06 kartında kayıtlıdır.
+**`v0.1.0-rc.3`**, R7 düzeltmesini içeren `0d76dcf` commit'ine atandı; CI koşusu `41918727810`
+altı işin tamamında yeşildir. Nihai etiket hedefi ve koşu bağlantısı P8-06 kartında kayıtlıdır.

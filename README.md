@@ -210,9 +210,9 @@ Recorded evidence:
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs six jobs on pushes to `main` and pull
 requests: API quality, API integration against PostgreSQL 18, web quality, OpenAPI contract,
-Playwright E2E, and a required aggregate check. The release candidate `10798fa` (`v0.1.0-rc.2`)
+Playwright E2E, and a required aggregate check. The release candidate `0d76dcf` (`v0.1.0-rc.3`)
 passed all six jobs
-([run 41916047120](https://github.com/kemselcuk/probedesk/actions/runs/41916047120),
+([run 41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810),
 [evidence](docs/evidence/phase-8-release.md)). Failure
 artifacts are retained for 7 days; no repository secrets or paid services are used.
 
@@ -245,8 +245,8 @@ compose.test.yaml        Standalone isolated integration-test database
 - **Acceptance is still open.** Phases 1–7 and P8-01–P8-04 are technically accepted. The P8-06
   release candidate is in review, the demo video (P8-05) was waived by the user, and final user
   acceptance has not been recorded.
-- **Evidence is commit-scoped.** The release candidate `v0.1.0-rc.2` is commit `10798fa`; its
-  six-job CI run is [41916047120](https://github.com/kemselcuk/probedesk/actions/runs/41916047120)
+- **Evidence is commit-scoped.** The release candidate `v0.1.0-rc.3` is commit `0d76dcf`; its
+  six-job CI run is [41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810)
   (all green). Documentation-only follow-ups keep their own commit history.
 - **No coverage or performance claims.** Test counts and durations are reproduced from real
   reports; no coverage percentage, benchmark, or capacity figure is claimed.

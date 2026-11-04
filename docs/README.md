@@ -50,8 +50,8 @@ teknik kararlar birlikte uyarlanır. Çelişkiler sessizce yorumlanarak uygulama
   sonrasında planlar ve run geçmişi korundu.
 - Gerçek Chrome/Playwright ana demo ve karşılaştırma senaryoları geçti; API birim/entegrasyon ve
   Angular testleri gerçek PostgreSQL/TestBed üzerinde çalıştırıldı.
-- Sürüm adayı `v0.1.0-rc.2` (`10798fa`) altı işin tamamında yeşil
-  ([run 41916047120](https://github.com/kemselcuk/probedesk/actions/runs/41916047120); önceki
+- Sürüm adayı `v0.1.0-rc.3` (`0d76dcf`) altı işin tamamında yeşil
+  ([run 41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810); önceki
   kayıtlar [CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
 - Demo videosu **kullanıcı kararıyla kapsam dışıdır**; README'de video bağlantısı yoktur ve P8-05 `Deferred (user decision)` durumundadır.
 - Nihai kapsam, aşama ve ürün kabulü kullanıcıya aittir; hiçbir aşama yalnızca kartı kapandı diye

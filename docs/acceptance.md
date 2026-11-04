@@ -46,15 +46,15 @@ kabulü açıktır; demo videosu kullanıcı kararıyla kapsam dışıdır; işa
   seed/API ile doğrulandı ([P8-02](evidence/phase-8-seed.md), [demo](demo.md)).
 - [x] OpenAPI ile gerçek API ve üretilen istemci uyumlu. — `npm run openapi:check` güncel;
   CI `contract` işi geçti ([verify](evidence/phase-8-docs.md), [CI](evidence/phase-7-ci.md)).
-- [x] GitHub Actions teslim commit'i üzerinde geçti. — `10798fa` (`v0.1.0-rc.2`) için altı işin
-  tamamı geçti ([run 41916047120](https://github.com/kemselcuk/probedesk/actions/runs/41916047120)).
+- [x] GitHub Actions teslim commit'i üzerinde geçti. — `0d76dcf` (`v0.1.0-rc.3`) için altı işin
+  tamamı geçti ([run 41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810)).
 - [x] Test/coverage/süre sayıları gerçek raporlardan alınmış. — API 118, web 370, entegrasyon
   197, Playwright 2 test; süreler gerçek raporlardan. Coverage yüzdesi iddia edilmiyor.
 - [x] README çalışan ekran görüntüsü ve gerçek kanıt bağlantıları içeriyor. — Dört gerçek ekran
   görüntüsü ve kanıt bağlantıları doğrulandı; demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [ ] Kısa video dosyası açılıyor; ana demo sonuçlarını gösteriyor. — Kullanıcı kararıyla kapsam dışı (video yok).
-- [x] Belgeler, CI ve görseller aynı teslim sürümüyle ilişkilendirilmiş. — `v0.1.0-rc.2` →
-  `10798fa`; demo videosu kullanıcı kararıyla kapsam dışıdır.
+- [x] Belgeler, CI ve görseller aynı teslim sürümüyle ilişkilendirilmiş. — `v0.1.0-rc.3` →
+  `0d76dcf`; demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [x] Ek altyapı maliyeti hedefi korunmuş; onaysız ücretli hizmet yok. — Yerel Compose ve ücretsiz
   standart GitHub runner kullanılıyor; ücretli servis/secret eklenmedi. Hesap faturalama durumu
   dışarıdan ayrıca denetlenmedi.
@@ -66,7 +66,7 @@ kabulü açıktır; demo videosu kullanıcı kararıyla kapsam dışıdır; işa
 
 Teknik doğrulama 2026-11-04'te tamamlandı: P7 ve P8 bağımsız incelemeleri, `npm run verify`,
 22 dosya/197 API entegrasyon testi, iki Playwright senaryosu ve Compose delivery smoke testi.
-Sürüm adayı `v0.1.0-rc.2` (`10798fa`) paketi [phase-8-release.md](evidence/phase-8-release.md) içinde kayıtlıdır.
+Sürüm adayı `v0.1.0-rc.3` (`0d76dcf`) paketi [phase-8-release.md](evidence/phase-8-release.md) içinde kayıtlıdır.
 **Kullanıcı ürün kabulü, nihai kapsam ve yayın kararı henüz verilmemiştir; bu maddeler açıktır.**
 Demo videosu kullanıcı kararıyla kapsam dışıdır. Teknik doğrulama kayıtları
 [kanıt dizininde](evidence/README.md) listelenir; bunlar nihai kabul yerine geçmez.
