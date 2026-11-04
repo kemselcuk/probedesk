@@ -26,14 +26,14 @@ Yerel doğrulama (aynı ağaç):
 
 ```text
 npm run verify
-→ exit 0; API 16 dosya/118 test; web 36 dosya/370 test; build; OpenAPI current
+→ exit 0; API 16 dosya/118 test; web 36 dosya/377 test; build; OpenAPI current
 
 npm run test:e2e --workspace apps/api
-→ 22 dosya / 197 test geçti (33.96 s)
+→ 22 dosya / 200 test geçti (33.00 s)
 
 E2E_DATABASE_URL=...probedesk_e2e_test E2E_BASE_URL=http://127.0.0.1:4300 \
 E2E_API_URL=http://127.0.0.1:3101 npm run test:e2e
-→ 2 passed (36.6 s): compare + main demo
+→ 2 passed (37.9 s): compare + main demo (doğal Start→Live navigasyonu)
 
 npm run openapi:check
 → OpenAPI contract is current
@@ -52,7 +52,7 @@ probedesk_delivery_check
 → 1 plan, 4 runs, 3 users
 ```
 
-Bağlantı kontrolü: README + `docs/` kapsamındaki 16 dosyada 349 göreli bağlantı/görsel,
+Bağlantı kontrolü: README + `docs/` kapsamındaki 141 dosyada 1098 göreli bağlantı/görsel,
 0 kırık. Video dosyası/bağlantısı yoktur.
 
 ## Paket içeriği
@@ -74,8 +74,8 @@ Bağlantı kontrolü: README + `docs/` kapsamındaki 16 dosyada 349 göreli bağ
 2. **P8-05 demo videosu** — kullanıcı kararıyla kapsam dışı; dosya ve bağlantı yoktur.
 3. **Ortam sınırları** — boş işletim sistemi kurulumu test edilmedi (host Node/PostgreSQL
    PATH'ten çıkarılarak doğrulandı); tarayıcı doğrulaması Chrome 1280/768 px ile sınırlıdır.
-4. **P8-01 Low** — `PROBEDESK_DELIVERY_PORT` özel portundayken nginx `/api` yönlendirmesi iç
-   `8080`'e gider; varsayılan 8080 kurulumu etkilenmez.
+4. **P8-01 Low (kapandı)** — `PROBEDESK_DELIVERY_PORT` özel portunda nginx `/api` yönlendirmesi
+   artık göreli `Location: /api/` üretiyor; `18080` portunda doğrulandı.
 
 ## Etiket
 
