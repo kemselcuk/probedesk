@@ -92,7 +92,7 @@ işaretlidir. Son tam yerel doğrulama 2026-11-04 tarihinde bu çalışma ağac�
 
 | Komut | Durum | Kanıt / not |
 |---|---|---|
-| `npm ci` | Doğrulandı (CI temiz checkout) | GitHub Actions `270a399` (`v0.1.0-rc.1`, run `41900767940`); temiz checkout'ta doğrulandı ([P7-06](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)) |
+| `npm ci` | Doğrulandı (CI temiz checkout) | GitHub Actions `10798fa` (`v0.1.0-rc.2`, run `41916047120`); temiz checkout'ta doğrulandı ([P7-06](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)) |
 | `npm run dev` | Script mevcut; kök komut yeniden çalıştırılmadı | P7 çalışmalarında Angular `ng serve` (:4200) ve API ayrı süreçlerde çalıştı; P8-04'te portlar başka süreçlerce kullanıldığı için kök komut tek parça çalıştırılmadı |
 | `npm run lint` | Doğrulandı | API 144, web 113, api-client 2 dosya; 0 uyarı, 0 hata ([verify](evidence/phase-8-docs.md)) |
 | `npm run typecheck` | Doğrulandı | API, web ve api-client temiz ([verify](evidence/phase-8-docs.md)) |
@@ -125,8 +125,8 @@ paylaşılan geliştirme veritabanında çalıştırılmadı.
 sonucunu `success` ile karşılaştırır; `continue-on-error`, `|| true` veya koşulsuz başarılı adım
 yoktur. Başarısız E2E/kalite işleri artifact üretir; retention 7 gündür.
 
-**Gerçek koşu (2026-11-04):** sürüm adayı commit `270a399`, tag `v0.1.0-rc.1`, `main` push,
-[run 41900767940](https://github.com/kemselcuk/probedesk/actions/runs/41900767940) — API quality,
+**Gerçek koşu (2026-11-04):** sürüm adayı commit `10798fa`, tag `v0.1.0-rc.2`, `main` push,
+[run 41916047120](https://github.com/kemselcuk/probedesk/actions/runs/41916047120) — API quality,
 API integration, web quality, OpenAPI contract, Playwright E2E ve CI required işlerinin tamamı
 başarılı. Bu koşu temiz checkout'ta `npm ci`, `.nvmrc` Node kurulumu, PostgreSQL servis health
 check'i ve Chrome/Playwright başlatmasını kapsar ([kanıt](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
@@ -136,7 +136,7 @@ hizmet yoktur. Başlangıç artifact retention hedefi 7 gündür; büyük video 
 sürekli trace'i tutulmaz. Bu turda ölçülmemiş dakika, depolama veya kota sayısı yazılmamıştır;
 hesap ayarlarındaki faturalama durumu ayrıca doğrulanmamıştır.
 
-Sürüm adayı `v0.1.0-rc.1` etiketi `270a399` commit'ine atanmıştır; etiket sonrası docs-only
+Sürüm adayı `v0.1.0-rc.2` etiketi `10798fa` commit'ine atanmıştır; etiket sonrası docs-only
 commit'in CI koşusu da yeşildir. Mevcut yeşil koşu nihai ürün kabulü değildir; ürün kapsamı ve
 yayın kararı kullanıcıdadır.
 

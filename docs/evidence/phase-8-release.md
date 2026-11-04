@@ -1,16 +1,16 @@
 # Phase 8 — sürüm adayı ve teslim paketi
 
 - Tarih: 2026-11-04
-- Aday sürüm: `v0.1.0-rc.1` → commit `270a399`
+- Aday sürüm: `v0.1.0-rc.2` → commit `10798fa`
 - Kapsam: P8-01–P8-04 teknik kabulü, P8-05 kullanıcı waiver'ı, P8-06 sürüm adayı.
 - Nihai ürün kabulü: **Kullanıcıda açık.** Bu belge ürün kabulü değildir.
 
 ## Doğrulanan taban
 
-Sürüm adayından önceki doküman/kabul commit'i `81a7f2c` üzerinde:
+Sürüm adayı commit'i `10798fa` üzerinde; önceki doğrulanmış taban `81a7f2c` idi:
 
 ```text
-GitHub Actions run 41900767940 (270a399, release candidate)
+GitHub Actions run 41916047120 (10798fa, release candidate v0.1.0-rc.2)
 API quality            success
 API integration        success
 OpenAPI contract       success
@@ -18,6 +18,7 @@ Web quality            success
 Playwright E2E         success
 CI required            success
 
+Önceki aday 270a399 / run 41900767940: 6/6 success
 Önceki taban 81a7f2c / run 41899919132: 6/6 success
 ```
 
@@ -79,14 +80,15 @@ Bağlantı kontrolü: README + `docs/` kapsamındaki 16 dosyada 349 göreli bağ
 ## Etiket
 
 `v0.1.0-rc.1` etiketi `270a399` commit'ine atıldı ve `origin`e push edildi. Bu commit'in CI koşusu
-`41900767940` altı işin tamamında yeşildir. Etiketin hedefi ve koşu bağlantısı P8-06 kartında da
-kayıtlıdır.
+`41900767940` altı işin tamamında yeşildir. Genel inceleme düzeltmeleri sonrasında `v0.1.0-rc.2`
+etiketi `10798fa` commit'ine atandı ve `origin`e push edildi; CI koşusu `41916047120` altı işin
+tamamında yeşildir. Güncel sürüm adayı rc.2'dir.
 
 ## Genel inceleme sonrası düzeltmeler ve rc.2
 
-`v0.1.0-rc.1` sonrasında yapılan genel kod incelemesi altı doğrulanmış ürün hatası buldu; düzeltmeler
+`v0.1.0-rc.1` sonrasında yapılan genel kod incelemesi altı doğrulanmış bulgu ortaya çıkardı; düzeltmeler
 `3f15ab9`, `76b2b6f`, `c2e3660`, `44de016` ve `6f889a8` commit'lerinde, kanıtları
 [general-review-fixes.md](general-review-fixes.md) içindedir. Bunlar yalnız doküman değil çalışma
 zamanı davranışı değiştirdiği için `v0.1.0-rc.1` süperseded olur. Yeni sürüm adayı
-**`v0.1.0-rc.2`**, bu kanıtı içeren commit'e CI yeşil olduktan sonra atanır; nihai etiket hedefi ve
-koşu bağlantısı P8-06 kartında kayıtlıdır.
+**`v0.1.0-rc.2`**, bu kanıtı içeren `10798fa` commit'ine atandı; CI koşusu `41916047120` altı işin
+tamamında yeşildir. Nihai etiket hedefi ve koşu bağlantısı P8-06 kartında kayıtlıdır.
