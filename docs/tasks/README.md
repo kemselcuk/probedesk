@@ -105,8 +105,8 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 | [P7-01 — Ana demo akışının Playwright testi](P7-01.md) | Entegrasyon | In Review |
 | [P7-02 — Yetki ve istek güvenliği testleri](P7-02.md) | Entegrasyon | In Review |
 | [P7-03 — Yarış ve kesinti testleri](P7-03.md) | Backend | In Review |
-| [P7-04 — Erişilebilirlik ve hata deneyimi](P7-04.md) | Frontend | Planned |
-| [P7-05 — Test verisi ve izolasyon](P7-05.md) | Entegrasyon | Planned |
+| [P7-04 — Erişilebilirlik ve hata deneyimi](P7-04.md) | Frontend | In Review |
+| [P7-05 — Test verisi ve izolasyon](P7-05.md) | Entegrasyon | In Review |
 | [P7-06 — Tam CI pipeline'ı](P7-06.md) | Entegrasyon | Planned |
 
 ## Aşama 8 — Yerel teslim, kanıt ve video

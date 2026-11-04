@@ -211,7 +211,18 @@
             }
           </div>
 
-          <div class="table-scroll" id="run-history-table" tabindex="-1">
+          <p class="table-scroll-hint" id="run-history-table-hint">
+            The table is wider than the screen. Scroll horizontally, or focus the table and use the
+            arrow keys, to reach Samples, Out of tolerance, First failure, and Details.
+          </p>
+          <div
+            class="table-scroll"
+            id="run-history-table"
+            role="region"
+            tabindex="0"
+            aria-label="Recorded runs table"
+            aria-describedby="run-history-table-hint"
+          >
             <table>
               <caption class="visually-hidden">
                 Recorded runs, newest first. Each row shows summary counters only; open Run Details
@@ -248,9 +259,14 @@
                     <td>
                       <app-run-status-badge [status]="run.status" [outcome]="run.outcome" />
                     </td>
-                    <td>
+                    <td class="plan-cell">
                       <span class="plan-name">{{ run.planName }}</span>
-                      <span class="cell-detail">Version {{ run.versionNumber }}</span>
+                      <span class="cell-detail">
+                        Version {{ run.versionNumber }}
+                        @if (duplicatePlanNames().has(run.planName)) {
+                          · Plan {{ run.planId.slice(0, 8) }}
+                        }
+                      </span>
                     </td>
                     <td>
                       <span>{{ scenario(run.scenario) }}</span>

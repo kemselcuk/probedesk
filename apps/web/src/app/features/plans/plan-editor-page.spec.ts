@@ -428,6 +428,9 @@ describe('PlanEditorPage', () => {
     const root = rootOf(harness);
     const http = TestBed.inject(HttpTestingController);
 
+    typeInto(root, '#plan-name', '');
+    typeInto(root, '#step-name-loaded-step-a', '');
+    blur(root, '#step-name-loaded-step-a');
     typeInto(root, '#step-minimum-loaded-step-a', '5');
     typeInto(root, '#step-maximum-loaded-step-a', '4');
     submit(root);
@@ -436,6 +439,12 @@ describe('PlanEditorPage', () => {
 
     expect(root.textContent).toContain('Maximum must be greater than or equal to minimum.');
     expect(document.activeElement?.id).toBe('validation-summary');
+    expect(root.querySelector('#plan-name')?.getAttribute('aria-describedby')).toContain(
+      'plan-name-error',
+    );
+    expect(root.querySelector('#step-name-loaded-step-a')?.getAttribute('aria-describedby')).toContain(
+      'step-name-error-loaded-step-a',
+    );
     expect(
       root.querySelector('#step-maximum-loaded-step-a')?.getAttribute('aria-describedby'),
     ).toContain('step-maximum-error-loaded-step-a');
@@ -523,6 +532,39 @@ describe('PlanEditorPage', () => {
     expect(root.querySelector<HTMLInputElement>('#plan-name')?.value).toBe('Thermal check');
     expect(root.textContent).not.toContain('This draft changed in another session');
     expect(metaValues(root)).toContain('8');
+  });
+
+  it('keeps the local input and focuses a recoverable error when save fails', async () => {
+    const harness = await openEditor();
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+
+    typeInto(root, '#plan-name', 'Local input kept after failure');
+    submit(root);
+
+    http.expectOne(`/api/plans/${PLAN_ID}/draft`).flush(
+      {
+        code: 'SERVICE_UNAVAILABLE',
+        message: 'The plan service is temporarily unavailable.',
+        requestId: 'req-save-503',
+      },
+      { status: 503, statusText: 'Service Unavailable' },
+    );
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(root.querySelector<HTMLInputElement>('#plan-name')?.value).toBe(
+      'Local input kept after failure',
+    );
+    expect(root.querySelector('#save-error-panel')?.textContent).toContain(
+      'The plan service is temporarily unavailable.',
+    );
+    expect(root.querySelector('#save-error-panel')?.textContent).toContain('req-save-503');
+    expect(root.querySelector('#save-error-panel')?.textContent).toContain(
+      'Your input is still here.',
+    );
+    expect(document.activeElement?.id).toBe('save-error-panel');
+    expect(TestBed.inject(Router).url).toBe(`/plans/${PLAN_ID}/edit`);
   });
 
   it('maps server field errors to the submitted row after a reorder', async () => {

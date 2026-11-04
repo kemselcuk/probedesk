@@ -12,7 +12,9 @@ const AUTH_ENDPOINT = /\/api\/auth\/(?:login|logout|me)(?:[?#]|$)/;
 
 /**
  * Marks the session anonymous after a protected request returns 401 and sends
- * the user to sign in with the current application URL preserved.
+ * the user to sign in with the current application URL preserved. The login
+ * page explains the interruption and returns to the exact screen, filter, and
+ * page after a successful sign-in.
  */
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const injector = inject(Injector);
@@ -37,7 +39,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
           currentUrl !== '/'
         ) {
           void router.navigate(['/login'], {
-            queryParams: { returnUrl: currentUrl },
+            queryParams: {
+              returnUrl: currentUrl,
+              reason: 'session-expired',
+            },
           });
         }
       }

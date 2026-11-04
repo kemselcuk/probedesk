@@ -398,7 +398,9 @@ describe('RunDetailsPage', () => {
 
   async function openCancelDialog(harness: RouterTestingHarness): Promise<HTMLElement> {
     const root = rootOf(harness);
-    root.querySelector<HTMLButtonElement>('#cancel-run-button')?.click();
+    const cancelButton = root.querySelector<HTMLButtonElement>('#cancel-run-button');
+    cancelButton?.focus();
+    cancelButton?.click();
     harness.detectChanges();
 
     await vi.waitFor(() => {
@@ -638,6 +640,37 @@ describe('RunDetailsPage', () => {
 
     expect(http.match(`/api/runs/${RUN_ID}/cancel`)).toHaveLength(0);
     expect(root.querySelector('.status-badge')?.textContent).toContain('Running');
+  });
+
+  it('closes the cancel dialog with Escape without cancelling the run', async () => {
+    const harness = await openLoaded(RUNNING_SNAPSHOT);
+    const http = TestBed.inject(HttpTestingController);
+
+    await openCancelDialog(harness);
+    await vi.waitFor(() => {
+      expect(document.activeElement?.id).toBe('cancel-run-keep');
+    });
+    const focused = document.activeElement;
+
+    focused?.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27,
+        bubbles: true,
+      }),
+    );
+    await vi.waitFor(() => {
+      expect(document.body.textContent).not.toContain('Cancel this run?');
+    });
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(http.match(`/api/runs/${RUN_ID}/cancel`)).toHaveLength(0);
+    expect(rootOf(harness).querySelector('.status-badge')?.textContent).toContain('Running');
+    await vi.waitFor(() => {
+      expect(document.activeElement?.id).toBe('cancel-run-button');
+    });
   });
 
   it('keeps the real running state when cancellation fails and refreshes on request', async () => {

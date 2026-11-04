@@ -353,15 +353,29 @@ describe('StartRunPage', () => {
     const root = rootOf(harness);
     const http = TestBed.inject(HttpTestingController);
 
+    expect(
+      root.querySelector('#start-run-seed')?.getAttribute('aria-describedby')?.split(/\s+/),
+    ).toEqual(['start-run-seed-hint']);
+
     typeInto(root, '#start-run-seed', String(MAX_SEED + 1), true);
     harness.detectChanges();
 
     expect(root.textContent).toContain('Enter a whole number from 0 to 4,294,967,295.');
+    const seedDescribedBy =
+      root.querySelector('#start-run-seed')?.getAttribute('aria-describedby')?.split(/\s+/) ?? [];
+    expect(seedDescribedBy).toEqual(['start-run-seed-error']);
     expect(root.querySelector<HTMLButtonElement>('#start-run-submit')?.disabled).toBe(true);
 
     typeInto(root, '#start-run-seed', '42');
     selectValue(root, '#start-run-scenario', 'RANDOM');
     harness.detectChanges();
+
+    expect(
+      root
+        .querySelector('#start-run-error-probability')
+        ?.getAttribute('aria-describedby')
+        ?.split(/\s+/),
+    ).toEqual(['start-run-error-probability-hint']);
 
     typeInto(root, '#start-run-error-probability', '1.000001', true);
     harness.detectChanges();
@@ -369,6 +383,12 @@ describe('StartRunPage', () => {
     expect(root.textContent).toContain(
       'Enter a decimal from 0 to 1 with at most 6 decimal places.',
     );
+    const probabilityDescribedBy =
+      root
+        .querySelector('#start-run-error-probability')
+        ?.getAttribute('aria-describedby')
+        ?.split(/\s+/) ?? [];
+    expect(probabilityDescribedBy).toEqual(['start-run-error-probability-error']);
     expect(root.querySelector<HTMLButtonElement>('#start-run-submit')?.disabled).toBe(true);
     expect(http.match('/api/runs')).toHaveLength(0);
 
@@ -467,6 +487,7 @@ describe('StartRunPage', () => {
     harness.detectChanges();
 
     expect(root.textContent).toContain('Another run is already active');
+    expect(root.textContent).toContain('Your settings are still here.');
     expect(root.textContent).toContain('req-active-1');
     const link = root.querySelector<HTMLAnchorElement>(
       `a[href="/runs/${ACTIVE_RUN_ID}"]`,

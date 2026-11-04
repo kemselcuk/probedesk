@@ -84,6 +84,7 @@ describe('authInterceptor', () => {
 
     const query = new URLSearchParams(router.url.split('?')[1] ?? '');
     expect(query.get('returnUrl')).toBe('/plans?tab=drafts');
+    expect(query.get('reason')).toBe('session-expired');
   });
 
   it('leaves a 401 from an auth endpoint to the auth facade', async () => {

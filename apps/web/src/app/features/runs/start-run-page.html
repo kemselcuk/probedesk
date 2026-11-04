@@ -132,7 +132,6 @@
                     matNativeControl
                     id="start-run-scenario"
                     formControlName="scenario"
-                    aria-describedby="start-run-scenario-hint"
                   >
                     <option value="NORMAL">NORMAL — every sample stays within tolerance</option>
                     <option value="FORCED_FAILURE">
@@ -164,7 +163,6 @@
                       inputmode="numeric"
                       autocomplete="off"
                       formControlName="seed"
-                      aria-describedby="start-run-seed-hint"
                     />
                     <mat-hint id="start-run-seed-hint">
                       A whole number from 0 to 4,294,967,295. The same seed and settings reproduce
@@ -230,7 +228,6 @@
                       inputmode="decimal"
                       autocomplete="off"
                       formControlName="errorProbability"
-                      aria-describedby="start-run-error-probability-hint"
                     />
                     <mat-hint id="start-run-error-probability-hint">
                       A decimal from 0 to 1 with at most 6 decimal places. 0 keeps every sample
@@ -284,6 +281,7 @@
           >
             <h2 id="start-run-error-heading">{{ startErrorHeading() }}</h2>
             <p>{{ startErrorMessage() }}</p>
+            <p>Your settings are still here. Nothing is marked as started until the server confirms it.</p>
 
             @if (isActiveRunConflict()) {
               @if (activeRunId(); as runId) {

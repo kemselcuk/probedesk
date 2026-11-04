@@ -105,7 +105,49 @@ describe('LoginPage', () => {
     harness.detectChanges();
 
     expect(root.textContent).toContain('Enter a valid email address.');
+    expect(
+      root.querySelector('#email')?.getAttribute('aria-describedby')?.split(/\s+/),
+    ).toContain('email-error');
     expect(http.match('/api/auth/login')).toHaveLength(0);
+  });
+
+  it('explains a session-expiry redirect and keeps the return URL', async () => {
+    const harness = await RouterTestingHarness.create(
+      '/login?reason=session-expired&returnUrl=%2Fruns%3Fstatus%3DCOMPLETED%26page%3D2',
+    );
+    harness.detectChanges();
+    const root = rootOf(harness);
+
+    expect(root.querySelector('.session-notice')?.textContent).toContain(
+      'Your session ended.',
+    );
+    expect(root.querySelector('.session-notice')?.textContent).toContain(
+      'Its address and filters were kept.',
+    );
+    expect(root.querySelector('#login-heading')?.getAttribute('tabindex')).toBe('-1');
+
+    typeInto(root, '#email', 'operator@probedesk.local');
+    typeInto(root, '#password', 'demo-password');
+    submit(root);
+    const http = TestBed.inject(HttpTestingController);
+    const request = http.expectOne('/api/auth/login');
+    request.flush({
+      id: '33333333-3333-4333-8333-333333333333',
+      email: 'operator@probedesk.local',
+      role: 'OPERATOR',
+    });
+
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+
+    expect(TestBed.inject(Router).url).toBe('/runs?status=COMPLETED&page=2');
+
+    http.expectOne('/api/plans').flush([]);
+    http
+      .expectOne((candidate) => candidate.url === '/api/runs')
+      .flush({ items: [], page: 2, limit: 20, total: 0, totalPages: 0 });
+    await harness.fixture.whenStable();
+    harness.detectChanges();
   });
 
   it('submits once, disables the button while pending, and returns to the requested screen', async () => {

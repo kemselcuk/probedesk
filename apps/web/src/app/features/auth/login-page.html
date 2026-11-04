@@ -1,11 +1,19 @@
 <main class="login-page">
   <mat-card class="login-card" appearance="outlined">
     <div class="brand" aria-hidden="true">ProbeDesk</div>
-    <h1>Sign in</h1>
+    <h1 id="login-heading" tabindex="-1">Sign in</h1>
     <p class="intro">
       Sign in with a seeded demo account. Each account has one role with its
       own permissions.
     </p>
+
+    @if (sessionExpired) {
+      <p class="session-notice" role="status">
+        <strong>Your session ended.</strong>
+        Sign in again to return to the page you were viewing. Its address and
+        filters were kept.
+      </p>
+    }
 
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <mat-form-field appearance="outline">
@@ -18,11 +26,6 @@
           autocomplete="username"
           autocapitalize="none"
           spellcheck="false"
-          [attr.aria-describedby]="
-            form.controls.email.invalid && form.controls.email.touched
-              ? 'email-error'
-              : null
-          "
         />
         <mat-error id="email-error">
           @if (form.controls.email.hasError('required')) {
@@ -43,11 +46,6 @@
           [type]="passwordVisible() ? 'text' : 'password'"
           formControlName="password"
           autocomplete="current-password"
-          [attr.aria-describedby]="
-            form.controls.password.invalid && form.controls.password.touched
-              ? 'password-error'
-              : null
-          "
         />
         <button
           mat-button

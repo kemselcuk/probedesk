@@ -393,7 +393,7 @@
               @for (step of chartRun.steps; track step.runStepId) {
                 <article
                   class="step-row"
-                  style="display: block"
+                  style="display: block; min-width: 0"
                   [attr.data-run-step-id]="step.runStepId"
                   [attr.data-logical-step-id]="step.logicalStepId"
                 >
@@ -427,7 +427,8 @@
                     <div
                       class="table-scroll"
                       [id]="tableId(step.runStepId)"
-                      tabindex="-1"
+                      role="region"
+                      tabindex="0"
                       [attr.aria-label]="
                         'Measurement table for step ' +
                         step.position +
@@ -435,7 +436,7 @@
                         step.name +
                         ' (' +
                         step.unit +
-                        ')'
+                        '). Scroll horizontally to reach every column.'
                       "
                     >
                       <table>
@@ -516,7 +517,12 @@
           @if (live.recentMeasurements().length === 0) {
             <p class="empty-note">No samples have been recorded for this run yet.</p>
           } @else {
-            <div class="table-scroll">
+            <div
+              class="table-scroll"
+              role="region"
+              tabindex="0"
+              aria-label="Recent recorded measurements across all steps. Scroll horizontally to reach every column."
+            >
               <table>
                 <caption>
                   Recent recorded measurements across all steps, newest first. The table shows the

@@ -2,6 +2,8 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  Injector,
+  afterNextRender,
   computed,
   inject,
   signal,
@@ -41,9 +43,14 @@ export class LoginPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   private readonly returnUrl = sanitizeReturnUrl(
     this.route.snapshot.queryParamMap.get('returnUrl'),
   );
+
+  /** Set by the auth interceptor after a protected request returned 401. */
+  protected readonly sessionExpired =
+    this.route.snapshot.queryParamMap.get('reason') === 'session-expired';
 
   protected readonly passwordVisible = signal(false);
   protected readonly form = inject(NonNullableFormBuilder).group({
@@ -72,6 +79,14 @@ export class LoginPage {
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.clearServerErrors());
+
+    // The login route is outside the shell, so no shared focus manager runs.
+    // Move focus to the heading when the login page opens, including after a
+    // session-expiry redirect, instead of leaving it on the document body.
+    afterNextRender(
+      () => document.getElementById('login-heading')?.focus(),
+      { injector: this.injector },
+    );
   }
 
   protected submit(): void {

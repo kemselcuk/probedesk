@@ -216,6 +216,14 @@ describe('RunHistoryPage', () => {
     );
     expect(root.textContent).toContain('Showing 1-1 of 1 runs');
 
+    const tableRegion = root.querySelector('#run-history-table');
+    expect(tableRegion?.getAttribute('role')).toBe('region');
+    expect(tableRegion?.getAttribute('tabindex')).toBe('0');
+    expect(tableRegion?.getAttribute('aria-describedby')).toBe('run-history-table-hint');
+    expect(root.querySelector('#run-history-table-hint')?.textContent).toContain(
+      'Scroll horizontally',
+    );
+
     // The list is built from summary counters; no measurement table or detail
     // request is loaded by this screen.
     expect(root.textContent).not.toContain('Recorded measurements');
@@ -625,6 +633,10 @@ describe('RunHistoryPage', () => {
     expect(options[2]?.textContent).toContain('version 7');
     expect(options[2]?.textContent).toContain(OTHER_PLAN_ID.slice(0, 8));
     expect(options[1]?.textContent).not.toBe(options[2]?.textContent);
+
+    expect(root.querySelector('tbody td.plan-cell .cell-detail')?.textContent).toContain(
+      PLAN_ID.slice(0, 8),
+    );
   });
 
   it('warns about invalid URL filters, ignores them, and removes them', async () => {

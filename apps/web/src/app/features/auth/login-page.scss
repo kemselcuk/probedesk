@@ -36,6 +36,20 @@ h1 {
   font: var(--mat-sys-headline-medium);
 }
 
+h1:focus {
+  outline: none;
+}
+
+.session-notice {
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  border-inline-start: 4px solid var(--mat-sys-primary);
+  border-radius: var(--mat-sys-corner-small);
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+  font: var(--mat-sys-body-medium);
+}
+
 .intro {
   margin: 8px 0 24px;
   color: var(--mat-sys-on-surface-variant);

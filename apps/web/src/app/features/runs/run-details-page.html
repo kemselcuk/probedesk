@@ -613,7 +613,8 @@
                     <div
                       class="table-scroll"
                       [id]="tableId(step.runStepId)"
-                      tabindex="-1"
+                      role="region"
+                      tabindex="0"
                       [attr.aria-label]="
                         'Measurement table for step ' +
                         step.position +
@@ -621,7 +622,7 @@
                         step.name +
                         ' (' +
                         step.unit +
-                        ')'
+                        '). Scroll horizontally to reach every column.'
                       "
                     >
                       <table>

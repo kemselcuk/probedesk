@@ -142,6 +142,12 @@
   font: var(--mat-sys-body-small);
 }
 
+.table-scroll-hint {
+  margin: 0 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--mat-sys-outline-variant);
@@ -199,6 +205,10 @@ tbody tr:last-child td {
 .cell-detail,
 .failure-step {
   display: block;
+}
+
+.plan-cell {
+  min-width: 170px;
 }
 
 .plan-name {
