@@ -437,3 +437,120 @@ yoktur.** Medium bulgular F1 (flaky test), F2 (P7-05/CI clean kanıtı) ve F3
 (kart/indeks/kanıt tutarlılığı) kapatılmadan veya açık takip kaydıyla
 ertelenmeden görevlerin `Accepted` yapılması önerilmez. Bu, bağımsız bir
 teknik incelemedir; ürün kabulü değildir.
+
+## Fix re-check (2026-11-04, `ea08fb3`)
+
+- Yeniden inceleme commit'i: `ea08fb39c3ad6afab2b340ac6e901e00a0817c4b`.
+- Kapsam: yalnızca F1–F3 düzeltmeleri ve P7 dokümantasyon/CI tutarlılığı.
+  Ürün kodu değiştirilmedi. Bu bölüm yalnızca bu dosyaya eklendi; testlerin
+  doğal çıktısı olan P7 kanıt PNG'leri HEAD sürümüne geri alındı.
+- Çalışma ağacında P8 dokümantasyon değişiklikleri vardı; P7 kapsamı dışında
+  bırakıldı.
+
+| Bulgu | Yeniden inceleme durumu | Kanıt |
+|---|---|---|
+| F1 — flaky shutdown/finalization testi | **Kapandı** | Sabit `setTimeout(100)` kaldırıldı; `activeExecutionCount === 0` bekleniyor. Hedefli test **10/10**, tam API paketi **22 dosya / 197 test** geçti (39.28 s). |
+| F2 — P7-05/CI baseline kontrolü | **Kapandı** | `assert-baseline` test öncesi ve sonrası geçti; CI E2E job'ında da `seeded baseline unchanged` görüldü. |
+| F3 — dokümantasyon/kanıt tutarlılığı | **Kısmen kapandı (Medium açık)** | Org linki, P7-06 kart/indeks/roadmap üst durumu ve iki gerçek koşu linki düzeldi; ancak aşağıdaki eski iddialar hâlâ duruyor. |
+
+### F1 — düzeltme doğrulandı
+
+- `apps/api/test/runs-execution.e2e-spec.ts:947` artık 100 ms uyumuyor:
+  `waitFor(() => shutdownExecutor.activeExecutionCount === 0, ...)` kullanıyor.
+- Aynı test 10 kez art arda çalıştırıldı: **10/10 geçti**. Tam API paketi de
+  **197/197** geçti; önceki 1/197 flake'i bu koşularda tekrarlanmadı.
+- Tam paket süresi 39.28 s; hedefli tekrar süreleri yaklaşık 1–2 s.
+- Değerlendirme: F1 kapanmıştır. Bu sonuç, önceki raporda tarif edilen sabit
+  uyku sorununun giderildiğini gösterir; yeni bir ürün/CI hatası görülmedi.
+
+### F2 — düzeltme doğrulandı
+
+- `scripts/e2e-isolated.mjs assert-baseline` şu baseline'ı zorunlu tutuyor:
+  `plans=1 revisions=2 runs=4 activeRuns=0 sessions=0 demoUsers=3
+  demoProfiles=1`.
+- Test öncesi:
+  `[e2e-isolated] probedesk_e2e_test: seeded baseline unchanged`.
+- Playwright sonrası:
+  `[e2e-isolated] probedesk_e2e_test: seeded baseline unchanged`.
+- CI `41892312186` E2E logunda:
+  `baseline: plans=1 revisions=2 runs=4 activeRuns=0 sessions=0...` ve
+  `[e2e-isolated] probedesk_e2e_test: seeded baseline unchanged`.
+- Playwright bu koşuda **2/2** geçti (37.6 s); compare 5.7 s, main demo 30.1 s.
+  Testlerin cleanup çıktıları kendi plan/run'larını sildi; baseline korundu.
+- Değerlendirme: F2 kapanmıştır. Baseline artık yalnız aktif run'a değil,
+  plan/revision/run/session kullanıcı/profil sayılarına da bakıyor.
+
+### F3 — kısmen kapandı, kalan eski iddialar
+
+Düzeltilenler:
+
+- `docs/evidence/phase-7-ci.md` koşu linki artık
+  `github.com/kemselcuk/probedesk/.../41885922086` (doğru org).
+- P7-06 kartı `In Review`; görev indeksi P7-06 `In Review`; roadmap üst metni
+  `P7 In Review`.
+- P7-06 kartına `41885922086` ve `41889479163` gerçek koşu linkleri eklendi.
+
+Hâlâ güncel olmayan P7 iddiaları:
+
+- `docs/roadmap.md` aşama tablosunda satır 7 hâlâ **Planned**; üst metin ise
+  P7 In Review diyor (`docs/roadmap.md:22`).
+- `docs/tasks/P7-06.md:63-66` hâlâ “Kritik/yüksek bulgular: Henüz
+  değerlendirilmedi. Gerçek GitHub Actions koşusu ... yapılmadı” ve “lead
+  tarafından doğrulanacak” diyor; oysa gerçek koşular ve inceleme mevcut.
+  Uygulama commit'i alanı da hâlâ “Henüz yok”.
+- `docs/evidence/phase-7-ci.md:3-14` başlığı hâlâ “gerçek koşu bekliyor” ve
+  “Commit SHA: Henüz yok” diyor; aynı dosyada alt bölümde gerçek koşu var.
+  Yerel test sayısı 195, eski baseline/status ise `plans=0 runs=0`.
+- `docs/tasks/P7-05.md` ve `docs/evidence/phase-7-test-isolation.md` hâlâ
+  suite sonrası `plans=0 runs=0 sessions=0` diyor; HEAD'de doğru baseline
+  `plans=1 runs=4` (demo fixture'ı).
+- P7-02/P7-03/P7-05 kartlarındaki 195/367 test sayıları ve P7-01…P7-05
+  “inceleme bekliyor / commit yok” alanları güncel değil;
+  `docs/evidence/phase-7-security-race.md` ve
+  `docs/evidence/phase-7-test-isolation.md` de bağımsız incelemenin
+  yapılmadığını söylüyor. Oysa bu dosya mevcut.
+- P7-06 kartı yeni `ea08fb3` koşusunu (`41892312186`) linklemiyor; iki eski
+  koşu linki doğru.
+
+Bu kalanlar ürün/CI davranışı değil, kabul kaydı ve kanıt tutarlılığıdır.
+F3 kapanmadan kartların `Accepted` yapılması önerilmez.
+
+### Yeniden çalıştırılan kontroller
+
+```text
+$ npm run verify
+lint/typecheck: 0 hata; API unit 16/118; web 36/370; build başarılı;
+openapi:check current
+EXIT=0
+
+$ npm run test:e2e --workspace apps/api
+Test Files  22 passed (22)
+     Tests  197 passed (197)
+Duration  39.28s
+EXIT=0
+
+$ node scripts/ci-e2e.mjs --reporter=list   (E2E DB, API 3101, web 4300)
+2 passed (37.6s)
+[ci-e2e] Playwright passed
+EXIT=0
+
+$ node scripts/e2e-isolated.mjs assert-baseline
+seeded baseline unchanged
+exit=0
+
+$ npm run openapi:check
+OpenAPI contract is current...
+EXIT=0
+```
+
+Gerçek CI: `41892312186` (`ea08fb3`) **6/6 success** — Web quality, Playwright
+E2E, OpenAPI contract, API integration, API quality, CI required.
+
+### Yeni bulgular ve sonuç
+
+- Yeni **Critical/High/Medium** bulgu yoktur. F3'ün kalan dokümantasyon
+  kalıntıları önceki Medium bulgunun devamıdır; yeni bir sınıf değildir.
+- F1 ve F2 kapanmıştır. Phase 7'nin ürün davranışı ve CI pipeline'ı teknik
+  olarak kabul edilebilir.
+- F3'ün kalan eski iddiaları düzeltilmeden görev kartlarının `Accepted`
+  yapılması önerilmez; bu belge yine ürün kabulü değildir.

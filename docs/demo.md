@@ -1,51 +1,145 @@
 # Hazır veriler ve demo
 
-Görevler: [P8-02](tasks/P8-02.md), [P8-05](tasks/P8-05.md). Durum: Plan; seed veya video henüz üretilmedi.
+Görevler: [P8-02](tasks/P8-02.md), [P8-03](tasks/P8-03.md), [P8-05](tasks/P8-05.md). Durum:
+**Hazır örnek veriler ve fixture'lar gerçek seed koduyla üretildi ve doğrulandı; demo videosu
+henüz yok.** Bu belge ürün
+kabulü değildir; kullanıcı nihai kabulü [acceptance.md](acceptance.md) içinde ayrıca bekleniyor.
 
-## Örnek veri sözleşmesi
+## Doğrulanmış demo ortamı
 
-- Roller: Planner, Operator, Viewer; üç hazır hesap. E-posta/parola değerleri P1-06/P8-02'de yalnızca yerel demo kimlik bilgileri olarak belgelenecek; şu anda gerçek hesap yoktur.
-- Tek profil: DC Power Module.
-- Üç adımlı plan: [simulation.md](simulation.md) tablosu.
-- Seed başlangıç örneği: 42.
-- Hazır geçmiş: normal Passed, kesin hata Failed, farklı toleranslı yeni sürüm ve en az bir kısmi kayıt.
-- Hazır ölçümler aynı değerlendirme koduyla oluşturulmalı; veritabanına rastgele Passed/Failed etiketleri yazılmamalı.
-- Seed idempotent olmalı: mevcut kullanıcı planını, yayımlanmış revision'ı veya eski run'ı değiştirmemeli. Çakışan fixture sessizce ezilmez.
-- Demo reset yalnızca açıkça seçilmiş demo ortamını sıfırlar; genel başlangıç veya verify komutu reset içermez.
+- Delivery profili, boş `probedesk_delivery_check` veritabanında `migrate → seed → api → web`
+  zinciriyle açıldı; sonuç: `3` kullanıcı, `1` profil, `1` plan, `2` yayımlanmış sürüm ve `4`
+  çalıştırma ([temiz kurulum kanıtı](evidence/phase-8-clean-install.md)).
+- Aynı stack `down` + `up` sonrasında planları ve run geçmişini korudu; FAILED run `90/90` örnekle
+  `COMPLETED/FAILED` kaldı.
+- Yerel geliştirme veritabanında P8-02 öncesinden kalan aynı adlı planlar bulunabilir. Seed mevcut
+  planı ezmez; bu nedenle temiz bir demo için delivery veritabanı veya korumalı demo reset
+  kullanılmalıdır. Normal `demo:seed` ve `verify` komutları reset içermez.
+- Demo yalnızca yerel kullanım içindir. Aşağıdaki parolalar gerçek bir secret değildir; seed
+  `NODE_ENV=production` ile çalışmayı reddeder.
+
+## Demo hesapları
+
+| Rol | E-posta | Parola |
+|---|---|---|
+| Planner | `planner@probedesk.local` | `PlannerDemo!2026` |
+| Operator | `operator@probedesk.local` | `OperatorDemo!2026` |
+| Viewer | `viewer@probedesk.local` | `ViewerDemo!2026` |
+
+## Plan ve yayımlanmış sürümler
+
+Profil: `DC Power Module` (`DC_POWER_MODULE`). Plan: `Power Supply Validation`.
+
+| Sürüm | Durum | Adımlar | Current Draw aralığı |
+|---|---|---|---|
+| v1 | PUBLISHED | Output Voltage 4.75–5.25 V; Current Draw 0.45–0.55 A; Case Temperature 20–60 °C | `0.450000 – 0.550000 A` |
+| v2 | PUBLISHED | v1 ile aynı üç adım ve aynı `logicalStepId` değerleri | `0.450000 – 0.650000 A` |
+
+Her adım 30 örnek ve 200 ms örnekleme aralığı kullanır; bir çalıştırmada 90 örnek beklenir. v2
+yalnızca Current Draw üst sınırını değiştirir; yayımlanmış v1 ve geçmiş run snapshot'ları
+değişmez.
+
+## Hazır çalıştırmalar
+
+Değerler, sayaçlar, istatistikler ve sonuçlar üretimdeki simülatör ve değerlendirici koduyla
+hesaplanır; seed veritabanına sabit `PASSED`/`FAILED` etiketi yazmaz.
+
+| Fixture | Sürüm | Senaryo / seed | Durum | Sonuç | Beklenen / kaydedilen | Son olay |
+|---|---|---|---|---|---|---|
+| Partial cancelled v1 | v1 | NORMAL / 42 | CANCELLED | — | 90 / 45 | 50 |
+| Forced failure v1 | v1 | FORCED_FAILURE / 42 | COMPLETED | FAILED | 90 / 90 | 98 |
+| Normal v1 | v1 | NORMAL / 42 | COMPLETED | PASSED | 90 / 90 | 98 |
+| Normal v2 | v2 | NORMAL / 42 | COMPLETED | PASSED | 90 / 90 | 98 |
+
+Gerçek run kimlikleri ortama göre değişir; doğrulanan yerel kimlikler
+[phase-8-seed.md](evidence/phase-8-seed.md) içinde kayıtlıdır. Demo adımlarında kimlik yerine run
+başlığı, sürüm, senaryo ve sonuç kullanılır.
+
+### Forced failure ayrıntısı
+
+- Current Draw adımında sıfır tabanlı `sampleIndex=14` (kullanıcıya göre 15. örnek) değeri
+  `0.600000 A` olur.
+- v1 üst sınırı `0.550000 A` olduğu için ölçüm tolerans dışıdır:
+  `isWithinTolerance=false`, `outOfToleranceCount=1`, `firstFailureSampleIndex=14`, adım sonucu
+  `FAILED`.
+- Aynı `0.600000 A` değeri v2'nin `0.650000 A` sınırı içindedir. v2 NORMAL run'ında Current Draw
+  örneklerinin 14 tanesi v1'in `0.550000 A` sınırını aşar; v2'de tamamı tolerans içindedir.
+- Hata sonrasında Case Temperature adımı çalışmaya devam eder; run bütün adımlar tamamlandıktan
+  sonra `COMPLETED/FAILED` olur.
+
+### Kısmi çalıştırma ayrıntısı
+
+Output Voltage `30/30` tamamlanır; Current Draw `15/30` örnekte `CANCELLED` olur; Case Temperature
+`NOT_RUN` kalır. Kısmi adımın istatistikleri `null` kalır, tamamlanmış adımın istatistikleri
+korunur. Kullanıcıya görünen adım durumları `Completed`, `Cancelled` ve `Not run` olur.
 
 ## Ana demo
 
+Önerilen akış, delivery profili (`http://127.0.0.1:8080`) ve temiz demo veritabanı içindir. Her
+adım gerçek UI üzerinden yapılır; test/seed sonucu doğrudan yazılmaz.
+
 | Adım | Kullanıcı işlemi | Görünmesi gereken sonuç |
 |---|---|---|
-| 1 | Planner giriş yapar | Plan oluşturma ve edit yetkileri |
-| 2 | Yeni üç adımlı plan oluşturur; bir adımı taşıyıp son sırayı kaydeder | Sıra ve bütün alanlar yeniden açıldığında aynı |
-| 3 | v1'i Publish eder | Immutable v1 ve salt okunur görünüm |
-| 4 | Operator giriş yapar; FORCED_FAILURE, seed 42, Current Draw seçer | Live Run açılır |
-| 5 | İkinci adımın 15. örneği gelir | 0.60 A, 0.55 A üst sınırı dışında işaretlenir |
-| 6 | Üçüncü adım tamamlanır | Çalıştırma COMPLETED/FAILED |
-| 7 | Hata noktası seçilir; zoom/reset kullanılır | Doğru adım ve ölçüm satırı açılır |
-| 8 | Aynı v1 NORMAL ile yeni run olarak başlatılır | COMPLETED/PASSED |
-| 9 | İki v1 run karşılaştırılır | İki seri ve sonuç farkı |
-| 10 | Planner yeni taslakta Current Draw üst sınırını 0.65 A yapıp v2 yayımlar | v1 değişmez, adım kimliği korunur |
-| 11 | Operator v2 ile NORMAL çalıştırır | Karşılaştırılabilir üçüncü terminal run oluşur |
-| 12 | Eski v1 hatalı run tekrar açılır | Üst sınır hâlâ 0.55 A; 0.60 A hâlâ ihlal; sonuç Failed |
-| 13 | v1 hatalı run ile v2 normal run karşılaştırılır | İki sürümün kendi toleransları ve farkları görünür |
+| 1 | Planner ile giriş yap; **Test Plans** ekranını aç | `Power Supply Validation` planı; yayımlanmış v1 ve v2 |
+| 2 | Plan sürüm listesinden **Version 1**'i aç | Salt okunur v1: üç adım, 30 örnek, 200 ms, toplam 90 örnek; `Current Draw` maksimumu `0.550000 A` |
+| 3 | Operator ile giriş yap; v1 sürüm sayfasından **Start run** seç | Start Run ekranı; `FORCED_FAILURE`, seed `42`, failing step `Current Draw` |
+| 4 | **Start run** ile çalıştırmayı başlat; **Live Run** ekranını izle | Önce `Running`, canlı örnekler ve `Connection: Connected`; run `FAILED` olarak tamamlanır, `90/90` örnek kaydedilir |
+| 5 | Current Draw adımındaki hatayı ve **View run details** bağlantısını incele | İlk hata `Sample index 14`; değer `0.600000 A`; adım `Completed`/`Failed`, ihlal sayısı `1`; Case Temperature `Completed`/`Passed` |
+| 6 | Run Details grafiğinde hata noktasını seç; tooltip ve ölçüm satırını kontrol et | Grafikte tolerans dışı işaret; tooltip `0.600000`; tabloda aynı satır `Outside tolerance` ve seçili |
+| 7 | **Run History** ekranında planı `Power Supply Validation` olarak filtrele; forced-failure v1 ve normal v1 run'larını seçip **Compare** et | `Version 1` vs `Version 1`; sonuçlar `Failed`/`Passed`; ihlal `1`/`0`; ilk hata `Sample index 14`/`None recorded`; 3 ortak adım, değişen kural yok |
+| 8 | Aynı ekranda v1 FAILED ile v2 PASSED run'larını karşılaştır | Farklı sürüm notu; tek değişen kural Current Draw maksimumu `0.550000 → 0.650000`; v1 run'ının kayıtlı kuralı hâlâ `0.550000` |
+| 9 | Run History'den partial cancelled v1 run'ını aç | `CANCELLED`; `90` beklenen / `45` kaydedilen örnek; adım durumları `Completed`, `Cancelled`, `Not run` |
+| 10 | Viewer ile giriş yap; Test Plans ve Run History'yi aç | Salt okunur görünüm; run başlatma/iptal düğmeleri yok; doğrudan mutasyon API tarafından reddedilir |
 
-Sürümler arası karşılaştırma için v2 run oluşturmak zorunludur; yalnızca v2 yayımlamak iki çalıştırma sağlamaz.
+Adım 7 ve 8 için Run History'deki **Compare** seçimi iki terminal run ister. Sürüm farkı
+karşılaştırması için v2 run'ı seed ile hazırdır; yalnızca v2 yayımlamak yeni bir run oluşturmaz.
 
-## Tamamlayıcı kabul demoları
+## Kalıcılık ve yeniden başlatma
 
-Ana videoya sığması zorunlu değildir; test/inceleme kanıtı gerekir.
+Delivery stack'i kapatıp açmak planları ve run geçmişini korur:
 
-- Devam eden çalışma iptal edilir: yeni ölçüm gelmez, eski örnekler kalır.
-- İkinci başlangıç reddedilir ve mevcut çalışmaya bağlantı sunulur.
-- Ağ geçici kesilir; SSE geri gelince son örnek sayısı aynı olur.
-- API zorla kapanıp açılır: Interrupted ve kayıtlı ölçümler görülür.
-- Viewer doğrudan API mutasyon isteği gönderir: reddedilir.
-- Sürüm değişiminde adım rename/reorder, ekleme/silme ve birim farkı doğru görünür.
+```bash
+docker compose --profile delivery down
+docker compose --profile delivery up -d
+```
 
-## Video kabulü
+`down` named volume'ü (`probedesk-postgres-data`) silmez. `down -v` volume'ü siler ve yalnızca
+bilinçli bir yerel sıfırlama için kullanılmalıdır; normal demo veya seed akışının parçası değildir.
+Doğrulanan gerçek sonuç: `down`/`up` sonrası `plans=1`, `runs=4`, `users=3` ve FAILED run
+`COMPLETED/FAILED`, `90/90` kaldı ([kanıt](evidence/phase-8-clean-install.md)).
 
-Yaklaşık 3–5 dakikalık kısa video hedeflenir. İngilizce UI görünür; ses zorunlu değildir, gerekiyorsa kısa İngilizce açıklamalar kullanılabilir. Video bütün ana sonuçları görünür kılmalı; kesme/hızlandırma hatanın ardından devam eden adımı veya sürüm korunmasını gizlememelidir.
+## Seed davranışı
 
-Dosya yerelde açılmalı; başlangıç/bitiş oynatılmalı, metinler okunmalı, kullanılan commit ve ortam kanıt kaydında belirtilmelidir. README'ye yalnızca gerçek dosya/link eklenecek. Hosting gerekiyorsa ücretsiz seçenek ve kullanıcı yayın kararı esas alınacak; büyük dosya/ücretli depolama varsayılmayacak.
+`npm run demo:seed` idempotent ve eklemelidir:
+
+1. Demo idempotency anahtarına sahip planı, yoksa aynı Planner + `Power Supply Validation` adı +
+   birebir v1/v2 kurallarıyla eşleşen tek planı bulur.
+2. Eşleşen planda yalnızca eksik run'ları ekler; mevcut published sürümü, run'ı, ölçümü veya olayı
+   güncellemez/silmez.
+3. Birden fazla aday varsa tahmin yürütmez; açık bir çakışma hatasıyla durur.
+
+Gerçek idempotence çıktısı ve tablo özetleri
+[phase-8-seed.md](evidence/phase-8-seed.md) içindedir. Yıkıcı demo reset ayrı ve korumalı bir
+script'tir; normal seed, `verify` veya delivery başlangıcı tarafından çalıştırılmaz.
+
+## Demo videosu
+
+P8-05 kapsamındaki kısa video hazırdır: [probedesk-demo.mp4](evidence/probedesk-demo.mp4)
+(35 sn, 1280×800, H.264, İngilizce ekran üstü caption). Plan/sürüm, Run History, FAILED run
+ayrıntısı ve gerçek grafik tooltip'i, v1/v2 karşılaştırması ve v2 PASSED run gösterilir.
+Kayıt notları: [phase-8-video.md](evidence/phase-8-video.md). Video Docker Compose delivery
+stack'inden alınmıştır ve ürün kullanıcı kabulü değildir.
+
+## Kanıt bağlantıları
+
+- [Hazır örnek veri kanıtı](evidence/phase-8-seed.md) — hesaplar, plan/sürümler, dört run, tam
+  hata indeksi ve idempotence.
+- [Temiz kurulum ve kalıcılık](evidence/phase-8-clean-install.md) — boş DB, migration, seed ve
+  restart.
+- [Compose teslimi](evidence/phase-8-compose.md) — proxy, health, SSE, deep link ve tek API
+  süreci.
+- [Ana demo E2E](evidence/phase-7-e2e.md) — gerçek UI akışı ve ekran görüntüleri.
+- [Erişilebilirlik ve hata deneyimi](evidence/phase-7-accessibility.md) — klavye, odak, 1280/768
+  yerleşim.
+- [Yetki ve istek güvenliği](evidence/phase-7-security-race.md) — rol matrisi; Viewer/Planner
+  mutasyonlarının API tarafından reddi.

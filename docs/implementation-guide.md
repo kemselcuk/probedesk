@@ -1,52 +1,127 @@
 # Uygulamaya başlangıç rehberi
 
-Bu repository bir uygulama sözleşmesi, görev paketi ve Phase 1 iskeletini içerir. npm workspace kurulumu, Angular kabuğu, NestJS API, PostgreSQL/Prisma temeli, oturum/CSRF/rol yetkilendirmesi, OpenAPI istemcisi ve ilk CI pipeline'ı çalışır durumdadır; plan editörü ve sonraki ürün akışları henüz yoktur. Bu belgenin varlığı kendi başına ücretli hizmet kullanma talimatı değildir.
+Bu repository, onaylanan ürün sözleşmesini, görev paketini ve **çalışan uygulamayı** birlikte
+içerir: NestJS API, Angular SPA, PostgreSQL/Prisma veri katmanı, deterministik simülatör, SSE canlı
+akışı, run geçmişi/karşılaştırma, otomatik testler ve yerel Docker Compose teslimi. Belgeler
+yalnızca niyeti değil, gerçekten çalıştırılmış kontrollerin kanıtlarını da kaydeder.
+
+Durum (2026-11-04): P1–P6 görevleri bağımsız teknik incelemeden geçmiştir (`Accepted`). P7 kalite
+görevleri ile P8-01–P8-04 teslim görevleri `In Review`; P8-05 demo videosu ve P8-06 sürüm
+adayı/nihai kabul paketi `Planned` durumundadır. **Nihai ürün kabulü kullanıcıya aittir ve henüz
+verilmemiştir.** Bu belgenin varlığı ücretli hizmet kullanma talimatı değildir; ek altyapı maliyeti
+hedefi €0'dır.
 
 ## Önce okunacaklar
 
-1. [Belge dizini ve durum](README.md).
-2. [Ürün/roller](requirements.md), [ölçüm kuralları](measurement-rules.md), [simülasyon](simulation.md).
-3. [Mimari](architecture.md), [veri modeli](data-model.md), [API](api.md), [frontend](frontend.md).
-4. [Yol haritası](roadmap.md), [görev dizini](tasks/README.md), [test sözleşmesi](testing.md).
+1. [Belge dizini ve güncel durum](README.md).
+2. [Proje README'si](../README.md): çalışan uygulama, kurulum, demo hesapları ve sınırlar.
+3. [Ürün/roller](requirements.md), [ölçüm kuralları](measurement-rules.md),
+   [simülasyon](simulation.md).
+4. [Mimari](architecture.md), [veri modeli](data-model.md), [API](api.md),
+   [frontend](frontend.md).
+5. [Test sözleşmesi](testing.md), [demo](demo.md), [nihai kabul](acceptance.md).
+6. [Yol haritası](roadmap.md), [görev dizini](tasks/README.md) ve ilgili görev kartları.
+7. [Kanıt dizini](evidence/README.md): gerçek test, CI, ekran görüntüsü ve teslim kayıtları.
 
-Uygulama İngilizce, README İngilizce, bu plan belgeleri Türkçedir. Kullanıcıyla Türkçe iletişim kurulur. Öğretici dersler ve mülakat soru listeleri teslim kapsamına dahil değildir.
+Uygulama İngilizce, README İngilizce, bu plan belgeleri Türkçedir. Kullanıcıyla Türkçe iletişim
+kurulur. Öğretici dersler ve mülakat soru listeleri teslim kapsamına dahil değildir.
+
+## Mevcut durum ve doğrulanan gerçekler
+
+| Aşama | Durum | Not |
+|---|---|---|
+| P0 — ürün ve teknik sözleşmeler | In Review | Belgeler kullanımda; ürün kabulü değildir |
+| P1 — iskelet, giriş, ilk CI | Accepted | Teknik inceleme tamamlandı |
+| P2 — plan editörü ve sürümler | Accepted | v1/v2, publish ve immutable sürüm |
+| P3 — simülasyon ve yürütme | Accepted | NORMAL/FORCED_FAILURE/RANDOM, snapshot, cancel/recovery |
+| P4 — canlı durum ve SSE | Accepted | replay/cursor/reconnect ve oturum yaşam döngüsü |
+| P5 — geçmiş ve grafikler | Accepted | History, Details, tolerans grafikleri |
+| P6 — karşılaştırma | Accepted | Sürüm/kimlik/birim/örnekleme farkları |
+| P7 — bütünleşik kalite | In Review | P7-01–P7-06; gerçek E2E ve CI koşusu kayıtlı |
+| P8 — yerel teslim | Kısmen In Review | P8-01–P8-04 In Review; P8-05/P8-06 Planned |
+
+Doğrulanan başlıca çıktılar:
+
+- Delivery profili boş bir veritabanında migration + seed + API + web zinciriyle açıldı; üç demo
+  hesabı, bir plan, iki yayımlanmış sürüm ve dört run oluştu
+  ([temiz kurulum](evidence/phase-8-clean-install.md)).
+- `down`/`up` sonrasında planlar ve run geçmişi korundu; named volume kullanılıyor.
+- Son yerel doğrulamada API birim `16` dosya / `118` test, web `36` dosya / `370` test, API
+  entegrasyon `22` dosya / `197` test geçti; iki Playwright senaryosu gerçek stack üzerinde geçti
+  ([verify kaydı](evidence/phase-8-docs.md), [E2E](evidence/phase-7-e2e.md)).
+- Kayıtlı GitHub Actions koşusu `3d27f2f` commit'inde altı işin tamamını geçti
+  ([CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
+- Delivery, aynı origin nginx proxy'si üzerinden deep link, SSE ve oturum yenilemeyi doğruladı
+  ([Compose kanıtı](evidence/phase-8-compose.md)).
+
+Açık işler:
+
+- P7 ve P8-01–P8-04 için bağımsız inceleme/`Accepted` kaydı.
+- P8-05 kısa demo videosu.
+- P8-06 sürüm adayı, nihai teslim commit'i ve güncel commit üzerinde CI.
+- Kullanıcı nihai kapsam/ürün kabulü.
 
 ## Başlangıç noktası
 
-Kullanıcı uygulamayı başlatmanı istediğinde önce P0-01–P0-05 belgelerini mevcut halleri üzerinden incele. Bu görevlerin çıktı taslakları bu belge paketinde vardır; aynı dosyaları sebepsizce yeniden üretme. Açık çelişki varsa çöz; ürün kapsamı değişiyorsa kullanıcıya getir. Kabul edilmemiş işleri yapılmış olarak işaretleme.
+Yeni bir oturumda önce yukarıdaki durum tablosunu ve ilgili görev kartını oku; tamamlanmış işi
+yeniden üretme. P1-01 tarihsel ilk uygulama göreviydi; mevcut sıradaki iş P8-05/P8-06 ve açık
+inceleme kayıtlarıdır. Yeni bir ürün davranışı gerekiyorsa roadmap sırası, görev bağımlılıkları ve
+kabul ölçütleri izlenir; tek seferde bütün proje yeniden üretilmez.
 
-P0 kabulünden sonra ilk uygulama görevi [P1-01](tasks/P1-01.md)'dir. Ardından [roadmap.md](roadmap.md) sırası ve görev bağımlılıkları izlenir. Tek seferde bütün projeyi üretme.
+Bir görev yalnızca kartındaki kabul ölçütleri, gerçek komut çıktıları ve ayrı inceleme kaydıyla
+kapanır. "Çalışıyor" ifadesi, çalıştırılmış komutun gerçek çıktısına bağlanmalıdır. Çalışmayan veya
+çalıştırılmamış kontrol gizlenmez.
 
 ## Her görev için çalışma sözleşmesi
 
 1. Görev kartını, bağımlılık durumlarını ve bağlantılı birincil sözleşmeleri oku.
-2. Mevcut repository'yi incele; kullanıcının değişikliklerini koru.
-3. İşi tek, incelenebilir davranışla sınırla; başka aşamanın ekranını/altyapısını kendiliğinden ekleme.
+2. Mevcut repository'yi incele; kullanıcının değişikliklerini ve başka çalışanların dosyalarını
+   koru.
+3. İşi tek, incelenebilir davranışla sınırla; başka aşamanın ekranını/altyapısını kendiliğinden
+   ekleme.
 4. Görevin değişiklik alanını ve gerçek durumunu kartta güncelle.
-5. İlgili davranışa anlamlı test yaz; DB/canvas/akış gerçekliğinin gerektiği kontrolleri mock ile ikame etme.
-6. İlgili kontrolleri çalıştır; çalışmayanları dürüstçe kaydet. Gerçek çıktıyı commit/ortamla ilişkilendir.
+5. İlgili davranışa anlamlı test yaz; DB/canvas/akış gerçekliğinin gerektiği kontrolleri mock ile
+   ikame etme.
+6. İlgili kontrolleri çalıştır; çalışmayanları dürüstçe kaydet. Gerçek çıktıyı commit/ortamla
+   ilişkilendir.
 7. İnceleme için diff, kabul maddeleri ve kanıt paketini hazırla. Kritik/yüksek bulguları kapat.
-8. Ayrı inceleme kaydı olmadan görevi Accepted yapma. Aşama demosunu ayrıca doğrula.
+8. Ayrı inceleme kaydı olmadan görevi `Accepted` yapma. Aşama demosunu ayrıca doğrula.
 9. Değişen sözleşme, görev durumu, indeks ve teknik kararları aynı değişiklikte güncelle.
 
-Görev kendi başına incelenemeyecek kadar büyürse alt görevlere böl; bağımlılık ve kabul eşlemesini koru. Teknik rutin kararlar mevcut sözleşme içinde çözülebilir; nihai kapsam ve ürün kabulü kullanıcıdadır.
+Görev kendi başına incelenemeyecek kadar büyürse alt görevlere böl; bağımlılık ve kabul eşlemesini
+koru. Teknik rutin kararlar mevcut sözleşme içinde çözülebilir; nihai kapsam ve ürün kabulü
+kullanıcıdadır.
 
 ## Korunacak temel kurallar
 
 - Tek profil, tek simülatör, tek API süreci ve tek aktif çalışma.
-- Backend ölçüm doğrulama, durum ve sonuç kaynağı.
-- Published planlar ve eski run kuralları immutable.
-- Aynı plan içindeki adımlar kalıcı kimlikle eşleşir.
+- Backend ölçüm doğrulama, durum ve sonuç kaynağıdır; Angular bileşenleri verdict hesaplamaz.
+- Published planlar ve eski run kuralları immutable'dır.
+- Aynı plan içindeki adımlar kalıcı `logicalStepId` ile eşleşir.
 - İptal/kesinti kısmi veriyi korur; tekrar deneme yeni run'dır.
 - SSE kopması testi durdurmaz; replay/dedup/gap uzlaştırması gerekir.
 - Backend ve Angular görevleri aşamalar boyunca birlikte ilerler.
-- Ek altyapı maliyeti €0 hedefi; onaysız ücretli hizmet yok.
-- Çalışmayan kurulum, test veya demo tamamlandı diye yazılmaz.
+- Ek altyapı maliyeti €0 hedefi; onaysız ücretli hizmet açılmaz.
+- Localhost demosu HTTP kullanabilir; üretim TLS/secure cookie kapsam dışıdır.
+- Gerçek secret, cookie veya token commit edilmez; `.env` yalnızca yerel kalır.
 
 ## Sonraki uygulama oturumuna verilebilecek başlangıç metni
 
-> ProbeDesk için docs/implementation-guide.md dosyasını ve gösterdiği sözleşmeleri oku. Önce P0 belgelerinin inceleme durumunu değerlendir. Kabul edilmemiş konuları açıkça belirt. Kullanıcının onayladığı küçük görevlerle ilerle; ilk uygun uygulama görevi P1-01. Tek seferde bütün projeyi üretme. Her görevde kabul ölçütlerini, gerçek test çıktısını ve ayrı inceleme kaydını koru. Uygulama dili İngilizce, benimle iletişim Türkçe olsun. Ücretli hizmet kullanma.
+> ProbeDesk için `docs/implementation-guide.md` dosyasını ve gösterdiği sözleşmeleri oku. P1–P6
+> teknik kabulden geçti; P7 ve P8-01–P8-04 incelemede; P8-05/P8-06 açık. Önce mevcut görev
+> kartlarının durumunu ve kanıtlarını doğrula, tamamlanmış işi yeniden yapma. Yeni işi roadmap ve
+> görev kartı sırasıyla, gerçek test/CI çıktısı ve ayrı inceleme kaydıyla ilerlet. Nihai ürün
+> kabulünü kullanıcı verir. Ücretli hizmet kullanma; uygulama İngilizce, benimle iletişim Türkçe
+> olsun.
 
 ## Teslim
 
-[acceptance.md](acceptance.md) tamamlanmadan ürün bitmiş sayılmaz. Nihai paket çalışan UI/API, hazır veriler, doğrulanmış yerel kurulum, otomatik testler, gerçek README kanıtları ve kısa demo videosunu içerir. Kullanıcıya ait yayın/nihai kabul kararı otomatik verilmez.
+Yerel teslim iki giriş noktası sunar:
+
+- Geliştirme: Docker PostgreSQL + `npm run dev` (API `:3000`, Angular `:4200`).
+- Tam demo: `docker compose --profile delivery up -d --build` → `http://127.0.0.1:8080`.
+
+[acceptance.md](acceptance.md) tamamlanmadan ürün bitmiş sayılmaz. Nihai paket çalışan UI/API, hazır
+veriler, doğrulanmış yerel kurulum, otomatik testler, gerçek README kanıtları ve kısa demo
+videosunu içerir. Video henüz yoktur; bu nedenle README'de video bağlantısı da yoktur. Kullanıcıya
+ait yayın/nihai kabul kararı otomatik verilmez.
