@@ -1,4 +1,3 @@
-import { RunStatus } from '../prisma/generated/client.js';
 import { parseScaledDecimal } from '../plans/plan-decimal.js';
 import {
   type RunSnapshotRow,
@@ -140,9 +139,9 @@ function toRunSummary(run: RunSnapshotRow): ComparisonRunSummaryDto {
     recordedSampleCount,
     outOfToleranceCount,
     stepCount: steps.length,
-    partial:
-      run.status !== RunStatus.COMPLETED ||
-      recordedSampleCount < expectedSampleCount,
+    // Missing measurement data only; a terminal run that recorded every
+    // expected sample is not partial even when it stopped before completion.
+    partial: recordedSampleCount < expectedSampleCount,
   };
 }
 
