@@ -108,27 +108,31 @@ export class RunEventsService {
    * starts after the last sequence the consumer actually applied.
    */
   connect(runId: string, afterSequence: number): Observable<RunStreamUpdate> {
-    let session = this.sessions.get(runId);
+    // A route or deep link may spell the UUID in any case. The API and every
+    // committed event use the canonical lowercase form, so normalise before
+    // keying sessions and before comparing envelope.runId.
+    const canonicalRunId = runId.toLowerCase();
+    let session = this.sessions.get(canonicalRunId);
 
     if (session !== undefined && session.isClosed) {
-      if (this.sessions.get(runId) === session) {
-        this.sessions.delete(runId);
+      if (this.sessions.get(canonicalRunId) === session) {
+        this.sessions.delete(canonicalRunId);
       }
       session = undefined;
     }
 
     if (session === undefined) {
-      const created = new RunEventSession(runId, afterSequence, {
+      const created = new RunEventSession(canonicalRunId, afterSequence, {
         factory: this.factory,
         reconnectDelays: this.reconnectDelays,
         probeSession: () => this.sessionProbe.probe(),
         onIdle: () => {
-          if (this.sessions.get(runId) === created) {
-            this.sessions.delete(runId);
+          if (this.sessions.get(canonicalRunId) === created) {
+            this.sessions.delete(canonicalRunId);
           }
         },
       });
-      this.sessions.set(runId, created);
+      this.sessions.set(canonicalRunId, created);
       return created.updates;
     }
 

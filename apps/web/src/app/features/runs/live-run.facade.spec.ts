@@ -450,6 +450,18 @@ describe('LiveRunFacade', () => {
     expect(facade.isTerminal()).toBe(true);
   });
 
+  it('canonicalises an uppercase route id and streams with the snapshot id', async () => {
+    const facade = TestBed.inject(LiveRunFacade);
+    facade.load(RUN_ID.toUpperCase());
+    http.expectOne(`/api/runs/${RUN_ID}`).flush(runSnapshot({ id: RUN_ID }));
+    await vi.waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+
+    expect(FakeEventSource.latest().url).toBe(
+      `/api/runs/${RUN_ID}/events?after=3`,
+    );
+    expect(facade.snapshot()?.id).toBe(RUN_ID);
+  });
+
   it('uses the runId in the route for the latest snapshot', async () => {
     const facade = TestBed.inject(LiveRunFacade);
     facade.load(RUN_ID);

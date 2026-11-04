@@ -28,8 +28,11 @@ export class ComparisonsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async compare(query: ComparisonQueryDto): Promise<RunComparisonDto> {
-    const leftRunId = query.leftRunId;
-    const rightRunId = query.rightRunId;
+    // UUIDs are case-insensitive on the wire, but PostgreSQL returns the
+    // canonical lowercase form. Normalise both before the Map lookup, the
+    // same-run check and the response comparisons.
+    const leftRunId = query.leftRunId.toLowerCase();
+    const rightRunId = query.rightRunId.toLowerCase();
 
     return this.prisma.$transaction(async (tx) => {
       const rows = await tx.testRun.findMany({

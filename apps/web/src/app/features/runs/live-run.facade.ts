@@ -155,7 +155,11 @@ export class LiveRunFacade {
   load(runId: string): void {
     this.stopStream();
     this.cancelVisualUpdate();
-    this.runId = runId;
+    // Route ids are case-insensitive; the API and committed events use the
+    // canonical lowercase form. Keep one canonical key for snapshot requests,
+    // stream matching and request-race checks.
+    const canonicalRunId = runId.toLowerCase();
+    this.runId = canonicalRunId;
     this.cursor = 0;
     this.terminalHandled = false;
     this.reconciling = false;
@@ -175,14 +179,17 @@ export class LiveRunFacade {
     const request = this.requestSequence;
 
     this.api
-      .getRun(runId)
+      .getRun(canonicalRunId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (snapshot) => {
-          if (!this.isCurrentRequest(request, runId)) {
+          if (!this.isCurrentRequest(request, canonicalRunId)) {
             return;
           }
 
+          // The stored snapshot is the authority for the canonical id used by
+          // the SSE envelope comparison.
+          this.runId = snapshot.id.toLowerCase();
           this.publishSnapshot(mergeRunSnapshot(null, snapshot), true);
           this.cursor = snapshot.lastEventSequence;
           this.loadStatusState.set('loaded');
@@ -197,7 +204,7 @@ export class LiveRunFacade {
           this.openStream();
         },
         error: (error: unknown) => {
-          if (!this.isCurrentRequest(request, runId)) {
+          if (!this.isCurrentRequest(request, canonicalRunId)) {
             return;
           }
 

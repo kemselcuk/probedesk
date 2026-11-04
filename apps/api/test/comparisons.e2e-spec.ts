@@ -746,6 +746,28 @@ describe('run comparison API (e2e)', () => {
     expect(raw).not.toContain('tokenHash');
   });
 
+  it('treats uppercase and lowercase UUIDs as the same runs', async () => {
+    const canonical = await compare(basePassedRunId, baseFailedRunId);
+    const uppercase = await compare(
+      basePassedRunId.toUpperCase(),
+      baseFailedRunId.toUpperCase(),
+    );
+
+    expect(uppercase).toEqual(canonical);
+    expect(uppercase.leftRun.id).toBe(basePassedRunId);
+    expect(uppercase.rightRun.id).toBe(baseFailedRunId);
+
+    const mixedSameRun = await request(server())
+      .get('/api/comparisons')
+      .query({
+        leftRunId: basePassedRunId.toUpperCase(),
+        rightRunId: basePassedRunId,
+      })
+      .set('Cookie', operator.cookie)
+      .expect(400);
+    expect(mixedSameRun.body).toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
   it('compares versions by identity through rename, reorder, unit and sampling changes', async () => {
     const body = await compare(variantV1RunId, variantV2RunId);
 

@@ -64,8 +64,11 @@ export class RunEventsService implements OnModuleDestroy {
     runId: string,
     cursorInput: RunEventCursorInput,
   ): Promise<PreparedRunEventStream | null> {
+    // UUID input is case-insensitive; PostgreSQL and every SSE consumer see
+    // the canonical lowercase id.
+    const canonicalRunId = runId.toLowerCase();
     const run = await this.prisma.testRun.findUnique({
-      where: { id: runId },
+      where: { id: canonicalRunId },
       select: { id: true, status: true, eventSequence: true },
     });
 

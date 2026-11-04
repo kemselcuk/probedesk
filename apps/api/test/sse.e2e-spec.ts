@@ -412,6 +412,19 @@ describe('run event SSE stream (e2e)', () => {
     }
   });
 
+  it('replays the same stream when the run id is uppercase', async () => {
+    const { runId, events } = await completedRun();
+
+    const connection = await openStream(runId.toUpperCase(), operator, {
+      after: '0',
+    });
+    await connection.waitForClose();
+
+    expect(connection.statusCode).toBe(200);
+    expectReplayMatches(connection, events);
+    expect(eventFrames(connection).every((frame) => frame.data)).toBe(true);
+  });
+
   it('replays only events newer than a mid cursor', async () => {
     const { runId, events } = await completedRun();
 

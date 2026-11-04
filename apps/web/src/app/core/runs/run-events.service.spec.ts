@@ -125,6 +125,25 @@ describe('RunEventsService', () => {
     expect(source.listenerCount()).toBe(0);
   });
 
+  it('canonicalises an uppercase run id for the URL and event matching', () => {
+    const service = TestBed.inject(RunEventsService);
+    const updates: RunStreamUpdate[] = [];
+    subscription = service
+      .connect(RUN_ID.toUpperCase(), 3)
+      .subscribe((update) => updates.push(update));
+
+    const source = FakeEventSource.latest();
+    expect(source.url).toBe(`/api/runs/${RUN_ID}/events?after=3`);
+
+    source.emit(
+      'measurement.recorded',
+      eventData('measurement.recorded', RUN_ID, 4, measurementPayload(4)),
+      '4',
+    );
+
+    expect(updates.filter((update) => update.type === 'event')).toHaveLength(1);
+  });
+
   it('parses a named envelope and ignores an event for another run', () => {
     const { updates } = connect();
     const source = FakeEventSource.latest();
