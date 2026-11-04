@@ -31,6 +31,7 @@ import {
 } from './compare-selection';
 import { ComparisonsFacade } from './comparisons.facade';
 import { ComparisonStepCard } from './comparison-step-card';
+import type { ComparisonStepView } from './comparison-view';
 import {
   buildComparisonStepViews,
   comparisonCounts,
@@ -97,6 +98,7 @@ export class CompareRunsPage {
   private readonly linkErrorState = signal<string | null>(null);
   private readonly selectionOpenState = signal(false);
   protected readonly announcement = signal('');
+  protected readonly selectedStepKey = signal<string | null>(null);
 
   protected readonly activePair = this.pairState.asReadonly();
   protected readonly linkError = this.linkErrorState.asReadonly();
@@ -131,6 +133,31 @@ export class CompareRunsPage {
       ? { matched: 0, added: 0, removed: 0, changedFields: 0 }
       : comparisonCounts(result);
   });
+
+  protected readonly defaultStepKey = computed(() => this.stepViews()[0]?.key ?? null);
+
+  protected isStepActive(view: ComparisonStepView): boolean {
+    return (this.selectedStepKey() ?? this.defaultStepKey()) === view.key;
+  }
+
+  protected selectStep(view: ComparisonStepView): void {
+    this.selectedStepKey.set(view.key);
+    const target = document.getElementById(`comparison-step-${view.key}`);
+    if (typeof target?.scrollIntoView === 'function') {
+      target.scrollIntoView({ block: 'start' });
+    }
+  }
+
+  protected presenceLabel(view: ComparisonStepView): string {
+    switch (view.presence) {
+      case 'matched':
+        return 'Shared';
+      case 'added':
+        return 'Right only';
+      case 'removed':
+        return 'Left only';
+    }
+  }
   protected readonly runCards = computed<RunCard[]>(() => {
     const result = this.result();
     if (result === null) {
@@ -158,10 +185,10 @@ export class CompareRunsPage {
 
     const result = this.result();
     if (result !== null) {
-      return `${result.leftRun.planName} · Left version ${result.leftRun.versionNumber} vs right version ${result.rightRun.versionNumber} · ${this.counts().matched} shared ${this.counts().matched === 1 ? 'step' : 'steps'}.`;
+      return `${result.leftRun.planName} · ${this.counts().matched} shared ${this.counts().matched === 1 ? 'step' : 'steps'}; versions stay separate.`;
     }
 
-    return 'Choose two terminal runs of the same plan. Different plan versions are allowed; the API validates the pair again.';
+    return 'Choose two terminal runs of the same plan.';
   });
 
   protected readonly errorHeading = computed(() => {

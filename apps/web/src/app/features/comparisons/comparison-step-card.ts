@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { ComparisonChart } from '../../shared/charts/comparison-chart';
+import type { ComparisonPointSelection } from '../../shared/charts/comparison-chart.types';
 import { MeasurementChart } from '../../shared/charts/measurement-chart';
 import type { ComparisonStepSide, ComparisonStepView } from './comparison-view';
 import {
@@ -64,6 +65,36 @@ export class ComparisonStepCard {
     `${side.runLabel} version ${side.run.versionNumber} recorded measurements for step ${side.step.position}: ${side.step.name}, in ${side.step.unit}.`;
   protected readonly tableId = measurementTableId;
   protected readonly panelId = chartPanelId;
+
+  /**
+   * A chart point opens the matching run's measurement table and focuses the
+   * exact sample row. The table is inside a disclosure, so open it first.
+   */
+  protected selectChartPoint(selection: ComparisonPointSelection): void {
+    const side = this.sides().find((entry) => entry.key === selection.side);
+    const measurement = side?.step.measurements.find(
+      (entry) => entry.sampleIndex === selection.sampleIndex,
+    );
+    if (side === undefined || measurement === undefined) {
+      return;
+    }
+
+    const row = document.getElementById(
+      this.rowId(side, measurement.sampleIndex),
+    );
+    const disclosure = row?.closest('details');
+    if (disclosure instanceof HTMLDetailsElement) {
+      disclosure.open = true;
+    }
+    row?.focus();
+    this.announcement.set(
+      `${side.runLabel} sample ${measurement.sampleIndex}: value ${measurement.value} ${side.step.unit}, elapsed ${measurement.elapsedMs} ms, ${measurement.isWithinTolerance ? 'within tolerance' : 'outside tolerance'}. The measurement row is focused in the table.`,
+    );
+  }
+
+  protected rowId(side: ComparisonStepSide, sampleIndex: number): string {
+    return `comparison-measurement-${side.step.runStepId}-${sampleIndex}`;
+  }
   protected readonly sideNote = stepDataNote;
   protected readonly statusText = stepStatusText;
   protected readonly outcomeText = stepOutcomeText;
@@ -118,6 +149,10 @@ export class ComparisonStepCard {
       return;
     }
 
+    const disclosure = table.closest('details');
+    if (disclosure instanceof HTMLDetailsElement) {
+      disclosure.open = true;
+    }
     table.focus();
     this.announcement.set(
       'The recorded measurement table for this run is focused. It contains the same stored samples as the chart.',

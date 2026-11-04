@@ -18,12 +18,12 @@ import type {
   ComparisonSeriesVisibility,
 } from './comparison-chart.types';
 
-export const LEFT_SERIES_COLOR = '#00695c';
-export const RIGHT_SERIES_COLOR = '#4527a0';
-export const LEFT_BAND_COLOR = 'rgba(0, 105, 92, 0.10)';
-export const LEFT_LINE_COLOR = 'rgba(0, 105, 92, 0.78)';
-export const RIGHT_BAND_COLOR = 'rgba(69, 39, 160, 0.08)';
-export const RIGHT_LINE_COLOR = 'rgba(69, 39, 160, 0.78)';
+export const LEFT_SERIES_COLOR = '#2563eb';
+export const RIGHT_SERIES_COLOR = '#b45309';
+export const LEFT_BAND_COLOR = 'rgba(37, 99, 235, 0.10)';
+export const LEFT_LINE_COLOR = 'rgba(37, 99, 235, 0.78)';
+export const RIGHT_BAND_COLOR = 'rgba(180, 83, 9, 0.08)';
+export const RIGHT_LINE_COLOR = 'rgba(180, 83, 9, 0.78)';
 
 export function comparisonSeriesLabel(series: ComparisonChartSeries): string {
   const side = series.side === 'left' ? 'Left' : 'Right';

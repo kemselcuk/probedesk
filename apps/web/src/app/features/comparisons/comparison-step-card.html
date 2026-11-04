@@ -3,6 +3,7 @@
   appearance="outlined"
   [attr.data-presence]="view().presence"
   [attr.data-logical-step-id]="view().logicalStepId"
+  [attr.id]="'comparison-step-' + view().logicalStepId"
 >
   <section class="step-body" [attr.aria-labelledby]="headingId()">
     <p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
@@ -17,14 +18,14 @@
         }
       </div>
       <div class="step-badges">
-        <span class="presence-badge presence-badge--{{ view().presence }}">
+        <span class="presence-badge pd-badge presence-badge--{{ view().presence }}">
           {{ presenceTitle() }}
         </span>
         @if (view().unitChanged) {
-          <span class="change-badge">Unit changed</span>
+          <span class="change-badge pd-badge pd-badge--warning">Unit changed</span>
         }
         @if (view().changedFields.length > 0) {
-          <span class="change-badge">
+          <span class="change-badge pd-badge pd-badge--danger">
             {{ view().changedFields.length }} changed
             {{ view().changedFields.length === 1 ? 'field' : 'fields' }}
           </span>
@@ -37,8 +38,7 @@
     @if (view().presence === 'matched') {
       @if (view().changedFields.length > 0) {
         <p class="changed-note">
-          <strong>Changed rule fields:</strong> {{ changedLabels() }}. Highlighted rows compare the
-          rule copies stored in each run.
+          <strong>Changed rule fields:</strong> {{ changedLabels() }}.
         </p>
       } @else {
         <p class="unchanged-note">
@@ -71,158 +71,112 @@
     @if (sameUnit()) {
       @if (comparisonLeft(); as left) {
         @if (comparisonRight(); as right) {
-          <app-comparison-chart [left]="left" [right]="right" />
+          <app-comparison-chart
+            [left]="left"
+            [right]="right"
+            (pointSelected)="selectChartPoint($event)"
+          />
         }
       }
     }
 
-    <section class="rule-section" aria-labelledby="rules-heading-{{ view().logicalStepId }}">
-      <h4 [id]="'rules-heading-' + view().logicalStepId">Recorded rules and stored evaluation</h4>
+    <details class="pd-disclosure rule-section">
+      <summary>
+        Rule comparison and stored evaluation
+        @if (view().changedFields.length > 0) {
+          <span class="summary-count">{{ view().changedFields.length }} changed</span>
+        }
+      </summary>
+      <div class="pd-disclosure-body">
+        <h4 [id]="'rules-heading-' + view().logicalStepId" class="visually-hidden">
+          Recorded rules and stored evaluation
+        </h4>
 
-      @if (view().presence === 'matched') {
-        <div class="table-scroll">
-          <table class="rules-table">
-            <caption>
-              {{ ruleTableCaption() }}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Rule / stored field</th>
-                <th scope="col">
-                  @if (view().left; as side) {
-                    {{ sideRunLabel(side) }}
-                  } @else {
-                    Left run
-                  }
-                </th>
-                <th scope="col">
-                  @if (view().right; as side) {
-                    {{ sideRunLabel(side) }}
-                  } @else {
-                    Right run
-                  }
-                </th>
-                <th scope="col">Delta (right − left)</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of rules(); track row.field) {
-                <tr
-                  [attr.data-field]="row.field"
-                  [class.changed-row]="row.changed"
-                  [attr.data-changed]="row.changed ? 'true' : null"
-                >
-                  <th scope="row">
-                    {{ row.label }}
-                    @if (row.changed) {
-                      <span class="changed-chip">Changed</span>
-                    }
-                  </th>
-                  <td>
-                    @if (view().left === null) {
-                      <span class="missing">Not in this run</span>
-                    } @else {
-                      <span class="mono">{{ row.leftValue }}</span>
-                    }
-                  </td>
-                  <td>
-                    @if (view().right === null) {
-                      <span class="missing">Not in this run</span>
-                    } @else {
-                      <span class="mono">{{ row.rightValue }}</span>
-                    }
-                  </td>
-                  <td><span class="missing">—</span></td>
-                </tr>
-              }
-
-              @for (row of statistics(); track row.key) {
-                <tr [attr.data-stat]="row.key" [class.different-row]="row.different">
-                  <th scope="row">{{ row.label }}</th>
-                  <td>
-                    @if (view().left === null) {
-                      <span class="missing">Not in this run</span>
-                    } @else if (row.leftValue === null) {
-                      <span class="missing">Not recorded</span>
-                    } @else {
-                      <span class="mono">{{ row.leftValue }}</span>
-                    }
-                  </td>
-                  <td>
-                    @if (view().right === null) {
-                      <span class="missing">Not in this run</span>
-                    } @else if (row.rightValue === null) {
-                      <span class="missing">Not recorded</span>
-                    } @else {
-                      <span class="mono">{{ row.rightValue }}</span>
-                    }
-                  </td>
-                  <td>
-                    @if (!row.comparable) {
-                      <span class="missing">Not calculated — units differ</span>
-                    } @else if (row.deltaValue === null) {
-                      <span class="missing">Not recorded</span>
-                    } @else {
-                      <span class="mono">{{ row.deltaValue }}</span>
-                    }
-                  </td>
-                </tr>
-              }
-
-              @for (row of evaluation(); track row.key) {
-                <tr [attr.data-evaluation]="row.key">
-                  <th scope="row">{{ row.label }}</th>
-                  <td>
-                    @if (view().left === null) {
-                      <span class="missing">Not in this run</span>
-                    } @else {
-                      {{ row.leftValue }}
-                    }
-                  </td>
-                  <td>
-                    @if (view().right === null) {
-                      <span class="missing">Not in this run</span>
-                    } @else {
-                      {{ row.rightValue }}
-                    }
-                  </td>
-                  <td><span class="missing">—</span></td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      } @else {
-        @for (side of sides(); track side.key) {
-          <div class="table-scroll">
-            <table class="rules-table rules-table--one-sided">
+        @if (view().presence === 'matched') {
+          <div class="pd-table-wrap">
+            <table class="rules-table pd-table">
               <caption>
                 {{ ruleTableCaption() }}
               </caption>
               <thead>
                 <tr>
                   <th scope="col">Rule / stored field</th>
-                  <th scope="col">{{ sideRunLabel(side) }}</th>
+                  <th scope="col">
+                    @if (view().left; as side) {
+                      {{ sideRunLabel(side) }}
+                    } @else {
+                      Left run
+                    }
+                  </th>
+                  <th scope="col">
+                    @if (view().right; as side) {
+                      {{ sideRunLabel(side) }}
+                    } @else {
+                      Right run
+                    }
+                  </th>
+                  <th scope="col">Delta (right − left)</th>
                 </tr>
               </thead>
               <tbody>
                 @for (row of rules(); track row.field) {
-                  <tr [attr.data-field]="row.field">
-                    <th scope="row">{{ row.label }}</th>
-                    <td class="mono">
-                      {{ side.key === 'left' ? row.leftValue : row.rightValue }}
+                  <tr
+                    [attr.data-field]="row.field"
+                    [class.changed-row]="row.changed"
+                    [attr.data-changed]="row.changed ? 'true' : null"
+                  >
+                    <th scope="row">
+                      {{ row.label }}
+                      @if (row.changed) {
+                        <span class="changed-chip pd-badge pd-badge--danger">Changed</span>
+                      }
+                    </th>
+                    <td>
+                      @if (view().left === null) {
+                        <span class="missing">Not in this run</span>
+                      } @else {
+                        <span class="mono">{{ row.leftValue }}</span>
+                      }
                     </td>
+                    <td>
+                      @if (view().right === null) {
+                        <span class="missing">Not in this run</span>
+                      } @else {
+                        <span class="mono">{{ row.rightValue }}</span>
+                      }
+                    </td>
+                    <td><span class="missing">—</span></td>
                   </tr>
                 }
 
                 @for (row of statistics(); track row.key) {
-                  <tr [attr.data-stat]="row.key">
+                  <tr [attr.data-stat]="row.key" [class.different-row]="row.different">
                     <th scope="row">{{ row.label }}</th>
-                    <td class="mono">
-                      @if (side.key === 'left') {
-                        {{ row.leftValue ?? 'Not recorded' }}
+                    <td>
+                      @if (view().left === null) {
+                        <span class="missing">Not in this run</span>
+                      } @else if (row.leftValue === null) {
+                        <span class="missing">Not recorded</span>
                       } @else {
-                        {{ row.rightValue ?? 'Not recorded' }}
+                        <span class="mono">{{ row.leftValue }}</span>
+                      }
+                    </td>
+                    <td>
+                      @if (view().right === null) {
+                        <span class="missing">Not in this run</span>
+                      } @else if (row.rightValue === null) {
+                        <span class="missing">Not recorded</span>
+                      } @else {
+                        <span class="mono">{{ row.rightValue }}</span>
+                      }
+                    </td>
+                    <td>
+                      @if (!row.comparable) {
+                        <span class="missing">Not calculated — units differ</span>
+                      } @else if (row.deltaValue === null) {
+                        <span class="missing">Not recorded</span>
+                      } @else {
+                        <span class="mono">{{ row.deltaValue }}</span>
                       }
                     </td>
                   </tr>
@@ -232,90 +186,163 @@
                   <tr [attr.data-evaluation]="row.key">
                     <th scope="row">{{ row.label }}</th>
                     <td>
-                      {{ side.key === 'left' ? row.leftValue : row.rightValue }}
+                      @if (view().left === null) {
+                        <span class="missing">Not in this run</span>
+                      } @else {
+                        {{ row.leftValue }}
+                      }
                     </td>
+                    <td>
+                      @if (view().right === null) {
+                        <span class="missing">Not in this run</span>
+                      } @else {
+                        {{ row.rightValue }}
+                      }
+                    </td>
+                    <td><span class="missing">—</span></td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-        }
-      }
-
-      <p class="evaluation-note">
-        Step statuses, outcomes, counters, statistics, and tolerance flags are the values stored by
-        each run. Numeric deltas come from the API only when both steps use the same unit; a unit
-        change produces no delta. This screen does not recalculate a verdict.
-      </p>
-    </section>
-
-    <section
-      class="measurements-section"
-      aria-labelledby="measurements-heading-{{ view().logicalStepId }}"
-    >
-      <h4 [id]="'measurements-heading-' + view().logicalStepId">Recorded measurements by run</h4>
-      <p class="measurements-hint">
-        Each table belongs to one run and keeps that run's sample order, sample indices, and
-        elapsed milliseconds. The two tables are not aligned row by row.
-      </p>
-
-      <div class="measurement-grid">
-        @for (side of sides(); track side.key) {
-          <section class="measurement-panel">
-            <div class="measurement-heading">
-              <h5>{{ sideRunLabel(side) }}</h5>
-              @if (side.key === 'left' ? view().leftPartial : view().rightPartial) {
-                <span class="partial-chip">Partial</span>
-              }
-            </div>
-            <p class="side-note">{{ sideNote(side) }}</p>
-
-            @if (side.step.measurements.length === 0) {
-              <p class="no-samples" role="note">
-                No samples were recorded for this step in this run. Missing values are not shown as
-                zero.
-              </p>
-            } @else {
-              <div class="table-scroll">
-                <table class="measurement-table" [id]="tableId(side)" tabindex="-1">
-                  <caption>
-                    {{ measurementCaption(side) }}
-                  </caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">Sample index</th>
-                      <th scope="col">Elapsed (ms)</th>
-                      <th scope="col">Value ({{ side.step.unit }})</th>
-                      <th scope="col">Recorded (UTC)</th>
-                      <th scope="col">Stored result</th>
+        } @else {
+          @for (side of sides(); track side.key) {
+            <div class="pd-table-wrap">
+              <table class="rules-table pd-table rules-table--one-sided">
+                <caption>
+                  {{ ruleTableCaption() }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Rule / stored field</th>
+                    <th scope="col">{{ sideRunLabel(side) }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of rules(); track row.field) {
+                    <tr [attr.data-field]="row.field">
+                      <th scope="row">{{ row.label }}</th>
+                      <td class="mono">
+                        {{ side.key === 'left' ? row.leftValue : row.rightValue }}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    @for (measurement of side.step.measurements; track measurement.sampleIndex) {
-                      <tr [class.out-of-tolerance]="!measurement.isWithinTolerance">
-                        <td>{{ measurement.sampleIndex }}</td>
-                        <td>{{ measurement.elapsedMs }}</td>
-                        <td class="mono">{{ measurement.value }}</td>
-                        <td>
-                          <time [attr.datetime]="measurement.recordedAt">
-                            {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
-                          </time>
-                        </td>
-                        <td>
-                          <span class="result-shape" aria-hidden="true">
-                            {{ measurement.isWithinTolerance ? '●' : '◆' }}
-                          </span>
-                          {{ measurement.isWithinTolerance ? 'Within tolerance' : 'Outside tolerance' }}
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-            }
-          </section>
+                  }
+
+                  @for (row of statistics(); track row.key) {
+                    <tr [attr.data-stat]="row.key">
+                      <th scope="row">{{ row.label }}</th>
+                      <td class="mono">
+                        @if (side.key === 'left') {
+                          {{ row.leftValue ?? 'Not recorded' }}
+                        } @else {
+                          {{ row.rightValue ?? 'Not recorded' }}
+                        }
+                      </td>
+                    </tr>
+                  }
+
+                  @for (row of evaluation(); track row.key) {
+                    <tr [attr.data-evaluation]="row.key">
+                      <th scope="row">{{ row.label }}</th>
+                      <td>
+                        {{ side.key === 'left' ? row.leftValue : row.rightValue }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
         }
+
+        <p class="evaluation-note">
+          Step statuses, outcomes, counters, statistics, and tolerance flags are the values stored
+          by each run. Numeric deltas come from the API only when both steps use the same unit; a
+          unit change produces no delta. This screen does not recalculate a verdict.
+        </p>
       </div>
-    </section>
+    </details>
+
+    <details class="pd-disclosure measurements-section">
+      <summary>
+        Recorded measurements by run
+        <span class="summary-count">{{ sides().length }} table{{ sides().length === 1 ? '' : 's' }}</span>
+      </summary>
+      <div class="pd-disclosure-body">
+        <h4 [id]="'measurements-heading-' + view().logicalStepId" class="visually-hidden">
+          Recorded measurements by run
+        </h4>
+        <p class="measurements-hint">
+          Each table belongs to one run and keeps that run's sample order, sample indices, and
+          elapsed milliseconds. The two tables are not aligned row by row.
+        </p>
+
+        <div class="measurement-grid">
+          @for (side of sides(); track side.key) {
+            <section class="measurement-panel">
+              <div class="measurement-heading">
+                <h5>{{ sideRunLabel(side) }}</h5>
+                @if (side.key === 'left' ? view().leftPartial : view().rightPartial) {
+                  <span class="partial-chip pd-badge pd-badge--warning">Partial</span>
+                }
+              </div>
+              <p class="side-note">{{ sideNote(side) }}</p>
+
+              @if (side.step.measurements.length === 0) {
+                <p class="no-samples" role="note">
+                  No samples were recorded for this step in this run. Missing values are not shown
+                  as zero.
+                </p>
+              } @else {
+                <div class="pd-table-wrap">
+                  <table class="measurement-table pd-table" [id]="tableId(side)" tabindex="-1">
+                    <caption>
+                      {{ measurementCaption(side) }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Sample index</th>
+                        <th scope="col">Elapsed (ms)</th>
+                        <th scope="col">Value ({{ side.step.unit }})</th>
+                        <th scope="col">Recorded (UTC)</th>
+                        <th scope="col">Stored result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (measurement of side.step.measurements; track measurement.sampleIndex) {
+                        <tr
+                          [id]="rowId(side, measurement.sampleIndex)"
+                          [class.out-of-tolerance]="!measurement.isWithinTolerance"
+                          [attr.tabindex]="measurement.isWithinTolerance ? -1 : 0"
+                        >
+                          <td>{{ measurement.sampleIndex }}</td>
+                          <td>{{ measurement.elapsedMs }}</td>
+                          <td class="mono">{{ measurement.value }}</td>
+                          <td>
+                            <time [attr.datetime]="measurement.recordedAt">
+                              {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
+                            </time>
+                          </td>
+                          <td>
+                            <span class="result-shape" aria-hidden="true">
+                              {{ measurement.isWithinTolerance ? '●' : '◆' }}
+                            </span>
+                            {{
+                              measurement.isWithinTolerance
+                                ? 'Within tolerance'
+                                : 'Outside tolerance'
+                            }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </section>
+          }
+        </div>
+      </div>
+    </details>
   </section>
 </mat-card>

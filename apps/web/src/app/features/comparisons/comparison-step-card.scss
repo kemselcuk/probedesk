@@ -2,9 +2,12 @@
   display: block;
 }
 
+:host([hidden]) {
+  display: none;
+}
+
 .step-card {
-  margin-bottom: 20px;
-  padding: 20px 24px;
+  margin-bottom: var(--pd-space-3);
 }
 
 .step-body {
@@ -16,7 +19,7 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px 20px;
+  gap: var(--pd-space-1) var(--pd-space-4);
 }
 
 .step-heading-text {
@@ -25,194 +28,153 @@
 
 .step-kicker {
   margin: 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
   overflow-wrap: anywhere;
 }
 
 .step-header h3 {
-  margin: 4px 0 0;
-  font: var(--mat-sys-title-large);
+  margin: 0.125rem 0 0;
+  color: var(--pd-text);
+  font-size: var(--pd-font-section-size);
+  font-weight: 600;
+  line-height: var(--pd-font-section-line);
   overflow-wrap: anywhere;
 }
 
 .rename-note {
-  margin: 4px 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
+  margin: 0.125rem 0 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .step-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.presence-badge,
-.change-badge,
-.changed-chip,
-.partial-chip {
-  display: inline-block;
-  padding: 2px 9px;
-  border: 1px solid currentcolor;
-  border-radius: 999px;
-  font: var(--mat-sys-label-small);
-  white-space: nowrap;
+  gap: var(--pd-space-1);
 }
 
 .presence-badge--matched {
-  background: var(--mat-sys-tertiary-container);
-  color: var(--mat-sys-on-tertiary-container);
+  border-color: var(--pd-success-border);
+  background: var(--pd-success-bg);
+  color: var(--pd-success);
 }
 
 .presence-badge--added {
-  background: var(--mat-sys-primary-container);
-  color: var(--mat-sys-on-primary-container);
+  border-color: var(--pd-primary-soft-border);
+  background: var(--pd-primary-soft);
+  color: #1e40af;
 }
 
 .presence-badge--removed {
-  background: var(--mat-sys-surface-container-highest);
-  color: var(--mat-sys-on-surface);
-}
-
-.change-badge {
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  border-color: var(--pd-border);
+  background: var(--pd-neutral-bg);
+  color: var(--pd-neutral-text);
 }
 
 .presence-note,
-.changed-note,
 .unchanged-note,
-.unit-note,
 .evaluation-note,
 .measurements-hint,
 .side-note {
-  max-width: 92ch;
-  margin: 10px 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
+  max-width: 95ch;
+  margin: var(--pd-space-1) 0 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .changed-note {
-  padding: 8px 12px;
-  border-left: 4px solid var(--mat-sys-error);
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  margin: var(--pd-space-1) 0 0;
+  padding: var(--pd-space-1) var(--pd-space-2);
+  border: 1px solid var(--pd-danger-border);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-danger-bg);
+  color: var(--pd-text);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .unit-note {
-  padding: 10px 14px;
-  border-left: 4px solid var(--mat-sys-primary);
-  background: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
+  margin: var(--pd-space-2) 0 0;
+  padding: var(--pd-space-2) var(--pd-space-3);
+  border: 1px solid var(--pd-primary-soft-border);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-primary-soft);
+  color: var(--pd-text);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .separate-panels {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 12px;
+  gap: var(--pd-space-3);
+  margin-top: var(--pd-space-2);
 }
 
 .single-panel {
   min-width: 0;
-  padding: 12px 16px;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  background: var(--mat-sys-surface-container-low);
+  padding: var(--pd-space-2) var(--pd-space-3);
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-surface-subtle);
 }
 
 .single-panel h4 {
   margin: 0;
-  font: var(--mat-sys-title-small);
+  color: var(--pd-text);
+  font-size: var(--pd-font-subsection-size);
+  font-weight: 600;
+  line-height: var(--pd-font-subsection-line);
 }
 
 .rule-section,
 .measurements-section {
-  margin-top: 22px;
+  margin-top: var(--pd-space-2);
 }
 
-.rule-section h4,
-.measurements-section h4 {
-  margin: 0 0 8px;
-  font: var(--mat-sys-title-small);
-}
-
-.table-scroll {
-  overflow-x: auto;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 10px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-caption {
-  padding: 10px 12px;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
-  text-align: left;
-}
-
-th,
-td {
-  padding: 9px 12px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
-  text-align: left;
-  vertical-align: top;
-}
-
-thead th {
-  background: var(--mat-sys-surface-container);
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-label-large);
-  white-space: nowrap;
-}
-
-tbody th {
-  font: var(--mat-sys-label-large);
-}
-
-td {
-  font: var(--mat-sys-body-medium);
+.summary-count {
+  margin-left: var(--pd-space-2);
+  padding: 0 var(--pd-space-2);
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-badge);
+  background: var(--pd-neutral-bg);
+  color: var(--pd-neutral-text);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .changed-row {
-  background: var(--mat-sys-error-container);
-}
-
-.changed-row th,
-.changed-row td {
-  color: var(--mat-sys-on-error-container);
-}
-
-.changed-chip {
-  margin-left: 6px;
-  color: var(--mat-sys-on-error-container);
+  background: var(--pd-danger-bg);
 }
 
 .different-row {
-  background: var(--mat-sys-surface-container-low);
+  background: var(--pd-surface-subtle);
+}
+
+.changed-chip {
+  margin-left: var(--pd-space-1);
 }
 
 .mono {
-  font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+  font-family: var(--pd-font-mono);
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
 .missing {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--pd-text-secondary);
   font-style: italic;
 }
 
 .measurement-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 10px;
+  gap: var(--pd-space-3);
+  margin-top: var(--pd-space-2);
 }
 
 .measurement-panel {
@@ -223,35 +185,34 @@ td {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--pd-space-1);
 }
 
 .measurement-heading h5 {
   margin: 0;
-  font: var(--mat-sys-title-small);
-}
-
-.partial-chip {
-  color: var(--mat-sys-on-error-container);
-  background: var(--mat-sys-error-container);
+  color: var(--pd-text);
+  font-size: var(--pd-font-subsection-size);
+  font-weight: 600;
+  line-height: var(--pd-font-subsection-line);
 }
 
 .no-samples {
-  margin: 10px 0 0;
-  padding: 12px;
-  border: 1px dashed var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
+  margin: var(--pd-space-2) 0 0;
+  padding: var(--pd-space-2);
+  border: 1px dashed var(--pd-border-strong);
+  border-radius: var(--pd-radius-control);
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .result-shape {
-  margin-right: 4px;
+  margin-right: var(--pd-space-1);
 }
 
 .out-of-tolerance td {
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  background: var(--pd-danger-bg);
+  color: var(--pd-danger);
 }
 
 .visually-hidden {
@@ -267,11 +228,11 @@ td {
 }
 
 .measurement-table:focus-visible {
-  outline: 2px solid var(--mat-sys-primary);
+  outline: 2px solid var(--pd-focus-ring);
   outline-offset: 2px;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 899px) {
   .separate-panels,
   .measurement-grid {
     grid-template-columns: minmax(0, 1fr);

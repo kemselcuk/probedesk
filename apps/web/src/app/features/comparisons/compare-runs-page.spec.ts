@@ -289,10 +289,43 @@ describe('CompareRunsPage', () => {
     expect(voltage.querySelector('[data-stat="sampleCount"]')?.textContent).toContain('0');
   });
 
+  it('opens and focuses the matching measurement row when a comparison point is selected', async () => {
+    const harness = await openComparison();
+    const root = render(harness);
+    const voltage = findStepCard(root, VOLTAGE_STEP_ID);
+    const handle = factory.created[0];
+    const onClick = (
+      handle?.config.options as
+        | { onClick?: (event: unknown, elements: unknown[], chart: unknown) => void }
+        | undefined
+    )?.onClick;
+
+    expect(typeof onClick).toBe('function');
+    onClick?.({}, [{ datasetIndex: 0, index: 1 }], {});
+    harness.detectChanges();
+
+    const row = document.getElementById(
+      'comparison-measurement-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-1',
+    );
+    expect(row).not.toBeNull();
+    expect(document.activeElement?.id).toBe(row?.id);
+    expect(voltage.querySelector('.measurements-section')?.hasAttribute('open')).toBe(true);
+    expect(voltage.textContent).toContain('Left run sample 1');
+    expect(voltage.textContent).toContain('measurement row is focused');
+  });
+
   it('moves focus from a single-run chart link to the matching comparison table', async () => {
     const harness = await openComparison();
     const root = render(harness);
     const temperature = findStepCard(root, TEMPERATURE_STEP_ID);
+
+    root
+      .querySelector<HTMLButtonElement>(
+        `.step-jump-button[aria-controls="comparison-step-${TEMPERATURE_STEP_ID}"]`,
+      )
+      ?.click();
+    harness.detectChanges();
+
     const link = temperature.querySelector<HTMLAnchorElement>('.table-link');
     const table = temperature.querySelector<HTMLTableElement>('.measurement-table');
 
