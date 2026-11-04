@@ -32,3 +32,6 @@ Thumbs.db
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# Local code review report
+/GENERAL-REVIEW.local.md
