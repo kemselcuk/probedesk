@@ -32,6 +32,7 @@ import { Observable, map } from 'rxjs';
 import type { ApiErrorView } from '../../core/http/http-error-normalizer';
 import { UnsavedChangesService } from '../../core/navigation/unsaved-changes.service';
 import { NotificationService } from '../../shared/notifications/notification.service';
+import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
@@ -99,6 +100,7 @@ class MaximumErrorStateMatcher implements ErrorStateMatcher {
     DatePipe,
     DecimalPipe,
     DragDropModule,
+    EmptyState,
     ErrorState,
     LoadingState,
     MatButtonModule,

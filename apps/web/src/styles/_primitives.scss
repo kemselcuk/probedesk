@@ -320,6 +320,19 @@
   background: var(--pd-primary-soft);
 }
 
+.pd-notice--success {
+  border-color: var(--pd-success-border);
+  background: var(--pd-success-bg);
+  color: var(--pd-success);
+}
+
+.pd-field-error {
+  margin: var(--pd-space-2) 0 0;
+  color: var(--pd-danger);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
+}
+
 .pd-disclosure {
   border-top: 1px solid var(--pd-border);
 }
@@ -338,6 +351,20 @@
   user-select: none;
 }
 
+.pd-disclosure > summary::before {
+  width: 0.375rem;
+  height: 0.375rem;
+  flex: none;
+  border-right: 1.5px solid currentcolor;
+  border-bottom: 1.5px solid currentcolor;
+  content: '';
+  transform: rotate(-45deg);
+}
+
+.pd-disclosure[open] > summary::before {
+  transform: rotate(45deg);
+}
+
 .pd-disclosure > summary:hover {
   color: var(--pd-text);
 }
@@ -349,6 +376,76 @@
 
 .pd-disclosure[open] > summary {
   color: var(--pd-text);
+}
+
+.pd-version-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pd-border);
+}
+
+.pd-version-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pd-space-1) var(--pd-space-3);
+  min-height: 2.5rem;
+  padding: var(--pd-space-2) 0;
+  border-bottom: 1px solid var(--pd-border);
+}
+
+.pd-version-item:last-child {
+  border-bottom: none;
+}
+
+.pd-version-item.current-version {
+  margin-inline: calc(var(--pd-space-2) * -1);
+  padding-inline: var(--pd-space-2);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-primary-soft);
+}
+
+.pd-version-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pd-space-1) var(--pd-space-2);
+}
+
+.pd-version-main a {
+  color: var(--pd-text);
+  font-size: var(--pd-font-body-size);
+  font-weight: 600;
+  line-height: var(--pd-font-body-line);
+  text-decoration: none;
+}
+
+.pd-version-main a:hover {
+  color: var(--pd-primary);
+  text-decoration: underline;
+}
+
+.pd-version-name {
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
+}
+
+.pd-version-meta {
+  margin: 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .pd-version-meta {
+    width: 100%;
+    text-align: left;
+  }
 }
 
 .pd-disclosure-body {

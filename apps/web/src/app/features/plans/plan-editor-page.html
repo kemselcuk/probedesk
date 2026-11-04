@@ -9,7 +9,7 @@
 @if (publishedVersion(); as published) {
   <section
     id="publish-success"
-    class="publish-success"
+    class="pd-notice pd-notice--success"
     role="status"
     aria-labelledby="publish-success-heading"
   >
@@ -29,7 +29,7 @@
 @if (publishErrorGuidance(); as guidance) {
   <section
     id="publish-error-panel"
-    class="inline-error conflict-panel"
+    class="pd-inline-warning conflict-panel"
     role="alert"
     tabindex="-1"
     aria-labelledby="publish-error-heading"
@@ -41,7 +41,7 @@
     }
     <p>Your local input has been kept.</p>
     @if (publishErrorRequestId(); as requestId) {
-      <p class="request-id">
+      <p class="pd-hint">
         Request ID: <code>{{ requestId }}</code>
       </p>
     }
@@ -64,7 +64,7 @@
 @if (createDraftError(); as guidance) {
   <section
     id="draft-create-error-panel"
-    class="inline-error conflict-panel"
+    class="pd-inline-warning conflict-panel"
     role="alert"
     tabindex="-1"
     aria-labelledby="draft-create-error-heading"
@@ -75,7 +75,7 @@
       <p>The open draft is revision {{ revision }}.</p>
     }
     @if (createDraftErrorRequestId(); as requestId) {
-      <p class="request-id">
+      <p class="pd-hint">
         Request ID: <code>{{ requestId }}</code>
       </p>
     }
@@ -104,7 +104,7 @@
         @if (submitAttempted() && form.invalid) {
           <section
             id="validation-summary"
-            class="validation-summary"
+            class="pd-inline-error validation-summary"
             role="alert"
             tabindex="-1"
             aria-labelledby="validation-summary-heading"
@@ -124,7 +124,7 @@
         @if (facade.draftConflict()) {
           <section
             id="save-error-panel"
-            class="inline-error conflict-panel"
+            class="pd-inline-warning conflict-panel"
             role="alert"
             tabindex="-1"
             aria-labelledby="conflict-heading"
@@ -135,7 +135,7 @@
               this form was loaded from, so the server rejected the save.
             </p>
             @if (saveErrorRequestId(); as requestId) {
-              <p class="request-id">
+              <p class="pd-hint">
                 Request ID: <code>{{ requestId }}</code>
               </p>
             }
@@ -168,7 +168,7 @@
         } @else if (facade.saveError()) {
           <section
             id="save-error-panel"
-            class="inline-error"
+            class="pd-inline-error"
             role="alert"
             tabindex="-1"
             aria-labelledby="save-error-heading"
@@ -176,7 +176,7 @@
             <h2 id="save-error-heading">The draft could not be saved</h2>
             <p>{{ saveErrorMessage() }}</p>
             @if (saveErrorRequestId(); as requestId) {
-              <p class="request-id">
+              <p class="pd-hint">
                 Request ID: <code>{{ requestId }}</code>
               </p>
             }
@@ -185,51 +185,82 @@
         }
 
         <mat-card class="summary-card" appearance="outlined">
-          <h2 class="section-heading">Plan details</h2>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan-name-field">
-            <mat-label>Plan name</mat-label>
-            <input id="plan-name" matInput type="text" formControlName="name" autocomplete="off" />
-            <mat-hint>1–100 characters after trimming.</mat-hint>
-            <mat-error id="plan-name-error">
-              @if (visibleError(form.controls.name)) {
-                {{ fieldError(form.controls.name, 'Plan name') }}
-              }
-            </mat-error>
-          </mat-form-field>
-
-          <dl class="plan-meta">
-            <div>
-              <dt>Device profile</dt>
-              <dd>{{ profileName() }}</dd>
-            </div>
-            <div>
-              <dt>Draft revision</dt>
-              <dd>{{ expectedRevision() ?? 'Unavailable' }}</dd>
-            </div>
-            <div>
-              <dt>Published version</dt>
-              <dd>
-                @if (latestVersion(); as version) {
-                  Version {{ version.versionNumber }}
-                } @else {
-                  Not published yet
+          <div class="plan-top">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan-name-field">
+              <mat-label>Plan name</mat-label>
+              <input id="plan-name" matInput type="text" formControlName="name" autocomplete="off" />
+              <mat-error id="plan-name-error">
+                @if (visibleError(form.controls.name)) {
+                  {{ fieldError(form.controls.name, 'Plan name') }}
                 }
-              </dd>
+              </mat-error>
+            </mat-form-field>
+
+            <div class="profile-block">
+              <span class="profile-label">Device profile</span>
+              <span class="profile-value">{{ profileName() }}</span>
             </div>
-            <div>
-              <dt>Draft steps</dt>
-              <dd>{{ stepCount() }} / {{ maxSteps }}</dd>
-            </div>
-          </dl>
+          </div>
+
+          <div class="metadata-strip">
+            <dl class="pd-meta plan-meta">
+              <div>
+                <dt>Published version</dt>
+                <dd>
+                  @if (latestVersion(); as version) {
+                    Version {{ version.versionNumber }}
+                  } @else {
+                    Not published yet
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt>Draft revision</dt>
+                <dd>{{ expectedRevision() ?? 'Unavailable' }}</dd>
+              </div>
+              <div>
+                <dt>Draft steps</dt>
+                <dd>{{ stepCount() }} / {{ maxSteps }}</dd>
+              </div>
+            </dl>
+
+            <dl class="pd-meta totals">
+              <div [class.exceeded]="totalSamplesExceeded()">
+                <dt>Total samples</dt>
+                <dd>
+                  {{ totals().totalSamples | number }} / {{ maxTotalSamples | number }}
+                </dd>
+              </div>
+              <div [class.exceeded]="totalDurationExceeded()">
+                <dt>Nominal duration</dt>
+                <dd>
+                  {{ formatDuration(totals().totalDurationMs) }} /
+                  {{ formatDuration(maxNominalDurationMs) }}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          @if (totalSamplesExceeded()) {
+            <p class="pd-field-error" role="alert">
+              The plan exceeds the maximum of
+              {{ maxTotalSamples | number }} total samples.
+            </p>
+          }
+          @if (totalDurationExceeded()) {
+            <p class="pd-field-error" role="alert">
+              The plan exceeds the maximum nominal duration of
+              {{ formatDuration(maxNominalDurationMs) }}.
+            </p>
+          }
         </mat-card>
 
         <section class="steps-section" aria-labelledby="steps-heading">
           <div class="steps-heading-row">
             <div>
-              <h2 id="steps-heading" class="section-heading">Steps</h2>
-              <p id="reorder-hint" class="section-hint">
-                Reorder with the Move up and Move down buttons, or drag a step by its handle. The
-                visible order is the order that will be saved.
+              <h2 id="steps-heading" class="pd-section-heading">Steps</h2>
+              <p id="reorder-hint" class="pd-hint">
+                Drag the handle or use the move buttons.
               </p>
             </div>
             <button
@@ -243,16 +274,25 @@
             </button>
           </div>
 
+          <details class="pd-disclosure field-help">
+            <summary>Field limits</summary>
+            <div class="pd-disclosure-body">
+              <p>
+                Values accept up to 6 decimal places. Sample count is 1–1,000 and interval is
+                100–5,000 ms per step.
+              </p>
+            </div>
+          </details>
+
           <p class="visually-hidden" aria-live="polite">{{ moveAnnouncement() }}</p>
 
           @if (stepCount() === 0) {
-            <div class="empty-steps">
-              <h3>No steps yet</h3>
-              <p>
-                A draft can be saved with zero steps. Publishing requires at least one valid step.
-              </p>
+            <app-empty-state
+              heading="No steps yet"
+              message="A draft can be saved with zero steps. Publishing requires at least one valid step."
+            >
               <button mat-flat-button type="button" (click)="addStep()">Add the first step</button>
-            </div>
+            </app-empty-state>
           } @else {
             <div
               class="step-list"
@@ -285,12 +325,15 @@
                       </svg>
                     </span>
                     <div class="step-title">
-                      <h3 [id]="'step-heading-' + id" tabindex="-1" class="step-heading">
-                        Step {{ index + 1 }}
-                      </h3>
+                      <div class="step-title-row">
+                        <h3 [id]="'step-heading-' + id" tabindex="-1" class="step-heading">
+                          Step {{ index + 1 }}
+                        </h3>
+                        <span class="step-name-summary">{{ stepName(step) }}</span>
+                        <span class="step-unit-summary">{{ step.controls.unit.value }}</span>
+                      </div>
                       <p class="step-preview">
-                        {{ stepName(step) }} · {{ stepSampleLabel(step) }} ·
-                        {{ stepDuration(step) }} nominal
+                        {{ stepSampleLabel(step) }} · {{ stepDuration(step) }} nominal
                       </p>
                     </div>
                     <div class="step-actions">
@@ -315,19 +358,32 @@
                         <span aria-hidden="true">↓</span>
                       </button>
                       <button
-                        mat-stroked-button
+                        mat-icon-button
                         type="button"
                         class="remove-step"
                         [attr.aria-label]="'Remove step ' + (index + 1)"
                         (click)="removeStep(index)"
                       >
-                        Remove
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <path
+                            d="M5 7h14M10 7V4h4v3M8 7l1 13h6l1-13M10 11v5M14 11v5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.7"
+                          />
+                        </svg>
                       </button>
                     </div>
                   </header>
 
                   <div class="step-fields">
-                    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="field-name">
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="field-name"
+                    >
                       <mat-label>Step name</mat-label>
                       <input
                         matInput
@@ -336,7 +392,6 @@
                         [id]="'step-name-' + id"
                         autocomplete="off"
                       />
-                      <mat-hint>1–100 characters after trimming.</mat-hint>
                       <mat-error [id]="'step-name-error-' + id">
                         @if (visibleError(step.controls.name)) {
                           {{ fieldError(step.controls.name, 'Step name') }}
@@ -344,7 +399,11 @@
                       </mat-error>
                     </mat-form-field>
 
-                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="field-unit"
+                    >
                       <mat-label>Unit</mat-label>
                       <input
                         matInput
@@ -353,7 +412,6 @@
                         [id]="'step-unit-' + id"
                         autocomplete="off"
                       />
-                      <mat-hint>For example V, A, or °C.</mat-hint>
                       <mat-error [id]="'step-unit-error-' + id">
                         @if (visibleError(step.controls.unit)) {
                           {{ fieldError(step.controls.unit, 'Unit') }}
@@ -361,7 +419,11 @@
                       </mat-error>
                     </mat-form-field>
 
-                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="field-minimum"
+                    >
                       <mat-label>Minimum</mat-label>
                       <input
                         matInput
@@ -371,7 +433,6 @@
                         [id]="'step-minimum-' + id"
                         autocomplete="off"
                       />
-                      <mat-hint>Up to 6 decimal places.</mat-hint>
                       <mat-error [id]="'step-minimum-error-' + id">
                         @if (visibleError(step.controls.minimum)) {
                           {{ fieldError(step.controls.minimum, 'Minimum') }}
@@ -379,7 +440,11 @@
                       </mat-error>
                     </mat-form-field>
 
-                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="field-maximum"
+                    >
                       <mat-label>Maximum</mat-label>
                       <input
                         matInput
@@ -390,7 +455,6 @@
                         autocomplete="off"
                         [errorStateMatcher]="maximumErrorStateMatcher"
                       />
-                      <mat-hint>Must be greater than or equal to minimum.</mat-hint>
                       <mat-error [id]="'step-maximum-error-' + id">
                         @if (maximumVisible(step)) {
                           @if (step.controls.maximum.invalid) {
@@ -402,7 +466,11 @@
                       </mat-error>
                     </mat-form-field>
 
-                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="field-count"
+                    >
                       <mat-label>Sample count</mat-label>
                       <input
                         matInput
@@ -413,7 +481,6 @@
                         max="1000"
                         step="1"
                       />
-                      <mat-hint>1–1,000 whole samples.</mat-hint>
                       <mat-error [id]="'step-sample-count-error-' + id">
                         @if (visibleError(step.controls.sampleCount)) {
                           {{ fieldError(step.controls.sampleCount, 'Sample count') }}
@@ -421,7 +488,11 @@
                       </mat-error>
                     </mat-form-field>
 
-                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-form-field
+                      appearance="outline"
+                      subscriptSizing="dynamic"
+                      class="field-interval"
+                    >
                       <mat-label>Interval (ms)</mat-label>
                       <input
                         matInput
@@ -432,7 +503,6 @@
                         max="5000"
                         step="1"
                       />
-                      <mat-hint>100–5,000 ms per sample.</mat-hint>
                       <mat-error [id]="'step-interval-error-' + id">
                         @if (visibleError(step.controls.intervalMs)) {
                           {{ fieldError(step.controls.intervalMs, 'Interval') }}
@@ -442,7 +512,7 @@
                   </div>
 
                   @if (stepErrorSummary(step); as message) {
-                    <p class="step-error" role="status">{{ message }}</p>
+                    <p class="step-error pd-field-error" role="status">{{ message }}</p>
                   }
                 </section>
               }
@@ -450,83 +520,49 @@
           }
 
           @if (!canAddStep()) {
-            <p class="limit-note" role="status">
+            <p class="pd-field-error" role="status">
               A draft can contain at most {{ maxSteps }} steps.
             </p>
           }
         </section>
 
-        <mat-card class="totals-card" appearance="outlined" aria-labelledby="totals-heading">
-          <h2 id="totals-heading" class="section-heading">Nominal totals</h2>
-          <dl class="totals">
-            <div>
-              <dt>Steps</dt>
-              <dd>{{ stepCount() }} / {{ maxSteps }}</dd>
-            </div>
-            <div [class.exceeded]="totalSamplesExceeded()">
-              <dt>Total samples</dt>
-              <dd>
-                {{ totals().totalSamples | number }} /
-                {{ maxTotalSamples | number }}
-              </dd>
-            </div>
-            <div [class.exceeded]="totalDurationExceeded()">
-              <dt>Nominal duration</dt>
-              <dd>
-                {{ formatDuration(totals().totalDurationMs) }} /
-                {{ formatDuration(maxNominalDurationMs) }}
-              </dd>
-            </div>
-          </dl>
-          @if (totalSamplesExceeded()) {
-            <p class="total-error" role="alert">
-              The plan exceeds the maximum of
-              {{ maxTotalSamples | number }} total samples.
-            </p>
-          }
-          @if (totalDurationExceeded()) {
-            <p class="total-error" role="alert">
-              The plan exceeds the maximum nominal duration of
-              {{ formatDuration(maxNominalDurationMs) }}.
-            </p>
-          }
-        </mat-card>
-
         <div class="save-bar">
           <p class="save-state" aria-live="polite">
             @if (facade.publishPending()) {
-              Publishing version…
+              <span class="pd-badge pd-badge--primary">Publishing…</span>
             } @else if (facade.savePending()) {
-              Saving draft…
+              <span class="pd-badge pd-badge--primary">Saving draft…</span>
             } @else if (dirty()) {
-              Unsaved changes
+              <span class="pd-badge pd-badge--warning">Unsaved changes</span>
             } @else {
-              All changes saved
+              <span class="pd-badge pd-badge--success">All changes saved</span>
             }
           </p>
           <p id="publish-availability" class="publish-hint">
             {{ publishBlockReason() ?? 'Publishing uses the last saved draft only.' }}
           </p>
-          <button
-            mat-stroked-button
-            type="button"
-            id="publish-button"
-            [disabled]="publishDisabled()"
-            [attr.aria-busy]="facade.publishPending()"
-            aria-describedby="publish-availability"
-            (click)="publish()"
-          >
-            {{ facade.publishPending() ? 'Publishing…' : 'Publish' }}
-          </button>
-          <button
-            mat-flat-button
-            type="submit"
-            class="save-button"
-            [disabled]="facade.savePending() || facade.publishPending() || expectedRevision() === null"
-            [attr.aria-busy]="facade.savePending()"
-          >
-            {{ facade.savePending() ? 'Saving…' : 'Save draft' }}
-          </button>
+          <div class="save-actions">
+            <button
+              mat-stroked-button
+              type="button"
+              id="publish-button"
+              [disabled]="publishDisabled()"
+              [attr.aria-busy]="facade.publishPending()"
+              aria-describedby="publish-availability"
+              (click)="publish()"
+            >
+              {{ facade.publishPending() ? 'Publishing…' : 'Publish' }}
+            </button>
+            <button
+              mat-flat-button
+              type="submit"
+              class="save-button"
+              [disabled]="facade.savePending() || facade.publishPending() || expectedRevision() === null"
+              [attr.aria-busy]="facade.savePending()"
+            >
+              {{ facade.savePending() ? 'Saving…' : 'Save draft' }}
+            </button>
+          </div>
         </div>
       </form>
     } @else {
@@ -570,25 +606,22 @@
     <mat-card class="versions-card" appearance="outlined" aria-labelledby="versions-heading">
       <div class="versions-heading-row">
         <div>
-          <h2 id="versions-heading" class="section-heading">Published versions</h2>
-          <p class="section-hint">
-            Newest first. Published versions are immutable; the current one is the latest version
-            of this plan.
-          </p>
+          <h2 id="versions-heading" class="pd-section-heading">Published versions</h2>
+          <p class="pd-hint">Newest first. Published versions are immutable.</p>
         </div>
       </div>
 
       @switch (facade.versionsStatus()) {
         @case ('loading') {
-          <p class="versions-status" role="status">Loading published versions…</p>
+          <p class="pd-hint" role="status">Loading published versions…</p>
         }
         @case ('error') {
-          <div class="inline-error" role="alert">
+          <div class="pd-inline-error" role="alert">
             <p>
               {{ facade.versionsError()?.message ?? 'Published versions could not be loaded.' }}
             </p>
             @if (facade.versionsError()?.requestId; as requestId) {
-              <p class="request-id">
+              <p class="pd-hint">
                 Request ID: <code>{{ requestId }}</code>
               </p>
             }
@@ -599,14 +632,14 @@
         }
         @default {
           @if (facade.versions().length === 0) {
-            <p class="versions-status">
+            <p class="pd-hint">
               No published versions yet. Publishing a draft creates version 1.
             </p>
           } @else {
-            <ul class="version-list">
+            <ul class="pd-version-list">
               @for (version of facade.versions(); track version.id; let first = $first) {
-                <li class="version-item" [class.current-version]="first">
-                  <div class="version-main">
+                <li class="pd-version-item" [class.current-version]="first">
+                  <div class="pd-version-main">
                     <a
                       [routerLink]="['/plans', planId, 'versions', version.id]"
                       [attr.aria-current]="first ? 'true' : null"
@@ -614,11 +647,11 @@
                       Version {{ version.versionNumber }}
                     </a>
                     @if (first) {
-                      <span class="current-badge">Current</span>
+                      <span class="pd-badge pd-badge--primary">Current</span>
                     }
-                    <span class="version-name">{{ version.name }}</span>
+                    <span class="pd-version-name">{{ version.name }}</span>
                   </div>
-                  <p class="version-meta">
+                  <p class="pd-version-meta">
                     Published {{ version.publishedAt | date: 'medium' : 'UTC' }} UTC by
                     {{ version.publishedBy.email }} ({{ version.publishedBy.role }})
                   </p>

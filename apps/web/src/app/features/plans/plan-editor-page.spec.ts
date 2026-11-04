@@ -223,7 +223,7 @@ describe('PlanEditorPage', () => {
 
     expect(root.querySelector('h1')?.textContent?.trim()).toBe('Plan Editor');
     expect(root.querySelector<HTMLInputElement>('#plan-name')?.value).toBe('Thermal check');
-    expect(metaValues(root)).toEqual(['DC Power Module', '4', 'Version 1', '2 / 30']);
+    expect(metaValues(root)).toEqual(['Version 1', '4', '2 / 30']);
 
     const headings = Array.from(root.querySelectorAll<HTMLElement>('.step-heading'));
     expect(headings.map((heading) => heading.textContent?.trim())).toEqual(['Step 1', 'Step 2']);
