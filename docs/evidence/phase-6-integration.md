@@ -65,3 +65,22 @@ node scripts/phase-6-compare-check.mjs
   dual-chart bileşen testleri kapsıyor. P7-01 Playwright kapsamında genişletilecek.
 - Grafik seri aç/kapat düğmeleri gerçek tarayıcıda ayrıca tıklanmadı; bileşen testleri var.
 - Bu demo ürün kabulü değildir; bağımsız Faz 6 incelemesi gerekir.
+
+
+## Playwright — gerçek canvas ve 0.65 A senaryosu (2026-11-04)
+
+`tests/e2e/compare.spec.ts` gerçek API + gerçek Chrome ile:
+
+- v1 0.55 A sınırı, 0.60 A ihlali → `FAILED`; v2 sınırı 0.65 A yapıldıktan sonra v1 kaydı
+  hâlâ `FAILED` ve `0.550000` sınırını taşıyor.
+- v2 ile yeni run oluşturuldu ve v1/v2 karşılaştırıldı; değişen alanlar
+  `maximum 0.550000→0.650000`, `sampleCount 3→4`.
+- Birim değişimi (`°C`→`°F`) ayrı paneller üretti; `Not calculated — units differ` ve delta yok.
+- Gerçek canvas: sol seri toggle edildi (`aria-pressed` false→true), hata noktasına gerçek fare
+  hover'ı tooltip'te `Current Draw` + `0.600000` gösterdi, tekerlek zoom `zoomed=true`, Reset
+  view `zoomed=false` yaptı; örnek/veri sayısı değişmedi.
+- Konsol istisnası yok.
+
+Ekran görüntüsü: [phase-6-compare-playwright.png](phase-6-compare-playwright.png).
+
+Komut: `npx playwright test tests/e2e/compare.spec.ts` → **1 passed**.

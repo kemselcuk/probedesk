@@ -1,6 +1,6 @@
 # Ayrıntılı uygulama yol haritası
 
-Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6 kullanıcı isteğiyle duraklatıldı; P7–P8 Planned. Phase 1 iskeleti, Phase 2 plan yaşam döngüsü, Phase 3 simülasyon/yürütme ve Phase 4 canlı SSE akışı/iki sekmeli yeniden bağlanma çalışır durumda; Phase 4 inceleme düzeltmeleri ve kalan kabul ölçütleri tamamlandı, bağımsız nihai inceleme/kabul bekliyor. Phase 5 geçmiş/grafikler sürüyor; karşılaştırma ve video henüz yoktur.
+Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6 In Review; P7–P8 Planned. Phase 1 iskeleti, Phase 2 plan yaşam döngüsü, Phase 3 simülasyon/yürütme ve Phase 4 canlı SSE akışı/iki sekmeli yeniden bağlanma çalışır durumda; Phase 4 inceleme düzeltmeleri ve kalan kabul ölçütleri tamamlandı, bağımsız nihai inceleme/kabul bekliyor. Phase 5 geçmiş/grafikler sürüyor; karşılaştırma ve video henüz yoktur.
 
 ## Sıra ve sahiplik
 

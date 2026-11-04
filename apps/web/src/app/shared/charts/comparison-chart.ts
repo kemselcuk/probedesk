@@ -18,6 +18,12 @@ import {
   buildComparisonSeriesPoints,
   buildComparisonSummary,
 } from './comparison-chart.config';
+import {
+  isComparisonChartDebugEnabled,
+  registerComparisonChartDebugEntry,
+  unregisterComparisonChartDebugEntry,
+  type ComparisonChartDebugEntry,
+} from './comparison-chart.debug';
 import { MEASUREMENT_CHART_FACTORY } from './measurement-chart.factory';
 import type { MeasurementChartConfig, MeasurementChartHandle } from './measurement-chart.types';
 import type {
@@ -99,6 +105,7 @@ export class ComparisonChart {
 
   private chart: MeasurementChartHandle | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private debugEntry: ComparisonChartDebugEntry | null = null;
 
   constructor() {
     afterNextRender(() => this.createChart());
@@ -170,6 +177,18 @@ export class ComparisonChart {
       this.chart = this.factory.create(canvas, this.buildConfig());
       this.chartReady.set(true);
       this.observeResize(canvas);
+      const debug = this.chart.debug;
+      if (debug !== undefined && isComparisonChartDebugEnabled()) {
+        this.debugEntry = {
+          canvas,
+          leftVersionNumber: this.left().versionNumber,
+          rightVersionNumber: this.right().versionNumber,
+          leftStepName: this.left().step.name,
+          rightStepName: this.right().step.name,
+          debug,
+        };
+        registerComparisonChartDebugEntry(this.debugEntry);
+      }
     } catch {
       this.chartUnavailable.set(true);
     }
@@ -190,6 +209,10 @@ export class ComparisonChart {
   }
 
   private destroyChart(): void {
+    if (this.debugEntry !== null) {
+      unregisterComparisonChartDebugEntry(this.debugEntry);
+      this.debugEntry = null;
+    }
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     this.chart?.destroy();

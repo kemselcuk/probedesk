@@ -146,7 +146,8 @@ export function runOptionLabel(run: RunHistoryItem): string {
     ? run.startedAt
     : `${OPTION_TIME_FORMATTER.format(started)} UTC`;
 
-  return `Version ${run.versionNumber} · ${run.planName} · ${runStatusLabel(run.status, run.outcome)} · ${startedText}`;
+  const planIdentity = run.planId.slice(0, 8);
+  return `Version ${run.versionNumber} · ${run.planName} (plan ${planIdentity}) · ${runStatusLabel(run.status, run.outcome)} · ${startedText}`;
 }
 
 export function runOptionState(run: RunHistoryItem): string | null {

@@ -29,6 +29,7 @@
     "openapi:generate": "npm run generate --workspace packages/api-client"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "concurrently": "9.2.1",
     "openapi-typescript": "7.13.0",
     "oxlint": "1.58.0",
