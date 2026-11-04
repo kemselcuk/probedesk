@@ -83,4 +83,6 @@ node scripts/phase-6-compare-check.mjs
 
 Ekran görüntüsü: [phase-6-compare-playwright.png](phase-6-compare-playwright.png).
 
-Komut: `npx playwright test tests/e2e/compare.spec.ts` → **1 passed**.
+Komut: `npx playwright test tests/e2e/compare.spec.ts` → **1 passed** (8.2 s).
+
+Test ayrıca: birim değişen adımda `.separate-panels` içinde **2 canvas**, seri toggle sonrası diğer serinin örnek metni değişmiyor, `pageerror`/console error yok; oluşturduğu plan/run'ları `E2E_DATABASE_URL` ile test sonunda temizliyor.

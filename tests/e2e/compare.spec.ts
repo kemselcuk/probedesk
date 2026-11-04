@@ -1,4 +1,51 @@
 import { expect, test, type APIRequestContext, type Page, type Playwright } from '@playwright/test';
+import { Client } from 'pg';
+
+const createdPlanIds: string[] = [];
+const createdRunIds: string[] = [];
+
+async function cleanupCreatedData(): Promise<void> {
+  const connectionString = process.env.E2E_DATABASE_URL;
+  if (!connectionString || createdPlanIds.length === 0) {
+    return;
+  }
+
+  const client = new Client({ connectionString });
+  await client.connect();
+  try {
+    await client.query('BEGIN');
+    for (const table of ['plan_steps', 'plan_revisions', 'test_runs', 'run_steps']) {
+      await client.query(`ALTER TABLE "${table}" DISABLE TRIGGER USER`);
+    }
+    await client.query(
+      'DELETE FROM "run_events" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))',
+      [createdPlanIds],
+    );
+    await client.query(
+      'DELETE FROM "measurements" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))',
+      [createdPlanIds],
+    );
+    await client.query('DELETE FROM "run_steps" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))', [createdPlanIds]);
+    await client.query('DELETE FROM "test_runs" WHERE "planId" = ANY($1)', [createdPlanIds]);
+    await client.query('DELETE FROM "plan_steps" WHERE "planId" = ANY($1)', [createdPlanIds]);
+    await client.query('DELETE FROM "plan_revisions" WHERE "planId" = ANY($1)', [createdPlanIds]);
+    await client.query('DELETE FROM "step_identities" WHERE "planId" = ANY($1)', [createdPlanIds]);
+    await client.query('DELETE FROM "test_plans" WHERE id = ANY($1)', [createdPlanIds]);
+    for (const table of ['plan_steps', 'plan_revisions', 'test_runs', 'run_steps']) {
+      await client.query(`ALTER TABLE "${table}" ENABLE TRIGGER USER`);
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    await client.end();
+  }
+}
+
+test.afterAll(async () => {
+  await cleanupCreatedData();
+});
 
 const API = process.env.E2E_API_URL ?? 'http://127.0.0.1:3100';
 const ORIGIN = { Origin: API };
@@ -95,6 +142,7 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
   });
   expect(created.status()).toBe(201);
   const planId = (await created.json()).id as string;
+  createdPlanIds.push(planId);
 
   const steps = [
     { logicalStepId: '', name: 'Output Voltage', unit: 'V', minimum: '4.75', maximum: '5.25', sampleCount: 3, intervalMs: 100 },
@@ -123,6 +171,7 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
     seed: 15,
     failureStepId: currentDraw.logicalStepId,
   });
+  createdRunIds.push(v1RunId);
   const v1Run = await waitForTerminal(operator, v1RunId);
   expect(v1Run.outcome).toBe('FAILED');
   expect(v1Run.steps.find((step: any) => step.name === 'Current Draw').measurements[1].value).toBe('0.600000');
@@ -185,6 +234,7 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
     seed: 15,
     failureStepId: currentDraw.logicalStepId,
   });
+  createdRunIds.push(v2RunId);
   const v2Run = await waitForTerminal(operator, v2RunId);
   expect(v2Run.outcome).toBe('FAILED');
 
@@ -224,6 +274,11 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
     (window as any).__probedeskChartDebug = true;
   });
   await loginUi(page, 'operator@probedesk.local', 'OperatorDemo!2026');
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleErrors.push(error.message));
   await page.goto(`/compare?leftRunId=${v1RunId}&rightRunId=${v2RunId}`);
   await expect(page.getByText('Changed rule fields', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('0.550000', { exact: false }).first()).toBeVisible();
@@ -233,11 +288,17 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
   await expect(page.getByText('Unit changed').first()).toBeVisible();
   await expect(page.getByText('Not calculated — units differ').first()).toBeVisible();
   await expect(page.getByText('°F').first()).toBeVisible();
+  const unitCard = page
+    .locator('app-comparison-step-card', { hasText: 'Case Temperature' })
+    .first();
+  await expect(unitCard.locator('.separate-panels canvas')).toHaveCount(2);
 
   const leftToggle = page.locator('.series-toggle--left').first();
   await expect(leftToggle).toHaveAttribute('aria-pressed', 'true');
+  const rightMetaBefore = await page.locator('.series-toggle--right .series-meta').first().textContent();
   await leftToggle.click();
   await expect(leftToggle).toHaveAttribute('aria-pressed', 'false');
+  expect(await page.locator('.series-toggle--right .series-meta').first().textContent()).toBe(rightMetaBefore);
   await leftToggle.click();
   await expect(leftToggle).toHaveAttribute('aria-pressed', 'true');
 
@@ -299,9 +360,10 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
   expect(reset).toBe(false);
 
   await page.screenshot({
-    path: 'docs/evidence/phase-6-compare-playwright.png',
+    path: 'test-results/phase-6-compare-playwright.png',
     fullPage: false,
   });
+  expect(consoleErrors).toEqual([]);
 
   await planner.dispose();
   await operator.dispose();
