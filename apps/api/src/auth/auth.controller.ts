@@ -31,7 +31,13 @@ import { ApiErrorDto } from '../common/openapi/api-error.dto.js';
 import { APP_CONFIG, type AppConfig } from '../config/env.js';
 import { AuthService } from './auth.service.js';
 import type { AuthContext } from './auth.types.js';
-import { clearAuthCookies, setAuthCookies, setCsrfCookie } from './cookie.js';
+import { hasValidCsrfToken } from './csrf.js';
+import {
+  clearAuthCookies,
+  readCsrfToken,
+  setAuthCookies,
+  setCsrfCookie,
+} from './cookie.js';
 import { CurrentAuth } from './current-auth.decorator.js';
 import { AuthUserDto } from './dto/auth-user.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -124,9 +130,21 @@ export class AuthController {
   })
   async me(
     @CurrentAuth() auth: AuthContext,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthUserDto> {
-    if (!auth.csrfTokenHash) {
+    // A valid session can outlive the readable CSRF cookie (browser cleanup,
+    // extension, profile reset). Reissue and rotate it so the next mutation
+    // does not fail with a 403 that the UI cannot recover from. A stale or
+    // mismatched cookie is replaced for the same reason; the raw token is
+    // never stored server-side.
+    const csrfCookie = readCsrfToken(request);
+    const csrfCookieMatches =
+      csrfCookie !== undefined &&
+      auth.csrfTokenHash !== null &&
+      hasValidCsrfToken(csrfCookie, auth.csrfTokenHash);
+
+    if (!csrfCookieMatches) {
       const csrfToken = await this.authService.renewCsrfToken(auth.sessionId);
       if (!csrfToken) {
         throw new ApiException(

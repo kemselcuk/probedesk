@@ -87,6 +87,81 @@ describe('authInterceptor', () => {
     expect(query.get('reason')).toBe('session-expired');
   });
 
+  it('recovers a CSRF rejection once by refreshing the cookie and retrying', async () => {
+    const router = TestBed.inject(Router);
+    const store = TestBed.inject(AuthSessionStore);
+    const http = TestBed.inject(HttpTestingController);
+    const client = TestBed.inject(HttpClient);
+
+    await router.navigateByUrl('/plans');
+    store.authenticate(OPERATOR);
+
+    let succeeded = false;
+    client.post('/api/runs', {}).subscribe(() => {
+      succeeded = true;
+    });
+
+    http.expectOne('/api/runs').flush(
+      {
+        code: 'FORBIDDEN',
+        message: 'The CSRF token is missing or invalid.',
+        requestId: 'req-csrf',
+      },
+      { status: 403, statusText: 'Forbidden' },
+    );
+
+    const refresh = http.expectOne('/api/auth/me');
+    expect(refresh.request.method).toBe('GET');
+    document.cookie = 'XSRF-TOKEN=fresh-token; path=/';
+    refresh.flush(OPERATOR);
+
+    const retry = http.expectOne('/api/runs');
+    expect(retry.request.headers.get('X-XSRF-TOKEN')).toBe('fresh-token');
+    retry.flush(
+      {
+        runId: '99999999-9999-4999-8999-999999999999',
+        status: 'RUNNING',
+        outcome: null,
+        snapshotUrl: '/api/runs/99999999-9999-4999-8999-999999999999',
+        eventsUrl: '/api/runs/99999999-9999-4999-8999-999999999999/events',
+      },
+      { status: 202, statusText: 'Accepted' },
+    );
+
+    expect(succeeded).toBe(true);
+    document.cookie = 'XSRF-TOKEN=; Max-Age=0; path=/';
+  });
+
+  it('does not refresh or retry a role 403', async () => {
+    const router = TestBed.inject(Router);
+    const store = TestBed.inject(AuthSessionStore);
+    const http = TestBed.inject(HttpTestingController);
+    const client = TestBed.inject(HttpClient);
+
+    await router.navigateByUrl('/plans');
+    store.authenticate(OPERATOR);
+
+    let failed = false;
+    client.post('/api/runs', {}).subscribe({
+      error: () => {
+        failed = true;
+      },
+    });
+
+    http.expectOne('/api/runs').flush(
+      {
+        code: 'FORBIDDEN',
+        message: 'You do not have permission to perform this action.',
+        requestId: 'req-role',
+      },
+      { status: 403, statusText: 'Forbidden' },
+    );
+
+    expect(failed).toBe(true);
+    http.expectNone('/api/auth/me');
+    http.expectNone('/api/runs');
+  });
+
   it('leaves a 401 from an auth endpoint to the auth facade', async () => {
     const router = TestBed.inject(Router);
     const store = TestBed.inject(AuthSessionStore);

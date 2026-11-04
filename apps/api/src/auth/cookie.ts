@@ -84,3 +84,9 @@ export function readSessionToken(request: Request): string | undefined {
   const value: unknown = request.cookies?.[SESSION_COOKIE_NAME];
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
+
+/** Reads the readable CSRF cookie, if the browser still has it. */
+export function readCsrfToken(request: Request): string | undefined {
+  const value: unknown = request.cookies?.[CSRF_COOKIE_NAME];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}

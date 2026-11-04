@@ -297,6 +297,57 @@ describe('authentication and authorization (e2e)', () => {
     expect(secondResponse.headers['set-cookie']).toBeUndefined();
   });
 
+  it('restores a lost or mismatched CSRF cookie for an existing session', async () => {
+    const user = await createTestUser(prisma, { role: Role.PLANNER });
+    const loginResponse = await loginWithPassword(
+      user.email,
+      user.password,
+    ).expect(200);
+    const loginCookies = readSetCookies(loginResponse);
+    const sessionCookie = getCookie(loginCookies, SESSION_COOKIE_NAME);
+    const originalCsrf = getCookie(loginCookies, CSRF_COOKIE_NAME);
+
+    const restored = await request(server())
+      .get('/api/auth/me')
+      .set('Cookie', `${SESSION_COOKIE_NAME}=${sessionCookie.value}`)
+      .expect(200);
+
+    const restoredCookies = readSetCookies(restored);
+    const newCsrf = getCookie(restoredCookies, CSRF_COOKIE_NAME);
+    expect(newCsrf.value).not.toBe(originalCsrf.value);
+    expect(newCsrf.raw).not.toContain('HttpOnly');
+
+    // The replaced token is no longer accepted...
+    await request(server())
+      .post('/api/test-auth/planner')
+      .set('Cookie', `${SESSION_COOKIE_NAME}=${sessionCookie.value}`)
+      .set('X-XSRF-TOKEN', originalCsrf.value)
+      .expect(403);
+
+    // ...while the newly issued cookie matches the stored hash.
+    await request(server())
+      .post('/api/test-auth/planner')
+      .set('Cookie', `${SESSION_COOKIE_NAME}=${sessionCookie.value}`)
+      .set('X-XSRF-TOKEN', newCsrf.value)
+      .expect(200);
+
+    const again = await request(server())
+      .get('/api/auth/me')
+      .set(
+        'Cookie',
+        cookieHeader(
+          {
+            name: SESSION_COOKIE_NAME,
+            value: sessionCookie.value,
+            raw: '',
+          },
+          newCsrf,
+        ),
+      )
+      .expect(200);
+    expect(again.headers['set-cookie']).toBeUndefined();
+  });
+
   it('revokes the session and clears both cookies on logout', async () => {
     const user = await createTestUser(prisma, { role: Role.OPERATOR });
     const agent = request.agent(server());
