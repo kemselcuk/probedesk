@@ -1,4 +1,8 @@
-<app-page-header title="Published Plan" [subtitle]="headerSubtitle()">
+<app-page-header
+  [headingId]="versionPlanMismatch() ? null : 'version-title'"
+  [title]="headerTitle()"
+  [subtitle]="headerSubtitle()"
+>
   @if (isPlanner()) {
     <a mat-stroked-button [routerLink]="['/plans', planId, 'edit']">Back to plan</a>
   } @else {
@@ -30,18 +34,13 @@
     } @else if (facade.version(); as version) {
       <section class="version-summary" aria-labelledby="version-title">
         <div class="version-heading">
-          <div>
-            <h2 id="version-title">{{ version.name }}</h2>
-            <p class="version-state">Published version</p>
+          <div class="version-badges">
+            <span class="version-badge">Version {{ version.versionNumber }}</span>
+            <span class="pd-badge pd-badge--neutral">Read-only</span>
           </div>
-          <span class="version-badge">Version {{ version.versionNumber }}</span>
         </div>
 
-        <dl class="version-meta">
-          <div>
-            <dt>Version</dt>
-            <dd>{{ version.versionNumber }}</dd>
-          </div>
+        <dl class="totals">
           <div>
             <dt>Published at (UTC)</dt>
             <dd>{{ version.publishedAt | date: 'medium' : 'UTC' }} UTC</dd>
@@ -65,21 +64,30 @@
             <dt>Steps</dt>
             <dd>{{ version.steps.length }}</dd>
           </div>
+          @if (totals(); as sums) {
+            <div>
+              <dt>Total samples</dt>
+              <dd>{{ sums.totalSamples | number }}</dd>
+            </div>
+            <div>
+              <dt>Nominal duration</dt>
+              <dd>{{ formatDuration(sums.totalDurationMs) }}</dd>
+            </div>
+          }
         </dl>
       </section>
 
       <mat-card class="steps-card" appearance="outlined" aria-labelledby="steps-heading">
-        <h2 id="steps-heading" class="section-heading">Ordered steps</h2>
-        <p class="section-hint">
-          This table is the immutable content of version {{ version.versionNumber }}. Values are
-          shown exactly as they were published and cannot be edited here.
-        </p>
+        <div class="card-heading">
+          <h2 id="steps-heading" class="section-heading">Ordered steps</h2>
+          <p class="section-hint">Values copied into version {{ version.versionNumber }} at publish time.</p>
+        </div>
 
         @if (version.steps.length === 0) {
           <p class="empty-note">This published version has no steps.</p>
         } @else {
           <div class="table-scroll">
-            <table>
+            <table class="pd-table">
               <caption class="visually-hidden">
                 Ordered measurement steps of published version {{ version.versionNumber }}
               </caption>
@@ -100,123 +108,130 @@
                     <td>{{ index + 1 }}</td>
                     <td class="step-name">{{ step.name }}</td>
                     <td>{{ step.unit }}</td>
-                    <td>{{ step.minimum }}</td>
-                    <td>{{ step.maximum }}</td>
-                    <td>{{ step.sampleCount | number }}</td>
-                    <td>{{ step.intervalMs | number }}</td>
+                    <td class="pd-tabular">{{ step.minimum }}</td>
+                    <td class="pd-tabular">{{ step.maximum }}</td>
+                    <td class="pd-numeric">{{ step.sampleCount | number }}</td>
+                    <td class="pd-numeric">{{ step.intervalMs | number }}</td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
         }
+
+        <details class="pd-disclosure">
+          <summary>About published values</summary>
+          <div class="pd-disclosure-body">
+            <p>
+              This table is the immutable content of version {{ version.versionNumber }}. Values are
+              shown exactly as they were published and cannot be edited here.
+            </p>
+          </div>
+        </details>
       </mat-card>
 
-      @if (totals(); as sums) {
-        <mat-card class="totals-card" appearance="outlined" aria-labelledby="totals-heading">
-          <h2 id="totals-heading" class="section-heading">Nominal totals</h2>
-          <dl class="totals">
-            <div>
-              <dt>Steps</dt>
-              <dd>{{ sums.stepCount }}</dd>
-            </div>
-            <div>
-              <dt>Total samples</dt>
-              <dd>{{ sums.totalSamples | number }}</dd>
-            </div>
-            <div>
-              <dt>Nominal duration</dt>
-              <dd>{{ formatDuration(sums.totalDurationMs) }}</dd>
-            </div>
-          </dl>
-        </mat-card>
-      }
-
       @if (isPlanner()) {
-        <mat-card class="draft-action-card" appearance="outlined" aria-labelledby="draft-action-heading">
-          <h2 id="draft-action-heading" class="section-heading">Draft</h2>
+        <section class="draft-bar" aria-labelledby="draft-action-heading">
+          <div class="draft-copy">
+            <h2 id="draft-action-heading" class="pd-subheading">Draft</h2>
 
-          @switch (facade.planStatus()) {
-            @case ('loading') {
-              <p class="status-note" role="status">Checking for an open draft…</p>
-            }
-            @case ('error') {
-              <div class="inline-error" role="alert">
-                <p>
-                  {{ facade.planError()?.message ?? 'The plan state could not be loaded.' }}
-                  An open draft cannot be ruled out, so the new-draft action is unavailable.
-                </p>
-                @if (facade.planError()?.requestId; as requestId) {
-                  <p class="request-id">
-                    Request ID: <code>{{ requestId }}</code>
+            @switch (facade.planStatus()) {
+              @case ('loading') {
+                <p class="status-note" role="status">Checking for an open draft…</p>
+              }
+              @case ('error') {
+                <div class="inline-error" role="alert">
+                  <p>
+                    {{ facade.planError()?.message ?? 'The plan state could not be loaded.' }}
+                    An open draft cannot be ruled out, so the new-draft action is unavailable.
+                  </p>
+                  @if (facade.planError()?.requestId; as requestId) {
+                    <p class="request-id">
+                      Request ID: <code>{{ requestId }}</code>
+                    </p>
+                  }
+                  <button mat-stroked-button type="button" (click)="retryPlanState()">
+                    Retry plan state
+                  </button>
+                </div>
+              }
+              @case ('loaded') {
+                @if (hasOpenDraft()) {
+                  <p>
+                    An open draft already exists. Only one draft can be open at a time.
+                    @if (openDraftRevision(); as revision) {
+                      <span class="draft-revision">Current revision {{ revision }}.</span>
+                    }
+                  </p>
+                } @else if (facade.versionsStatus() === 'error') {
+                  <p class="status-note" role="status">
+                    The published version list could not be loaded, so a new draft cannot be started
+                    safely.
+                  </p>
+                } @else if (facade.versionsStatus() !== 'loaded') {
+                  <p class="status-note" role="status">Checking the published version list…</p>
+                } @else if (!isLatestPublishedVersion()) {
+                  @if (latestPublishedVersion(); as latest) {
+                    <p>
+                      This is an older published version. A new draft always copies the latest
+                      published version, not this older version.
+                    </p>
+                  } @else {
+                    <p class="status-note" role="status">
+                      The latest published version could not be confirmed, so a new draft cannot be
+                      started safely.
+                    </p>
+                  }
+                } @else {
+                  <p>
+                    This version cannot be edited. Start a new draft to copy its ordered steps and
+                    step identities; the published version stays unchanged.
                   </p>
                 }
-                <button mat-stroked-button type="button" (click)="retryPlanState()">
-                  Retry plan state
-                </button>
-              </div>
+              }
+              @default {
+                <p class="status-note" role="status">Checking for an open draft…</p>
+              }
             }
-            @case ('loaded') {
+          </div>
+
+          @if (facade.planStatus() === 'loaded') {
+            <div class="draft-action">
               @if (hasOpenDraft()) {
-                <p>
-                  An open draft already exists. Only one draft can be open at a time.
-                  @if (openDraftRevision(); as revision) {
-                    <span class="draft-revision">Current revision {{ revision }}.</span>
-                  }
-                </p>
                 <a mat-flat-button [routerLink]="['/plans', planId, 'edit']">
                   Continue editing draft
                 </a>
               } @else if (facade.versionsStatus() === 'error') {
-                <p class="status-note" role="status">
-                  The published version list could not be loaded, so a new draft cannot be started
-                  safely.
-                </p>
                 <button mat-stroked-button type="button" (click)="retryVersions()">
                   Retry version list
                 </button>
-              } @else if (facade.versionsStatus() !== 'loaded') {
-                <p class="status-note" role="status">Checking the published version list…</p>
-              } @else if (!isLatestPublishedVersion()) {
-                @if (latestPublishedVersion(); as latest) {
-                  <p>
-                    This is an older published version. A new draft always copies the latest
-                    published version, not this older version.
-                  </p>
-                  <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', latest.id]">
-                    Open version {{ latest.versionNumber }}
-                  </a>
+              } @else if (facade.versionsStatus() === 'loaded') {
+                @if (!isLatestPublishedVersion()) {
+                  @if (latestPublishedVersion(); as latest) {
+                    <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', latest.id]">
+                      Open version {{ latest.versionNumber }}
+                    </a>
+                  } @else {
+                    <button mat-stroked-button type="button" (click)="retryVersions()">
+                      Retry version list
+                    </button>
+                  }
                 } @else {
-                  <p class="status-note" role="status">
-                    The latest published version could not be confirmed, so a new draft cannot be
-                    started safely.
-                  </p>
-                  <button mat-stroked-button type="button" (click)="retryVersions()">
-                    Retry version list
+                  <button
+                    mat-flat-button
+                    type="button"
+                    id="start-new-draft-button"
+                    [disabled]="!canStartNewDraft()"
+                    [attr.aria-busy]="facade.createDraftPending()"
+                    (click)="startNewDraft()"
+                  >
+                    {{ facade.createDraftPending() ? 'Creating draft…' : 'Start new draft' }}
                   </button>
                 }
-              } @else {
-                <p>
-                  This version cannot be edited. Start a new draft to copy its ordered steps and
-                  step identities into a new editable draft. The published version stays unchanged.
-                </p>
-                <button
-                  mat-flat-button
-                  type="button"
-                  id="start-new-draft-button"
-                  [disabled]="!canStartNewDraft()"
-                  [attr.aria-busy]="facade.createDraftPending()"
-                  (click)="startNewDraft()"
-                >
-                  {{ facade.createDraftPending() ? 'Creating draft…' : 'Start new draft' }}
-                </button>
               }
-            }
-            @default {
-              <p class="status-note" role="status">Checking for an open draft…</p>
-            }
+            </div>
           }
-        </mat-card>
+        </section>
       }
 
       @if (createDraftError(); as guidance) {
@@ -248,6 +263,27 @@
             </button>
           </div>
         </section>
+      }
+
+      @if (facade.versionsStatus() === 'loaded' && facade.versions().length > 1) {
+        <mat-card class="versions-card" appearance="outlined" aria-labelledby="version-history-heading">
+          <h2 id="version-history-heading" class="section-heading">Published versions</h2>
+          <ul class="version-history">
+            @for (entry of facade.versions(); track entry.id; let first = $first) {
+              <li class="version-history-item" [class.is-current]="first">
+                <a [routerLink]="['/plans', planId, 'versions', entry.id]" [attr.aria-current]="first ? 'true' : null">
+                  Version {{ entry.versionNumber }}
+                </a>
+                @if (first) {
+                  <span class="pd-badge pd-badge--primary">Current</span>
+                }
+                <span class="version-history-meta">
+                  {{ entry.publishedAt | date: 'medium' : 'UTC' }} UTC · {{ entry.publishedBy.email }}
+                </span>
+              </li>
+            }
+          </ul>
+        </mat-card>
       }
     }
   }

@@ -150,8 +150,8 @@ describe('PlanVersionPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Published Plan');
-    expect(root.textContent).toContain('Version 2 · Thermal check');
+    expect(root.querySelector('h1')?.textContent?.trim()).toBe('Thermal check');
+    expect(root.textContent).toContain('Version 2 · Read-only published plan');
     expect(root.querySelector('#version-title')?.textContent?.trim()).toBe('Thermal check');
     expect(root.querySelector('.version-badge')?.textContent).toContain('Version 2');
     expect(root.textContent).toContain('planner@probedesk.local (PLANNER)');

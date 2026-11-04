@@ -101,11 +101,18 @@ export class PlanVersionPage {
     return nominalTotals(version.steps.map(toTotalsStep));
   });
 
+  protected readonly headerTitle = computed(() => {
+    const version = this.facade.version();
+    return version === null || version.planId !== this.planId ? 'Published Plan' : version.name;
+  });
+
   protected readonly headerSubtitle = computed(() => {
     const version = this.facade.version();
-    return version === null
-      ? 'Read-only, immutable published plan content.'
-      : `Version ${version.versionNumber} · ${version.name}`;
+    if (version === null || version.planId !== this.planId) {
+      return 'Read-only, immutable published plan content.';
+    }
+
+    return `Version ${version.versionNumber} · Read-only published plan`;
   });
 
   protected readonly canStartNewDraft = computed(

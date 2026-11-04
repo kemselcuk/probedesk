@@ -146,11 +146,11 @@ describe('PlansListPage', () => {
       'Test plans with their latest published version',
     );
     expect(root.querySelectorAll('th[scope="col"]')).toHaveLength(4);
-    expect(root.textContent).toContain('Draft in progress');
+    expect(root.textContent).toContain('Draft');
     expect(root.textContent).toContain('Revision 4');
     expect(root.textContent).toContain('No open draft');
     expect(root.textContent).toContain('Version 2');
-    expect(root.textContent).toContain('Not published yet');
+    expect(root.textContent).toContain('Not published');
 
     const editLink = root.querySelector<HTMLAnchorElement>(`a[href="/plans/${PLAN_ID}/edit"]`);
     expect(editLink?.textContent).toContain('Edit draft');

@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   template: `
     <header class="page-header">
       <div class="page-heading">
-        <h1>{{ title() }}</h1>
+        <h1 [id]="headingId()">{{ title() }}</h1>
         @if (subtitle(); as text) {
           <p class="page-subtitle">{{ text }}</p>
         }
@@ -22,4 +22,5 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 export class PageHeader {
   readonly title = input.required<string>();
   readonly subtitle = input('');
+  readonly headingId = input<string | null>(null);
 }

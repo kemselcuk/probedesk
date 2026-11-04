@@ -1,6 +1,6 @@
 <app-page-header
   title="Test Plans"
-  subtitle="Draft, publish, and inspect versioned measurement plans. The API decides which plan information your role can see."
+  subtitle="Versioned measurement plans, published versions, and open drafts."
 >
   <button
     mat-stroked-button
@@ -10,7 +10,7 @@
   >
     Refresh
   </button>
-  @if (isPlanner()) {
+  @if (isPlanner() && !createOpen()) {
     <button
       mat-flat-button
       type="button"
@@ -18,7 +18,7 @@
       [attr.aria-expanded]="createOpen()"
       (click)="toggleCreate()"
     >
-      {{ createOpen() ? 'Close new plan form' : 'New plan' }}
+      New plan
     </button>
   }
 </app-page-header>
@@ -32,10 +32,6 @@
     aria-labelledby="create-plan-heading"
   >
     <h2 id="create-plan-heading">New plan</h2>
-    <p class="panel-intro">
-      Give the plan a name and choose the device profile. The new plan starts with an empty draft
-      that you can edit and save immediately.
-    </p>
 
     @if (facade.profilesStatus() === 'error') {
       <div class="inline-error" role="alert">
@@ -130,7 +126,7 @@
     @if (facade.plans().length === 0) {
       <app-empty-state
         heading="No test plans yet"
-        message="A plan holds an ordered list of measurement steps. When a planner creates one, it appears here with its published versions."
+        message="A plan holds an ordered list of measurement steps. Published versions appear here with their open draft state."
       >
         @if (isPlanner()) {
           <button mat-flat-button type="button" (click)="openCreate()">
@@ -143,14 +139,14 @@
     } @else {
       <mat-card class="list-panel" appearance="outlined">
         <div class="table-scroll">
-          <table>
+          <table class="pd-table">
             <caption class="visually-hidden">
               Test plans with their latest published version and open draft status
             </caption>
             <thead>
               <tr>
                 <th scope="col">Plan</th>
-                <th scope="col">Latest published version</th>
+                <th scope="col">Published version</th>
                 @if (isPlanner()) {
                   <th scope="col">Draft</th>
                   <th scope="col">Actions</th>
@@ -163,23 +159,23 @@
                   <td>
                     <span class="plan-name">{{ plan.name }}</span>
                     @if (plan.profile; as profile) {
-                      <span class="plan-profile">{{ profile.name }}</span>
+                      <span class="cell-detail">{{ profile.name }}</span>
                     }
                   </td>
                   <td>
                     @if (plan.latestPublishedVersion; as version) {
-                      <a [routerLink]="['/plans', plan.id, 'versions', version.id]">
+                      <a class="version-link" [routerLink]="['/plans', plan.id, 'versions', version.id]">
                         Version {{ version.versionNumber }}
                       </a>
                     } @else {
-                      <span class="muted">Not published yet</span>
+                      <span class="muted">Not published</span>
                     }
                   </td>
                   @if (isPlanner()) {
                     <td>
                       @if (plan.draft; as draft) {
-                        <span class="draft-badge">Draft in progress</span>
-                        <span class="draft-revision"> Revision {{ draft.editRevision }} </span>
+                        <span class="pd-badge pd-badge--primary">Draft</span>
+                        <span class="cell-detail">Revision {{ draft.editRevision }}</span>
                       } @else {
                         <span class="muted">No open draft</span>
                       }
