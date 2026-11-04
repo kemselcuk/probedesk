@@ -26,7 +26,8 @@
     "db:migrate": "npm run db:migrate --workspace apps/api",
     "demo:seed": "npm run demo:seed --workspace apps/api",
     "verify": "npm run lint && npm run typecheck && npm run test:api:unit && npm run test:web && npm run build && npm run openapi:check",
-    "openapi:generate": "npm run generate --workspace packages/api-client"
+    "openapi:generate": "npm run generate --workspace packages/api-client",
+    "demo:reset": "npm run demo:reset --workspace apps/api"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

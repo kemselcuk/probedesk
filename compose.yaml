@@ -1,6 +1,31 @@
-# Local development database. The named volume keeps plan and run data across
-# container recreation.
+# ProbeDesk local delivery.
+#
+# Two documented entry points share the same PostgreSQL service and named
+# volume:
+#
+#   docker compose up -d
+#     Development database only. This keeps the existing `npm run dev` workflow
+#     (Angular dev server on 4200, Nest watch mode on 3000) unchanged.
+#
+#   docker compose --profile delivery up -d --build
+#     Full localhost delivery: PostgreSQL, one-shot migrations, API and the
+#     web/proxy on http://127.0.0.1:8080. No host Node.js or PostgreSQL needed.
+#
+# The delivery profile reuses the development database volume on purpose: the
+# demo is the local data set and restarting the stack must preserve plans/runs.
+# Destructive reset is never part of either entry point.
+
 name: probedesk
+
+x-api-environment: &api-environment
+  # The localhost demo uses plain HTTP. A production deployment must terminate
+  # TLS and set SESSION_COOKIE_SECURE=true; the API refuses to start otherwise.
+  NODE_ENV: "development"
+  PORT: "3000"
+  # Deliberately not DATABASE_URL: the untracked repository .env points at
+  # 127.0.0.1:<host-port>, which is not reachable from inside the container.
+  DATABASE_URL: "${PROBEDESK_DATABASE_URL:-postgresql://probedesk:probedesk@postgres:5432/probedesk?schema=public}"
+  SESSION_COOKIE_SECURE: "false"
 
 services:
   postgres:
@@ -14,7 +39,8 @@ services:
     ports:
       # Default follows the documented 5432. A machine with an existing
       # PostgreSQL service can override the host port with
-      # PROBEDESK_DEV_DB_PORT and update DATABASE_URL accordingly.
+      # PROBEDESK_DEV_DB_PORT and update DATABASE_URL accordingly. The
+      # delivery containers always use the internal 5432 port.
       - "127.0.0.1:${PROBEDESK_DEV_DB_PORT:-5432}:5432"
     volumes:
       # PostgreSQL 18 images keep PGDATA under /var/lib/postgresql/<major>/docker,
@@ -26,6 +52,93 @@ services:
       timeout: 5s
       retries: 12
       start_period: 10s
+
+  migrate:
+    profiles: ["delivery"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    environment: *api-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # One-shot and non-destructive: applies registered migrations and exits.
+    # `prisma migrate deploy` never resets or drops the database.
+    command: ["npm", "run", "db:migrate", "--workspace", "apps/api"]
+    restart: "no"
+
+  seed:
+    profiles: ["delivery"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: seed
+    environment: *api-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    # Additive and idempotent: creates the demo accounts/plan/runs only when
+    # missing and never overwrites existing plans or history.
+    command: ["npm", "run", "demo:seed", "--workspace", "apps/api"]
+    restart: "no"
+
+  api:
+    profiles: ["delivery"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    environment: *api-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
+    # One API process. Not published on the host: only the web proxy reaches it.
+    expose:
+      - "3000"
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    healthcheck:
+      # Readiness includes database access, applied migrations and startup
+      # recovery. The web service is gated on this healthcheck.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  web:
+    profiles: ["delivery"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PROBEDESK_DELIVERY_PORT:-8080}:8080"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O - http://127.0.0.1:8080/ | grep -q '<app-root>'",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
 
 volumes:
   probedesk-postgres-data:

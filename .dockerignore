@@ -1,0 +1,36 @@
+# Keep the build context small and deterministic. Both Dockerfiles build from
+# the repository root because this is an npm workspace.
+.git
+.github
+.gitignore
+.dockerignore
+
+# Installed and generated dependencies
+node_modules
+**/node_modules
+**/dist
+**/out-tsc
+**/.angular
+**/coverage
+**/*.tsbuildinfo
+apps/api/src/prisma/generated
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Tests and local artefacts
+tests
+test-results
+playwright-report
+blob-report
+**/test-results
+**/playwright-report
+**/blob-report
+
+# Documentation, screenshots and non-runtime assets
+docs
+assets
+scripts
+*.png
