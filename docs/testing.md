@@ -2,7 +2,7 @@
 
 Durum: **Uygulandı ve yerelde doğrulandı; nihai ürün kabulü yok.** Backend birim/entegrasyon,
 Angular TestBed, gerçek Chrome/Playwright ve Docker Compose teslim katmanları çalışır durumdadır.
-P8-05 demo videosu ile P8-06 sürüm adayı açıktır. Bu belge kapsam sözleşmesini ve gerçekten
+P8-05 demo videosu kullanıcı kararıyla kapsam dışıdır; P8-06 sürüm adayı hazırlanmaktadır. Bu belge kapsam sözleşmesini ve gerçekten
 çalıştırılan komutları kaydeder; çalıştırılmamış bir kontrolü geçmiş saymaz. Gereksinimler:
 REQ-23–27.
 
@@ -137,7 +137,7 @@ sürekli trace'i tutulmaz. Bu turda ölçülmemiş dakika, depolama veya kota sa
 hesap ayarlarındaki faturalama durumu ayrıca doğrulanmamıştır.
 
 Nihai teslim commit'i docs değişikliklerinden sonra lead tarafından oluşturulacaktır; bu commit
-için CI koşusu P8-06 kapsamında ayrıca yapılmalıdır. Mevcut yeşil koşu nihai ürün kabulü değildir.
+için CI koşusu P8-06 kapsamında ayrıca yapılır. Mevcut yeşil koşu nihai ürün kabulü değildir.
 
 ## Görev incelemesi
 
@@ -150,13 +150,13 @@ için gerekçe değildir. İnceleme tarihi, kimliği ve bulguları görev kartı
 inceleme yapılmış gibi işaretlenmez.
 
 Görev akışı: `Planned → In Progress → In Review → Accepted`. Düzeltme gerekiyorsa `In Progress`e
-döner. P1–P6 `Accepted`; P7 ve P8-01–P8-04 `In Review`; P8-05/P8-06 `Planned`. P0 belgeleri
-`In Review` durumundadır ve bağımsız kullanıcı kabulü henüz kaydedilmemiştir.
+döner. P1–P7 `Accepted`; P8-01–P8-04 `In Review`; P8-05 `Deferred (user)`; P8-06 `In Progress`.
+P0 belgeleri `In Review` durumundadır ve bağımsız kullanıcı kabulü henüz kaydedilmemiştir.
 
 ## Kanıt
 
 Test sayısı/süre yalnızca üretilen rapordan yazılır. Bir kontrol çalıştırılmadıysa nedeni ve durumu
-açıkça belirtilir. Görüntü, CI ve video aynı teslim commit'ine bağlanır. Bu doküman güncellemesinin
+açıkça belirtilir. Görüntü ve CI aynı teslim commit'ine bağlanır; video kapsam dışıdır. Bu doküman güncellemesinin
 komut çıktıları [phase-8-docs.md](evidence/phase-8-docs.md) içinde; ekran görüntüleri, seed,
 Compose ve CI kayıtları [kanıt dizininde](evidence/README.md) listelenir. Ayrıntılar:
 [evidence/README.md](evidence/README.md).

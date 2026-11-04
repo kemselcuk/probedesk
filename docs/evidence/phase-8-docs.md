@@ -159,19 +159,18 @@ Görseller çalışan Angular uygulamasından gerçek Chrome/Playwright koşular
 
 ## Açık işler ve nihai kabule kalanlar
 
-1. **P8-05 demo videosu** yok; README'de video bağlantısı yok.
-2. **P8-06 sürüm adayı** ve nihai teslim commit'i yok; bu doküman değişiklikleri commit edilmedi.
-3. **CI:** Kayıtlı yeşil koşu `3d27f2f` içindir. Docs/P8 değişikliklerini içeren commit için CI
-   yeniden çalıştırılmalıdır.
-4. **Bağımsız inceleme:** P8-04 ve diğer P7/P8 kartları `In Review`; `Accepted` değil.
+1. **P8-05 demo videosu** kullanıcı kararıyla kapsam dışıdır; README'de video bağlantısı yoktur.
+2. **P8-06 sürüm adayı** ve nihai teslim commit'i P8-06 kapsamında hazırlanır.
+3. **CI:** Kayıtlı yeşil koşu `3d27f2f` içindir. Nihai teslim commit'i için CI yeniden çalıştırılır.
+4. **Bağımsız inceleme:** P8 incelemesi tamamlandı; kalan Medium doküman bulguları bu commit'te
+   giderildi. Kartların teknik kabul durumu görev kartlarında kayıtlıdır.
 5. **Kullanıcı ürün kabulü:** [acceptance.md](../acceptance.md) ürün kutuları ve kullanıcı kabulü
    açık.
 6. **Kök `npm run dev`:** Bu turda tek parça çalıştırılmadı; 4200/3000 portları başka süreçler
    tarafından kullanılıyordu. README'deki delivery yolu P8-01/P8-03 ile, API/Angular geliştirme
    bileşenleri P7 E2E kayıtlarıyla doğrulanmıştır. Temiz bir makinede README geliştirme akışının
    tek parça denenmesi P8-06 kapsamında önerilir.
-7. **`docs/tasks/README.md` ve `docs/roadmap.md`:** Bu worker'ın sahiplik alanı dışında; P8-04
-   durumu lead tarafından aynı commit'te işlenmeli.
+7. **`docs/tasks/README.md` ve `docs/roadmap.md`:** Durum satırları bu commit'te güncellendi.
 
 ## Kanıt bağlantıları
 

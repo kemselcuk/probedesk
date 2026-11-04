@@ -5,9 +5,9 @@ içerir: NestJS API, Angular SPA, PostgreSQL/Prisma veri katmanı, deterministik
 akışı, run geçmişi/karşılaştırma, otomatik testler ve yerel Docker Compose teslimi. Belgeler
 yalnızca niyeti değil, gerçekten çalıştırılmış kontrollerin kanıtlarını da kaydeder.
 
-Durum (2026-11-04): P1–P6 görevleri bağımsız teknik incelemeden geçmiştir (`Accepted`). P7 kalite
-görevleri ile P8-01–P8-04 teslim görevleri `In Review`; P8-05 demo videosu ve P8-06 sürüm
-adayı/nihai kabul paketi `Planned` durumundadır. **Nihai ürün kabulü kullanıcıya aittir ve henüz
+Durum (2026-11-04): P1–P7 görevleri bağımsız teknik incelemeden geçmiştir (`Accepted`). P8-01–P8-04
+teslim görevleri `Accepted`; P8-05 demo videosu **kullanıcı kararıyla kapsam dışıdır**; P8-06 sürüm
+adayı/nihai kabul paketi hazırlanmaktadır. **Nihai ürün kabulü kullanıcıya aittir ve henüz
 verilmemiştir.** Bu belgenin varlığı ücretli hizmet kullanma talimatı değildir; ek altyapı maliyeti
 hedefi €0'dır.
 
@@ -37,8 +37,8 @@ kurulur. Öğretici dersler ve mülakat soru listeleri teslim kapsamına dahil d
 | P4 — canlı durum ve SSE | Accepted | replay/cursor/reconnect ve oturum yaşam döngüsü |
 | P5 — geçmiş ve grafikler | Accepted | History, Details, tolerans grafikleri |
 | P6 — karşılaştırma | Accepted | Sürüm/kimlik/birim/örnekleme farkları |
-| P7 — bütünleşik kalite | In Review | P7-01–P7-06; gerçek E2E ve CI koşusu kayıtlı |
-| P8 — yerel teslim | Kısmen In Review | P8-01–P8-04 In Review; P8-05/P8-06 Planned |
+| P7 — bütünleşik kalite | Accepted | P7-01–P7-06; gerçek E2E ve CI koşusu kayıtlı |
+| P8 — yerel teslim | In Progress | P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 hazırlıkta |
 
 Doğrulanan başlıca çıktılar:
 
@@ -56,15 +56,14 @@ Doğrulanan başlıca çıktılar:
 
 Açık işler:
 
-- P7 ve P8-01–P8-04 için bağımsız inceleme/`Accepted` kaydı.
-- P8-05 kısa demo videosu.
 - P8-06 sürüm adayı, nihai teslim commit'i ve güncel commit üzerinde CI.
 - Kullanıcı nihai kapsam/ürün kabulü.
+- P8-05 kısa demo videosu kullanıcı kararıyla kapsam dışıdır; yerine geçen bir zorunluluk yoktur.
 
 ## Başlangıç noktası
 
 Yeni bir oturumda önce yukarıdaki durum tablosunu ve ilgili görev kartını oku; tamamlanmış işi
-yeniden üretme. P1-01 tarihsel ilk uygulama göreviydi; mevcut sıradaki iş P8-05/P8-06 ve açık
+yeniden üretme. P1-01 tarihsel ilk uygulama göreviydi; mevcut sıradaki iş P8-06 ve açık
 inceleme kayıtlarıdır. Yeni bir ürün davranışı gerekiyorsa roadmap sırası, görev bağımlılıkları ve
 kabul ölçütleri izlenir; tek seferde bütün proje yeniden üretilmez.
 
@@ -107,8 +106,9 @@ kullanıcıdadır.
 
 ## Sonraki uygulama oturumuna verilebilecek başlangıç metni
 
-> ProbeDesk için `docs/implementation-guide.md` dosyasını ve gösterdiği sözleşmeleri oku. P1–P6
-> teknik kabulden geçti; P7 ve P8-01–P8-04 incelemede; P8-05/P8-06 açık. Önce mevcut görev
+> ProbeDesk için `docs/implementation-guide.md` dosyasını ve gösterdiği sözleşmeleri oku. P1–P7
+> teknik kabulden geçti; P8-01–P8-04 incelemede; P8-06 hazırlıkta; P8-05 kullanıcı kararıyla kapsam
+> dışı. Önce mevcut görev
 > kartlarının durumunu ve kanıtlarını doğrula, tamamlanmış işi yeniden yapma. Yeni işi roadmap ve
 > görev kartı sırasıyla, gerçek test/CI çıktısı ve ayrı inceleme kaydıyla ilerlet. Nihai ürün
 > kabulünü kullanıcı verir. Ücretli hizmet kullanma; uygulama İngilizce, benimle iletişim Türkçe
@@ -122,6 +122,6 @@ Yerel teslim iki giriş noktası sunar:
 - Tam demo: `docker compose --profile delivery up -d --build` → `http://127.0.0.1:8080`.
 
 [acceptance.md](acceptance.md) tamamlanmadan ürün bitmiş sayılmaz. Nihai paket çalışan UI/API, hazır
-veriler, doğrulanmış yerel kurulum, otomatik testler, gerçek README kanıtları ve kısa demo
-videosunu içerir. Video henüz yoktur; bu nedenle README'de video bağlantısı da yoktur. Kullanıcıya
-ait yayın/nihai kabul kararı otomatik verilmez.
+veriler, doğrulanmış yerel kurulum, otomatik testler ve gerçek README kanıtlarını içerir. Kısa demo
+videosu kullanıcı kararıyla kapsam dışıdır; README'de video bağlantısı yoktur. Kullanıcıya ait
+yayın/nihai kabul kararı otomatik verilmez.

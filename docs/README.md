@@ -44,7 +44,7 @@ teknik kararlar birlikte uyarlanır. Çelişkiler sessizce yorumlanarak uygulama
 
 - Ürün yaklaşımı kullanıcı tarafından onaylandı.
 - P1–P6 görevleri bağımsız teknik incelemeden geçmiştir (`Accepted`, 2026-11-03/04).
-- P7-01–P7-06 kabul edilmiştir; P8-01–P8-04 `In Review`; P8-05 kullanıcı kararıyla kapsam dışı; P8-06 sürüm adayı hazırlığında. Görev kartındaki durum
+- P7-01–P7-06 ve P8-01–P8-04 kabul edilmiştir; P8-05 kullanıcı kararıyla kapsam dışı; P8-06 sürüm adayı hazırlığında. Görev kartındaki durum
   birincil kaynaktır.
 - Yerel delivery temiz veritabanında migration + seed + API + web zinciriyle doğrulandı; kapat/aç
   sonrasında planlar ve run geçmişi korundu.
@@ -53,7 +53,7 @@ teknik kararlar birlikte uyarlanır. Çelişkiler sessizce yorumlanarak uygulama
 - Kayıtlı GitHub Actions koşusu `3d27f2f` commit'inde altı işin tamamını geçti
   ([CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)). Nihai teslim
   commit'i için CI henüz çalıştırılmadı.
-- Demo videosu yoktur; P8-05 tamamlanmadan README'ye video bağlantısı eklenmez.
+- Demo videosu **kullanıcı kararıyla kapsam dışıdır**; README'de video bağlantısı yoktur ve P8-05 `Deferred (user)` durumundadır.
 - Nihai kapsam, aşama ve ürün kabulü kullanıcıya aittir; hiçbir aşama yalnızca kartı kapandı diye
   ürün kabulü sayılmaz.
 

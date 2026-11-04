@@ -85,7 +85,7 @@ docker compose --profile delivery up -d --build
 
 Open `http://127.0.0.1:8080`. The stack starts PostgreSQL, applies migrations, runs the
 idempotent demo seed, starts one API process, and serves the built Angular app and `/api` proxy
-through nginx. `docker compose --profile delivery ps` should show `migrate` and `seed` exited
+through nginx. `docker compose --profile delivery ps -a` should show `migrate` and `seed` exited
 with code 0, and `api`/`web` healthy.
 
 Useful overrides:
@@ -241,9 +241,9 @@ compose.test.yaml        Standalone isolated integration-test database
 - **Chrome-verified UI.** Browser verification used real Chrome/Chromium. Safari, Firefox, and
   physical mobile devices were not verified; responsive checks covered 1280 px and 768 px
   layouts only.
-- **Acceptance is still open.** P7 and P8-01–P8-04 are in review, the demo video (P8-05) and
-  release-candidate package (P8-06) are not complete, and final user acceptance has not been
-  recorded.
+- **Acceptance is still open.** Phases 1–7 are technically accepted. P8-01–P8-04 are in review,
+  the demo video (P8-05) was waived by the user, the release-candidate package (P8-06) is being
+  prepared, and final user acceptance has not been recorded.
 - **Evidence is commit-scoped.** The recorded CI run is for commit `3d27f2f`. Documentation
   changes made afterwards are not themselves CI-verified until the lead commits and pushes them.
 - **No coverage or performance claims.** Test counts and durations are reproduced from real

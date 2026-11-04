@@ -1,6 +1,6 @@
 # Görev dizini
 
-Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6-01–P6-06 Accepted (teknik kabul, 2026-11-04); P7-01–P7-06 Accepted (teknik kabul, 2026-11-04); P8 In Progress. Nihai ürün kabulü kullanıcıdadır.
+Toplam **62 görev**: P0 için 5 belge inceleme görevi, P1–P8 için 57 uygulama/teslim görevi. P0 belgeleri In Review; P1-01–P1-08 Accepted (teknik kabul, 2026-11-03); P2-01–P2-08 ve P3-01–P3-10 Accepted (teknik kabul, 2026-11-03); P4-01–P4-07 ve P5-01–P5-06 Accepted (teknik kabul, 2026-11-03); P6-01–P6-06 Accepted (teknik kabul, 2026-11-04); P7-01–P7-06 Accepted (teknik kabul, 2026-11-04); P8-01–P8-04 Accepted (teknik kabul, 2026-11-04); P8-05 kullanıcı kararıyla kapsam dışı; P8-06 In Progress. Nihai ürün kabulü kullanıcıdadır.
 
 Sahiplik alanı işin sorumluluk alanıdır; ek ekip veya otomasyon varsayımı değildir. Nihai ürün/kapsam kabulü kullanıcıdadır. Her görevin ayrı inceleme ve gerçek kanıt kaydı gerekir.
 
@@ -113,10 +113,10 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P8-01 — Tam Docker Compose teslimi](P8-01.md) | Entegrasyon | In Review |
-| [P8-02 — Hazır örnek veriler](P8-02.md) | Backend | In Review |
-| [P8-03 — Temiz kurulum ve kalıcılık kontrolü](P8-03.md) | Entegrasyon | In Review |
-| [P8-04 — README ve teknik belgeler](P8-04.md) | Dokümantasyon | In Review |
+| [P8-01 — Tam Docker Compose teslimi](P8-01.md) | Entegrasyon | Accepted |
+| [P8-02 — Hazır örnek veriler](P8-02.md) | Backend | Accepted |
+| [P8-03 — Temiz kurulum ve kalıcılık kontrolü](P8-03.md) | Entegrasyon | Accepted |
+| [P8-04 — README ve teknik belgeler](P8-04.md) | Dokümantasyon | Accepted |
 | [P8-05 — Kısa demo videosu](P8-05.md) | Dokümantasyon | Deferred (user) |
 | [P8-06 — Sürüm adayı ve nihai kabul paketi](P8-06.md) | Entegrasyon; nihai kabul kullanıcı | In Progress |
 

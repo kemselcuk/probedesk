@@ -52,7 +52,7 @@ Bütün hazır kullanıcılar aynı cihaz profilinin kayıtlarını görür; kul
 | REQ-22 | Açık hata/boş/yükleniyor/yetkisiz durumları ve klavye erişimi | P0-04, P7-04 | T16, T24, P7-04 |
 | REQ-23 | Backend, Angular ve gerçek tarayıcı testleri | P1-08, P7-01–06 | Test raporları |
 | REQ-24 | Hazır örnek veriler ve kolay Docker Compose kurulumu | P8-01–03 | T27, T28 |
-| REQ-25 | Kısa demo videosu ve gerçek kanıtlarla README | P8-04, P8-05 | P8-06 |
+| REQ-25 | Gerçek kanıtlarla README (kısa demo videosu kullanıcı kararıyla kapsam dışı) | P8-04 | P8-06 |
 | REQ-26 | Görev başına ayrı inceleme, aşama başına demo kabulü | P0-05, bütün görevler | İnceleme kayıtları |
 | REQ-27 | Yerel altyapı ve uygun ücretsiz CI ile €0 ek maliyet hedefi | P1-08, P7-06, P8-01 | Mimari maliyet kaydı |
 

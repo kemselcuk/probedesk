@@ -1,6 +1,6 @@
 # Ayrıntılı uygulama yol haritası
 
-Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1–P7 Accepted; P8 In Progress. Phase 1–6 çalışır durumda; kalite/CI ve teslim paketi tamamlanıyor.
+Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1–P7 ve P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 sürüm adayı hazırlanıyor. Phase 1–7 çalışır durumda; teslim paketi tamamlanıyor.
 
 ## Sıra ve sahiplik
 
@@ -16,11 +16,11 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 | 1 | İskelet, giriş ve ilk CI | 8 | Accepted |
 | 2 | Plan editörü ve sürümler | 8 | Accepted |
 | 3 | Simülasyon ve yürütme | 10 | Accepted |
-| 4 | Canlı durum ve bağlantı dayanıklılığı | 7 | In Review |
-| 5 | Geçmiş ve grafikler | 6 | In Progress |
+| 4 | Canlı durum ve bağlantı dayanıklılığı | 7 | Accepted |
+| 5 | Geçmiş ve grafikler | 6 | Accepted |
 | 6 | Karşılaştırma ve sürüm tutarlılığı | 6 | Accepted |
 | 7 | Bütünleşik kalite ve CI | 6 | Accepted |
-| 8 | Yerel teslim, kanıt ve video | 6 | In Progress |
+| 8 | Yerel teslim ve kanıt | 6 | In Progress |
 
 Toplam 62 görev. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
 
@@ -152,7 +152,7 @@ Giriş: Ürün akışları tamamlanmış; önceki inceleme bulguları kapalı.
 
 Demo/inceleme: Ana akış ve tamamlayıcı hata senaryoları gerçek test raporlarıyla gözden geçirilir.
 
-## Aşama 8 — Yerel teslim, kanıt ve video
+## Aşama 8 — Yerel teslim ve kanıt
 
 Giriş: Aşama 7 teknik kabulü.
 
@@ -160,10 +160,10 @@ Giriş: Aşama 7 teknik kabulü.
 - [P8-02 — Hazır örnek veriler](tasks/P8-02.md) — Backend.
 - [P8-03 — Temiz kurulum ve kalıcılık kontrolü](tasks/P8-03.md) — Entegrasyon.
 - [P8-04 — README ve teknik belgeler](tasks/P8-04.md) — Dokümantasyon.
-- [P8-05 — Kısa demo videosu](tasks/P8-05.md) — Dokümantasyon.
+- [P8-05 — Kısa demo videosu](tasks/P8-05.md) — Dokümantasyon; kullanıcı kararıyla kapsam dışı.
 - [P8-06 — Sürüm adayı ve nihai kabul paketi](tasks/P8-06.md) — Entegrasyon; nihai kabul kullanıcı.
 
-Çıkış/kabul: Temiz Compose kurulumu, seed, kalıcılık, gerçek README/CI kanıtları, video ve kullanıcı nihai kabul paketi.
+Çıkış/kabul: Temiz Compose kurulumu, seed, kalıcılık, gerçek README/CI kanıtları ve kullanıcı nihai kabul paketi. Demo videosu kullanıcı kararıyla kapsam dışıdır.
 
 Demo/inceleme: Temiz checkout kurulumu açılır; hazır veri ve ana demo uygulanır; bütün kanıtlar aynı commit'e bağlanır.
 
@@ -175,5 +175,5 @@ Demo/inceleme: Temiz checkout kurulumu açılır; hazır veri ve ana demo uygula
 - [Nihai kabul](acceptance.md) ürünün kapanış şartıdır.
 - [Kanıt dizini](evidence/README.md) gerçek çıktılar gelene kadar boş tutulur.
 
-Bir aşama yalnızca kartlar kapandı diye kabul edilmez; birleşen davranışların demosu ve incelemesi de başarılı olmalıdır. Test, CI, ekran veya video kanıtı olmadan tamamlanma iddiası eklenmez.
+Bir aşama yalnızca kartlar kapandı diye kabul edilmez; birleşen davranışların demosu ve incelemesi de başarılı olmalıdır. Test, CI veya ekran kanıtı olmadan tamamlanma iddiası eklenmez.
 

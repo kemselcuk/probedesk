@@ -457,8 +457,8 @@ kabul paketi oluşturulamaz:
 - [P8-02 seed kanıtı](phase-8-seed.md)
 - [P8-03 temiz kurulum kanıtı](phase-8-clean-install.md)
 - [P8-04 docs kanıtı](phase-8-docs.md)
-- [P8-05 video kanıtı](phase-8-video.md)
-- [Video dosyası](probedesk-demo.mp4)
+- P8-05 video kanıtı/dosyası: kullanıcı kararıyla kaldırıldı; yukarıdaki H-1 bölümü tarihsel
+  kayıttır. Güncel durum için aşağıdaki "Fix re-check" bölümüne bakın.
 - [compose.yaml](../../compose.yaml)
 - [API Dockerfile](../../apps/api/Dockerfile), [web Dockerfile](../../apps/web/Dockerfile)
 - [nginx yapılandırması](../../infra/nginx/default.conf)
@@ -471,3 +471,197 @@ kabul paketi oluşturulamaz:
 
 Bu belge **bağımsız teknik inceleme** kaydıdır; ürün kullanıcı kabulü, aşama kabulü veya yayın
 onayı değildir. P8-06 tamamlanmamıştır ve bu incelemede tamamlanmış sayılmamıştır.
+
+---
+
+## Fix re-check (2026-11-04, `0f54c86`)
+
+Bu bölüm, yukarıdaki H-1/H-2/H-3/M-1 ve L-1…L-3 bulgularının `0f54c86` üzerindeki durumunu
+günceller. Önceki metin tarihsel kayıt olarak korunmuştur; H-1 artık geçerli bir ürün bulgusu
+değildir. Ürün kodu değiştirilmedi; yalnızca bu dosya yazıldı. Geçici izole stack temizlendi.
+
+### Sonuç özeti
+
+| Görev | Yeniden inceleme sonucu |
+|---|---|
+| P8-01 | **Teknik olarak kabul edilebilir.** Compose, PATH'ten Node/PG çıkarılmış halde çalıştı; temiz startup, health, deep link, SSE, named volume ve tek API süreci doğrulandı. Tamamen boş OS testi yok (açık sınır). |
+| P8-02 | **Teknik olarak kabul edilebilir.** Seed idempotent; tekrar seed 0 yeni kayıt ve **0 duplicate-key ERROR**; FAILED örnek 14 `0.600000`; v1/v2 ve kısmi run doğru. |
+| P8-03 | **Teknik olarak kabul edilebilir.** İzole boş DB'de migration + seed + API + web; `down`/`up` sonrası 6 run/495 ölçüm/540 olay ve FAILED 90/90 korundu. Tamamen boş OS testi yok. |
+| P8-04 | **Koşullu / henüz tam değil.** Video kaldırıldı ve ana H-2 düzeltmeleri yapıldı; ancak birkaç durum/metin hâlâ çelişiyor (aşağıda M-2). Ürün davranışı değil, belge doğruluğu sorunu. |
+| P8-05 | **Deferred (kullanıcı kararı).** Video istenmiyor; video dosyası, bağlantısı ve video-only script yok. Teknik kabul aranmaz. |
+| P8-06 | **Tamamlanmadı.** Final commit/tag, final CI ve kullanıcı kabulü açık. |
+
+**Yeni Critical/High yok.** Yeni bir Medium ürün bulgusu yok; H-2'nin kalan belge tutarsızlıkları
+**Medium** olarak açık. L-1/L-2/L-3 düşük önemde açık.
+
+### Bulguların tek tek durumu
+
+- **H-1 (video) — kapandı (kullanıcı kararı).** P8-05 kartı `Deferred (user decision)`
+  (`docs/tasks/P8-05.md:3`). `docs/evidence/probedesk-demo.mp4`, `docs/evidence/phase-8-video.md`
+  ve `scripts/record-demo-video.mjs` artık yok; `git ls-files` çıktısında video artifact'i yok.
+  Ürün belgelerinde video bağlantısı yok; README'deki eski 35 saniyelik link kaldırılmış
+  (`README.md:13-14`). Önceki incelemedeki video bağlantıları tarihsel not olarak düz metne
+  çevrildi. Video artık gerekli değil; bu bulgu kapatılmıştır.
+- **M-1 (seed duplicate-key log) — kapandı.** `apps/api/prisma/seed-device-profiles.ts:21-27`
+  artık `findUnique` ile mevcut profili atlıyor. HEAD seed imajı yeniden build edildi; PATH'ten
+  Node/PG çıkarılmış halde tekrar seed:
+  `Demo users ready: 3 accounts (0 created...)`, `device profiles ... (0 created...)`,
+  `plan ... (0 created...)`. Öncesi/sonrası duplicate-key ERROR sayısı **0 → 0**. Mevcut uzun
+  ömürlü `probedesk-postgres` logunda 18:52'deki eski ERROR tarihsel olarak kalıyor; yeni seed
+  onu üretmiyor.
+- **H-3 (host Node/PG) — kapandı, sınırla.** `env -i PATH=/usr/local/bin:/usr/bin:/bin` altında
+  `node`, `npm`, `psql` ve `postgres` **bulunamadı**; `docker` ve Compose çalıştı. Aynı PATH ile
+  `docker compose --profile delivery config --quiet` çıkış 0, `config --services` beş servisi
+  verdi; temiz izole stack `migrate Exited(0)`, `seed Exited(0)`, API/web `healthy` açıldı.
+  Tamamen boş bir işletim sistemi kurulumu denenmedi; bu sınır kanıtlarda yazılı
+  (`phase-8-compose.md:469-470`, `phase-8-clean-install.md:58-60`).
+- **M-2 (kalan doküman/status tutarsızlıkları) — Medium, açık.** H-2'nin ana maddeleri
+  düzeltilmiş olsa da aşağıdakiler hâlâ güncel değil:
+  - `README.md:88-89` delivery için hâlâ `docker compose --profile delivery ps` diyor;
+    bir kerelik `migrate`/`seed` yalnızca `ps -a` ile görünür. Geliştirme bölümü
+    `README.md:62` doğru düzeltilmiş, delivery bölümü değil.
+  - `README.md:244-245` P7'yi hâlâ "in review", videoyu "not complete" sayıyor; P7 kartları
+    `Accepted`, P8-05 `Deferred`.
+  - `docs/implementation-guide.md:8-10,41,60,67,111,126` P7'yi `In Review`, P8-05/P8-06'yı
+    `Planned` ve videoyu açık gösteriyor.
+  - `docs/testing.md:5,153` P8-05/P8-06'yı `Planned`/açık gösteriyor; P8-06 kartı ile
+    `docs/tasks/README.md` `In Progress` diyor.
+  - `docs/roadmap.md:19-20` P4'ü `In Review`, P5'i `In Progress` gösteriyor; P4/P5 kartları
+    `Accepted`. `:23,163,166` video terimini hâlâ taşıyor.
+  - `docs/tasks/P8-06.md:3` `Planned`; indeks `In Progress`. Amaç/kabul metni hâlâ
+    "video paketi" ve "video aynı sürüm" diyor (`:11,23`); P8-05 waiver ile çelişiyor.
+  - `docs/requirements.md:55` REQ-25 hâlâ videoyu zorunlu gösteriyor; `docs/acceptance.md:7`
+    videoyu "açık", `:56` "video aynı sürüm" diyor; `:54-55` ise kapsam dışı diyor. Kabul
+    listesi kendi içinde tutarlı değil.
+  - `docs/tasks/P8-04.md:73` P8-05 videosunu hâlâ açık iş sayıyor; `docs/demo.md:4-5`,
+    `docs/README.md:56` ve `docs/evidence/phase-8-docs.md:162` "video henüz yok" dilini
+    koruyor. Video dosyası olmadığı için yanlış link yok; fakat "deferred" ifadesi tutarlı
+    değil.
+  - `docs/evidence/README.md` hâlâ P5–P8 kayıtlarını listelemiyor (önceki L-3).
+- **L-1 (`/api` redirect) — açık, Low.** `infra/nginx/default.conf:45-47` özel portta yine
+  iç `8080`'e yönlendiriyor: `GET http://127.0.0.1:18081/api` → `Location:
+  http://127.0.0.1:8080/api/`. Varsayılan 8080'de doğru; UI bu yolu kullanmıyor.
+- **L-2 (reset script kanıtı) — açık, Low.** `docs/tasks/P8-02.md:57-60` ve
+  `docs/evidence/phase-8-seed.md:267-270` hâlâ "npm demo:reset eklenmedi" diyor; kök
+  `package.json:30` ve `apps/api` script'i mevcut. Seed/reset davranışı korumalı.
+- **L-3 (izlenebilirlik) — açık, Low.** P8-01/P8-04 kanıtlarında commit SHA'sı hâlâ
+  "henüz yok"; nihai P8-06 commit'i ve final CI bağlanmalı.
+
+### Bu turda çalıştırılanlar ve gerçek sonuçlar
+
+```text
+$ npm run verify
+exit=0
+lint: 3 workspace, 0 warning/0 error
+test:api:unit: 16 dosya / 118 test
+test:web:     36 dosya / 370 test
+build: API + web başarılı; initial 327.17 kB / 90.04 kB
+openapi:check: OpenAPI contract is current
+
+$ npm run test:e2e --workspace apps/api
+exit=0
+22 dosya / 197 test, 35.74 s
+
+$ npm run openapi:check
+exit=0
+OpenAPI contract is current
+```
+
+PATH kanıtı ve temiz startup:
+
+```text
+$ env -i PATH=/usr/local/bin:/usr/bin:/bin sh -c 'command -v node; command -v npm; \
+    command -v psql; command -v postgres; command -v docker'
+NO_NODE
+NO_NPM
+NO_PSQL
+NO_POSTGRES
+/usr/local/bin/docker
+
+$ env -i HOME=... PATH=... docker compose --profile delivery config --quiet
+exit=0
+$ ... config --services
+postgres, migrate, seed, api, web
+
+$ ... docker compose ... up -d --build
+migrate-1 Exited (0); seed-1 Exited (0); api-1 Up (healthy); web-1 Up (healthy)
+GET /api/health/ready → 200 {"status":"ok","checks":{"database":"ok","migrations":"ok"}}
+```
+
+Temiz izole DB (fresh volume) seed sonrası:
+
+```text
+users=3, profiles=1, plans=1, publishedRevisions=2, runs=4
+CANCELLED 45/90; COMPLETED FAILED 90/90; COMPLETED PASSED 90/90; COMPLETED PASSED 90/90
+FAILED Current Draw: sampleIndex=14, value=0.600000, isWithinTolerance=f
+```
+
+Tekrar seed ve log:
+
+```text
+Demo users ready: 3 accounts (0 created, 3 already present).
+Demo device profiles ready: 1 profiles (0 created, 1 already present).
+Demo plan ready: Power Supply Validation (existing), 2 published versions, 4 runs (0 created, 4 already present).
+duplicate-key ERROR sayısı: önce 0, sonra 0
+```
+
+Restart/persistence:
+
+```text
+before: users=3 plans=1 runs=6 measurements=495 events=540
+down → volume CreatedAt değişmedi: 2026-11-04T19:34:32Z
+up → users=3 plans=1 runs=6 measurements=495 events=540
+FAILED run: COMPLETED/FAILED, 90/90
+GET /api/health/ready → 200; eski oturum /api/auth/me → 200
+diff → NO_DIFF
+```
+
+Deep link/SSE (izole stack, gerçek Chrome):
+
+```text
+deep-url /runs/<id> → login heading=true
+post-login-url /runs/<id>; title=Run Details · ProbeDesk; run-heading=true
+reload → aynı URL; /api/auth/me → 200
+POST /api/runs → 202; run COMPLETED/PASSED, 90/90, lastEventSequence=98
+SSE: 200 text/event-stream, Transfer-Encoding: chunked, Content-Encoding yok
+98 çerçeve; ilk 0.008 s, son 19.679 s; medyan varış aralığı 0.207 s
+```
+
+- Tek API süreci: `docker top` yalnızca `docker-init` + bir `node dist/main.js`; container
+  kullanıcısı `node` (uid 1000), API host portu yok. Web `18081`, PostgreSQL `15435`.
+- Secret taraması (`PlannerDemo|...|password|DATABASE_URL|postgresql://`) → 0 eşleşme.
+  İzole stack'te ERROR/WARN olarak yalnızca PostgreSQL locale WARNING'i vardı; duplicate-key
+  ERROR yoktu.
+- Markdown: P8 kapsamındaki ürün belgelerinde kırık video bağlantısı yok; video dosyası/script
+  yok. Global link taramasının P8 dışı eski P2 anchor'larında 7 kırık bulduğu not edildi; bu
+  incelemenin kapsamı dışındadır. (Bu dosyadaki eski video linkleri yukarıda tarihsel nota
+  çevrildi.)
+
+### P8-01–P8-04 teknik kabul durumu
+
+- **P8-01:** Evet, koşullu olarak teknik kabul edilebilir. PATH kanıtı ve temiz stack var;
+  tamamen boş OS testi yok ve bu sınır açıkça yazılı. `README` delivery `ps` hatası P8-04
+  kapsamında düzeltilmeli.
+- **P8-02:** Evet. Idempotency, fixture değerleri ve duplicate-key düzeltmesi bağımsız olarak
+  doğrulandı.
+- **P8-03:** Evet, sınırla. Temiz DB + restart + PATH kanıtı var; boş OS testi yok. Karttaki
+  kabul kutuları hâlâ açık; P8-06 kapanışında güncellenmeli.
+- **P8-04:** **Henüz tam değil.** Kalan M-2 maddeleri P8-04'ün "belgeler kodla eş" kabul
+  ölçütünü zayıflatıyor. Ürün davranışı etkilenmiyor; ancak P8-06 öncesi düzeltilmeden
+  `Accepted` önerilmez. Düzeltmeler için: README delivery `ps -a`, README limitations,
+  implementation-guide/testing/roadmap/P8-06/acceptance/requirements video-status uyumu.
+- **P8-05:** Deferred; video gerekmiyor, teknik kabul aranmıyor. Video-only dosya/script/link
+  temizliği ürün belgelerinde tamam.
+- **P8-06:** Hâlâ açık. Aşağıdaki işler tamamlanmalı:
+  1. M-2 belge/status düzeltmeleri (özellikle `README:88`, `README:244`,
+     `implementation-guide`, `testing`, `roadmap`, `P8-06`, `acceptance`, `requirements`).
+  2. P8-05 waiver'ını requirements/P8-06 kapsamına doğru işle; video-only kabul maddelerini
+     "deferred" olarak tutarlı yaz.
+  3. Final teslim commit'i/tag, aynı commit üzerinde CI altı iş, final verify/integration/E2E.
+  4. P8-01–P8-04 kartlarına bu inceleme kaydını ve gerçek commit SHA'larını işle; ayrı
+     `Accepted` kararlarını kullanıcı/lead versin. Bu inceleme kartları `Accepted` yapmaz.
+  5. Kullanıcı ürün kabulü ve yayın kararı; bu incelemenin dışındadır.
+
+**Sonuç:** Yeni Critical/High yok. P8-01, P8-02 ve P8-03 teknik olarak kabul edilebilir;
+P8-04 kalan Medium belge tutarsızlıkları nedeniyle koşullu; P8-05 kullanıcı kararıyla
+deferred; P8-06 tamamlanmadı. Hiçbir kart `Accepted` yapılmadı.

@@ -1,6 +1,6 @@
 # Hazır veriler ve demo
 
-Görevler: [P8-02](tasks/P8-02.md), [P8-03](tasks/P8-03.md), [P8-05](tasks/P8-05.md). Durum:
+Görevler: [P8-02](tasks/P8-02.md), [P8-03](tasks/P8-03.md). Durum:
 **Hazır örnek veriler ve fixture'lar gerçek seed koduyla üretildi ve doğrulandı; demo videosu
 henüz yok.** Bu belge ürün
 kabulü değildir; kullanıcı nihai kabulü [acceptance.md](acceptance.md) içinde ayrıca bekleniyor.

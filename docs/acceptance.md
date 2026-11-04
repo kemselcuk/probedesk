@@ -4,8 +4,8 @@ Durum: **Henüz ürün kabulü yok.** Ürün gereksinimleri için
 [requirements.md](requirements.md), kontroller için [testing.md](testing.md).
 
 2026-11-04 notu: Aşağıdaki **teslim ve kanıt** bölümünde işaretli maddeler yalnızca doğrudan,
-gerçek çıktıya bağlanmış teknik kontrollerdir. Ürün gereksinim kutuları, video ve kullanıcı nihai
-kabulü açıktır; işaretli bir teknik kontrol ürün kabulü anlamına gelmez.
+gerçek çıktıya bağlanmış teknik kontrollerdir. Ürün gereksinim kutuları ve kullanıcı nihai
+kabulü açıktır; demo videosu kullanıcı kararıyla kapsam dışıdır; işaretli bir teknik kontrol ürün kabulü anlamına gelmez.
 
 ## Ürün
 
@@ -53,8 +53,8 @@ kabulü açıktır; işaretli bir teknik kontrol ürün kabulü anlamına gelmez
 - [ ] README çalışan ekran görüntüsü ve gerçek demo bağlantısı içeriyor. — Ekran görüntüleri var;
   demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [ ] Kısa video dosyası açılıyor; ana demo sonuçlarını gösteriyor. — Kullanıcı kararıyla kapsam dışı (video yok).
-- [ ] Belgeler, CI, görseller ve video aynı teslim sürümüyle ilişkilendirilmiş. — P8-06 nihai
-  commit bağlantısı bekliyor.
+- [ ] Belgeler, CI ve görseller aynı teslim sürümüyle ilişkilendirilmiş. — P8-06 nihai commit
+  bağlantısı bekliyor; demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [ ] Ek altyapı maliyeti hedefi korunmuş; onaysız ücretli hizmet yok. — Yerel Compose ve ücretsiz
   standart runner kullanılıyor; ücretli servis/secret yok. Hesap faturalama durumu ayrıca
   doğrulanmadı.
@@ -65,6 +65,6 @@ kabulü açıktır; işaretli bir teknik kontrol ürün kabulü anlamına gelmez
 ## Kabul kaydı
 
 Kabul sırasında tarih, teslim commit'i, inceleyen kişi/oturum, kanıt dizini ve açık işler buraya
-gerçek bilgilerle eklenecek. Şu anda kullanıcı ürün kabulü, nihai teslim commit'i veya video kaydı
-yoktur. Teknik doğrulama kayıtları [kanıt dizininde](evidence/README.md) listelenir; bunlar nihai
+gerçek bilgilerle eklenecek. Şu anda kullanıcı ürün kabulü ve nihai teslim commit'i yoktur;
+demo videosu kullanıcı kararıyla kapsam dışıdır. Teknik doğrulama kayıtları [kanıt dizininde](evidence/README.md) listelenir; bunlar nihai
 kabul yerine geçmez.
