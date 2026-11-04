@@ -1,6 +1,6 @@
 # Ayrıntılı uygulama yol haritası
 
-Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1–P6 Accepted; P7 In Review; P8 In Progress. Phase 1–6 çalışır durumda; kalite/CI ve teslim paketi tamamlanıyor.
+Bu dosya önceki ayrıntılı planın aşama ve görev dizinidir; her görevin tam kapsamı ayrı kartındadır. **Geliştirme başladı.** P0 belgeleri In Review; P1–P7 Accepted; P8 In Progress. Phase 1–6 çalışır durumda; kalite/CI ve teslim paketi tamamlanıyor.
 
 ## Sıra ve sahiplik
 
@@ -13,14 +13,14 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 | Aşama | Konu | Görev sayısı | İlk paket durumu |
 |---|---|---|---|
 | 0 | Ürün ve teknik sözleşmeler | 5 | In Review |
-| 1 | İskelet, giriş ve ilk CI | 8 | Planned |
-| 2 | Plan editörü ve sürümler | 8 | Planned |
-| 3 | Simülasyon ve yürütme | 10 | Planned |
+| 1 | İskelet, giriş ve ilk CI | 8 | Accepted |
+| 2 | Plan editörü ve sürümler | 8 | Accepted |
+| 3 | Simülasyon ve yürütme | 10 | Accepted |
 | 4 | Canlı durum ve bağlantı dayanıklılığı | 7 | In Review |
 | 5 | Geçmiş ve grafikler | 6 | In Progress |
-| 6 | Karşılaştırma ve sürüm tutarlılığı | 6 | Planned |
-| 7 | Bütünleşik kalite ve CI | 6 | Planned |
-| 8 | Yerel teslim, kanıt ve video | 6 | Planned |
+| 6 | Karşılaştırma ve sürüm tutarlılığı | 6 | Accepted |
+| 7 | Bütünleşik kalite ve CI | 6 | Accepted |
+| 8 | Yerel teslim, kanıt ve video | 6 | In Progress |
 
 Toplam 62 görev. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
 

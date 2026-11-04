@@ -10,8 +10,11 @@
 - Ayrı E2E veritabanı: `probedesk_e2e_test` (`127.0.0.1:5433`)
 - Geliştirme veritabanı: `probedesk` (`127.0.0.1:5434`)
 - Entegrasyon veritabanı: `probedesk_test` (`127.0.0.1:5433`)
-- Başlangıç commit'i: Bu worker commit oluşturmadı; commit/push lead'in
-  sorumluluğunda.
+- Commit: `18a0363` (izolasyon), `ea08fb3` (assert-baseline/flaky düzeltmesi).
+- **Güncel baseline notu (2026-11-04):** P8-02 demo seed sonrası E2E DB baseline'ı
+  `plans=1`, `revisions=2`, `runs=4`, `activeRuns=0`, `sessions=0`. Aşağıdaki
+  tarihsel `plans=0/runs=0` çıktıları seed öncesine aittir; güncel doğrulama
+  `node scripts/e2e-isolated.mjs assert-baseline` ile yapılır.
 
 ## Değişen dosyalar
 
@@ -138,11 +141,11 @@ $ E2E_DATABASE_URL=...probedesk_e2e_test E2E_API_URL=http://127.0.0.1:3101 \
 
 Running 2 tests using 1 worker
 
-[e2e-db] baseline 127.0.0.1:5433/probedesk_e2e_test: plans=0 runs=0 sessions=0 activeRuns=0
+[e2e-db] baseline 127.0.0.1:5433/probedesk_e2e_test: plans=1 revisions=2 runs=4 activeRuns=0 sessions=0
 [e2e-db] cleanup ...: plans=1 revisions=2 planSteps=6 stepIdentities=3 runs=2 runSteps=6
   measurements=19 runEvents=35 sessions=3 activeRuns=0
   ✓  1 tests/e2e/compare.spec.ts:111:5 › compares a failed v1 run with v2 after the tolerance changed to 0.65 A (8.3s)
-[e2e-db] baseline 127.0.0.1:5433/probedesk_e2e_test: plans=0 runs=0 sessions=0 activeRuns=0
+[e2e-db] baseline 127.0.0.1:5433/probedesk_e2e_test: plans=1 revisions=2 runs=4 activeRuns=0 sessions=0
 [e2e-db] cleanup ...: plans=1 revisions=2 planSteps=6 stepIdentities=3 runs=3 runSteps=9
   measurements=72 runEvents=96 sessions=2 activeRuns=0
   ✓  2 tests/e2e/main-demo.spec.ts:360:5 › runs the main demo flow through plans, live execution, history, compare and v2 (56.7s)

@@ -1,7 +1,8 @@
 # Phase 7 — CI pipeline kanıtı (P7-06)
 
-Durum: **İş akışı ve yerel eşdeğer doğrulama tamamlandı; gerçek GitHub Actions
-koşusu bekliyor.** Bu belge yeşil bir Actions koşusu iddia etmez.
+Durum: **Tamamlandı.** Gerçek GitHub Actions koşuları altı işle yeşil; kontrollü hata
+koşusunda `ci_required` düştü. Aşağıdaki yerel çıktıların bir kısmı demo seed öncesine aittir;
+güncel E2E baseline'ı 1 plan / 4 run'dır.
 
 - Tarih: 2026-11-04
 - Görev: [P7-06](../tasks/P7-06.md)
@@ -11,7 +12,8 @@ koşusu bekliyor.** Bu belge yeşil bir Actions koşusu iddia etmez.
   `@playwright/test` `1.64.1`, Google Chrome `157.0.8103.38`
 - Yerel PostgreSQL: `postgres:18.1-alpine` test konteyneri
   (`127.0.0.1:5433`); E2E için `probedesk_e2e_test`
-- Commit SHA: Henüz yok; commit/push lead'in sorumluluğunda.
+- Commit SHA: `3d27f2f` (workflow), `ea08fb3` (baseline/flaky düzeltmeleri).
+- Gerçek koşular: [41885922086](https://github.com/kemselcuk/probedesk/actions/runs/41885922086) 6/6 success; [41892312186](https://github.com/kemselcuk/probedesk/actions/runs/41892312186) E2E baseline/Playwright 2/2; [41884253326](https://github.com/kemselcuk/probedesk/actions/runs/41884253326) kontrollü hatada `ci_required` failure.
 
 ## İş haritası
 
@@ -164,7 +166,7 @@ $ E2E_DATABASE_URL='postgresql://probedesk:probedesk@127.0.0.1:5433/probedesk_e2
 [e2e-isolated] running additive demo seed
 Demo users ready: 3 accounts (3 created, 0 already present).
 Demo device profiles ready: 1 profiles (1 created, 0 already present).
-[e2e-isolated] baseline: plans=0 revisions=0 runs=0 activeRuns=0 sessions=0 demoUsers=3 demoProfiles=1
+[e2e-isolated] baseline: plans=1 revisions=2 runs=4 activeRuns=0 sessions=0 demoUsers=3 demoProfiles=1  # P8-02 seed sonrası güncel baseline
 [e2e-isolated] E2E database ready: 127.0.0.1:5433/probedesk_e2e_ci_check_test
 ```
 
@@ -205,7 +207,7 @@ sessions=2 activeRuns=0`. Koşu sonrası bağımsız durum kontrolü:
 ```text
 $ E2E_DATABASE_URL='...probedesk_e2e_test...' node scripts/e2e-isolated.mjs status
 [e2e-isolated] 127.0.0.1:5433/probedesk_e2e_test
-[e2e-isolated] status: plans=0 revisions=0 runs=0 activeRuns=0 sessions=0 demoUsers=3 demoProfiles=1
+[e2e-isolated] status: plans=1 revisions=2 runs=4 activeRuns=0 sessions=0 demoUsers=3 demoProfiles=1
 ```
 
 `node scripts/ci-e2e.mjs` çıkışında API ve web süreçleri kapatıldı; 3101 ve
