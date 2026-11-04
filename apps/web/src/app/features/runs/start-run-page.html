@@ -1,12 +1,12 @@
 <app-page-header
   title="Start Run"
-  subtitle="Configure a simulator run from a published plan version. The API decides every run setting that is not shown here."
+  subtitle="Configure one simulator run from a published plan version."
 >
   <a mat-stroked-button routerLink="/plans">Back to plans</a>
 </app-page-header>
 
 @if (missingVersionId()) {
-  <section class="not-found" role="alert" aria-labelledby="missing-version-heading">
+  <section class="not-found pd-card" role="alert" aria-labelledby="missing-version-heading">
     <h2 id="missing-version-heading">Choose a published plan version</h2>
     <p>
       Starting a run requires a published plan version. This address does not include a
@@ -18,311 +18,314 @@
   @switch (plans.versionStatus()) {
     @case ('loaded') {
       @if (plans.version(); as version) {
-        <section class="version-summary" aria-labelledby="selected-version-heading">
-          <div class="version-heading">
-            <div>
-              <h2 id="selected-version-heading">{{ version.name }}</h2>
-              <p class="version-state">Published plan version</p>
-            </div>
-            <span class="version-badge">Version {{ version.versionNumber }}</span>
+        <div class="start-layout">
+          <div class="start-primary">
+            <mat-card class="settings-card" appearance="outlined" aria-labelledby="run-settings-heading">
+              <div class="card-heading">
+                <h2 id="run-settings-heading" class="pd-section-heading">Run settings</h2>
+                <span class="pd-badge pd-badge--neutral">One run at a time</span>
+              </div>
+
+              @if (!isOperator()) {
+                <div class="role-note" role="note">
+                  <p>
+                    Starting a run is an Operator action. Your role can review the published
+                    version; the run controls are read-only and the start action is disabled.
+                  </p>
+                </div>
+              }
+
+              <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+                <fieldset [disabled]="!isOperator()">
+                  <legend class="visually-hidden">Scenario, seed, and scenario-specific settings</legend>
+
+                  <div class="settings-grid">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Scenario</mat-label>
+                      <select
+                        matNativeControl
+                        id="start-run-scenario"
+                        formControlName="scenario"
+                      >
+                        <option value="NORMAL">NORMAL — every sample stays within tolerance</option>
+                        <option value="FORCED_FAILURE">
+                          FORCED_FAILURE — a guaranteed violation at one step
+                        </option>
+                        <option value="RANDOM">
+                          RANDOM — each sample fails with the given probability
+                        </option>
+                      </select>
+                      <mat-hint id="start-run-scenario-hint">
+                        Only settings for this scenario are sent.
+                      </mat-hint>
+                      <mat-error id="start-run-scenario-error">
+                        @if (form.controls.scenario.hasError('required')) {
+                          Select a scenario.
+                        } @else if (scenarioServerError(); as message) {
+                          {{ message }}
+                        }
+                      </mat-error>
+                    </mat-form-field>
+
+                    <div class="seed-row">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                        <mat-label>Seed</mat-label>
+                        <input
+                          matInput
+                          id="start-run-seed"
+                          type="text"
+                          inputmode="numeric"
+                          autocomplete="off"
+                          formControlName="seed"
+                        />
+                        <mat-hint id="start-run-seed-hint">
+                          0–4,294,967,295. The same seed reproduces the same sequence.
+                        </mat-hint>
+                        <mat-error id="start-run-seed-error">
+                          @if (form.controls.seed.hasError('required')) {
+                            Seed is required.
+                          } @else if (form.controls.seed.hasError('seed')) {
+                            Enter a whole number from 0 to 4,294,967,295.
+                          } @else if (seedServerError(); as message) {
+                            {{ message }}
+                          }
+                        </mat-error>
+                      </mat-form-field>
+
+                      <button
+                        mat-stroked-button
+                        type="button"
+                        id="start-run-generate-seed"
+                        class="generate-seed"
+                        (click)="generateSeedValue()"
+                      >
+                        Generate seed
+                      </button>
+                    </div>
+
+                    @if (scenario() === 'FORCED_FAILURE') {
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                        <mat-label>Failing step</mat-label>
+                        <select
+                          matNativeControl
+                          id="start-run-failure-step"
+                          formControlName="failureStepId"
+                        >
+                          <option value="" disabled>Select a step</option>
+                          @for (step of version.steps; track step.logicalStepId; let index = $index) {
+                            <option [value]="step.logicalStepId">
+                              {{ index + 1 }}. {{ step.name }} ({{ step.unit }})
+                            </option>
+                          }
+                        </select>
+                        <mat-hint>
+                          The selected step gets a guaranteed violation in this run.
+                        </mat-hint>
+                        <mat-error id="start-run-failure-step-error">
+                          @if (form.controls.failureStepId.hasError('required')) {
+                            Select the step that must fail.
+                          } @else if (seedFailureStepServerError(); as message) {
+                            {{ message }}
+                          }
+                        </mat-error>
+                      </mat-form-field>
+                    }
+
+                    @if (scenario() === 'RANDOM') {
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                        <mat-label>Error probability</mat-label>
+                        <input
+                          matInput
+                          id="start-run-error-probability"
+                          type="text"
+                          inputmode="decimal"
+                          autocomplete="off"
+                          formControlName="errorProbability"
+                        />
+                        <mat-hint id="start-run-error-probability-hint">
+                          A decimal from 0 to 1 with at most 6 decimal places. 0 keeps every sample
+                          inside tolerance; 1 moves every sample outside it.
+                        </mat-hint>
+                        <mat-error id="start-run-error-probability-error">
+                          @if (form.controls.errorProbability.hasError('required')) {
+                            Error probability is required.
+                          } @else if (form.controls.errorProbability.hasError('probability')) {
+                            Enter a decimal from 0 to 1 with at most 6 decimal places.
+                          } @else if (probabilityServerError(); as message) {
+                            {{ message }}
+                          }
+                        </mat-error>
+                      </mat-form-field>
+                    }
+                  </div>
+                </fieldset>
+
+                <div class="form-actions">
+                  <button
+                    mat-flat-button
+                    type="submit"
+                    id="start-run-submit"
+                    [disabled]="!canSubmit()"
+                    [attr.aria-busy]="runs.startPending()"
+                    aria-describedby="start-run-submit-hint"
+                  >
+                    {{ runs.startPending() ? 'Starting run…' : 'Start run' }}
+                  </button>
+                  <p id="start-run-submit-hint" class="submit-hint">
+                    @if (!isOperator()) {
+                      Only an Operator can start a run.
+                    } @else if (runs.startPending()) {
+                      Waiting for the server to accept the run. Do not submit again.
+                    } @else {
+                      Starts immediately and opens live tracking.
+                    }
+                  </p>
+                </div>
+              </form>
+            </mat-card>
+
+            @if (startFailure(); as failure) {
+              <section
+                id="start-run-error-panel"
+                class="inline-error"
+                role="alert"
+                tabindex="-1"
+                aria-labelledby="start-run-error-heading"
+              >
+                <h2 id="start-run-error-heading">{{ startErrorHeading() }}</h2>
+                <p>{{ startErrorMessage() }}</p>
+                <p>Your settings are still here. Nothing is marked as started until the server confirms it.</p>
+
+                @if (isActiveRunConflict()) {
+                  @if (activeRunId(); as runId) {
+                    <a mat-flat-button [routerLink]="['/runs', runId]">Open active run</a>
+                  } @else {
+                    <p class="detail-note">
+                      The response did not include an active run id. Open Run History to find the
+                      active run.
+                    </p>
+                    <a mat-stroked-button routerLink="/runs">Open Run History</a>
+                  }
+                }
+
+                @if (isUnauthenticated()) {
+                  <a mat-stroked-button routerLink="/login">Sign in again</a>
+                }
+
+                @if (isForbidden()) {
+                  <a mat-stroked-button routerLink="/plans">Back to Test Plans</a>
+                }
+
+                @if (failure.error.requestId; as requestId) {
+                  <p class="request-id pd-meta-line">
+                    Request ID: <code class="pd-code">{{ requestId }}</code>
+                  </p>
+                }
+              </section>
+            }
           </div>
 
-          <dl class="version-meta">
-            <div>
-              <dt>Plan</dt>
-              <dd>{{ version.name }}</dd>
-            </div>
-            <div>
-              <dt>Version</dt>
-              <dd>{{ version.versionNumber }}</dd>
-            </div>
-            <div>
-              <dt>Steps</dt>
-              <dd>{{ version.steps.length }}</dd>
-            </div>
-            <div>
-              <dt>Version ID</dt>
-              <dd class="version-id">{{ version.id }}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <mat-card class="steps-card" appearance="outlined" aria-labelledby="steps-heading">
-          <h2 id="steps-heading" class="section-heading">Ordered steps</h2>
-          <p class="section-hint">
-            The run copies these immutable rules exactly. Values are shown as published and cannot
-            be edited on this screen.
-          </p>
-
-          @if (version.steps.length === 0) {
-            <p class="empty-note">This published version has no measurement steps.</p>
-          } @else {
-            <div class="table-scroll">
-              <table>
-                <caption class="visually-hidden">
-                  Ordered measurement steps of published version {{ version.versionNumber }}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Step name</th>
-                    <th scope="col">Unit</th>
-                    <th scope="col">Minimum</th>
-                    <th scope="col">Maximum</th>
-                    <th scope="col">Samples</th>
-                    <th scope="col">Interval (ms)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (step of version.steps; track step.logicalStepId; let index = $index) {
-                    <tr>
-                      <td>{{ index + 1 }}</td>
-                      <td class="step-name">{{ step.name }}</td>
-                      <td>{{ step.unit }}</td>
-                      <td>{{ step.minimum }}</td>
-                      <td>{{ step.maximum }}</td>
-                      <td>{{ step.sampleCount | number }}</td>
-                      <td>{{ step.intervalMs | number }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-
-          @if (totals(); as sums) {
-            <dl class="totals">
-              <div>
-                <dt>Steps</dt>
-                <dd>{{ sums.stepCount }}</dd>
-              </div>
-              <div>
-                <dt>Total samples</dt>
-                <dd>{{ sums.totalSamples | number }}</dd>
-              </div>
-              <div>
-                <dt>Nominal duration</dt>
-                <dd>{{ formatDuration(sums.totalDurationMs) }}</dd>
-              </div>
-            </dl>
-          }
-        </mat-card>
-
-        <mat-card class="settings-card" appearance="outlined" aria-labelledby="run-settings-heading">
-          <h2 id="run-settings-heading" class="section-heading">Run settings</h2>
-
-          @if (!isOperator()) {
-            <div class="role-note" role="note">
-              <p>
-                Starting a run is an Operator action. Your role can review the published version
-                and its settings, but the run controls are read-only and the start action is
-                disabled.
-              </p>
-            </div>
-          }
-
-          <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-            <fieldset [disabled]="!isOperator()">
-              <legend class="visually-hidden">Scenario, seed, and scenario-specific settings</legend>
-
-              <div class="settings-grid">
-                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-field">
-                  <mat-label>Scenario</mat-label>
-                  <select
-                    matNativeControl
-                    id="start-run-scenario"
-                    formControlName="scenario"
-                  >
-                    <option value="NORMAL">NORMAL — every sample stays within tolerance</option>
-                    <option value="FORCED_FAILURE">
-                      FORCED_FAILURE — a guaranteed violation at one step
-                    </option>
-                    <option value="RANDOM">
-                      RANDOM — each sample fails with the given probability
-                    </option>
-                  </select>
-                  <mat-hint id="start-run-scenario-hint">
-                    Only the settings that belong to the selected scenario are sent.
-                  </mat-hint>
-                  <mat-error id="start-run-scenario-error">
-                    @if (form.controls.scenario.hasError('required')) {
-                      Select a scenario.
-                    } @else if (scenarioServerError(); as message) {
-                      {{ message }}
-                    }
-                  </mat-error>
-                </mat-form-field>
-
-                <div class="seed-row">
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic">
-                    <mat-label>Seed</mat-label>
-                    <input
-                      matInput
-                      id="start-run-seed"
-                      type="text"
-                      inputmode="numeric"
-                      autocomplete="off"
-                      formControlName="seed"
-                    />
-                    <mat-hint id="start-run-seed-hint">
-                      A whole number from 0 to 4,294,967,295. The same seed and settings reproduce
-                      the same sequence.
-                    </mat-hint>
-                    <mat-error id="start-run-seed-error">
-                      @if (form.controls.seed.hasError('required')) {
-                        Seed is required.
-                      } @else if (form.controls.seed.hasError('seed')) {
-                        Enter a whole number from 0 to 4,294,967,295.
-                      } @else if (seedServerError(); as message) {
-                        {{ message }}
-                      }
-                    </mat-error>
-                  </mat-form-field>
-
-                  <button
-                    mat-stroked-button
-                    type="button"
-                    id="start-run-generate-seed"
-                    class="generate-seed"
-                    (click)="generateSeedValue()"
-                  >
-                    Generate seed
-                  </button>
+          <aside class="start-summary" aria-label="Published plan summary">
+            <section class="version-summary" aria-labelledby="selected-version-heading">
+              <div class="version-heading">
+                <div class="version-heading-text">
+                  <p class="version-state">Published plan version</p>
+                  <h2 id="selected-version-heading">{{ version.name }}</h2>
                 </div>
+                <span class="version-badge">Version {{ version.versionNumber }}</span>
+              </div>
 
-                @if (scenario() === 'FORCED_FAILURE') {
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-field">
-                    <mat-label>Failing step</mat-label>
-                    <select
-                      matNativeControl
-                      id="start-run-failure-step"
-                      formControlName="failureStepId"
-                    >
-                      <option value="" disabled>Select a step</option>
-                      @for (step of version.steps; track step.logicalStepId; let index = $index) {
-                        <option [value]="step.logicalStepId">
-                          {{ index + 1 }}. {{ step.name }} ({{ step.unit }})
-                        </option>
-                      }
-                    </select>
-                    <mat-hint>
-                      The selected step gets a guaranteed violation in this run.
-                    </mat-hint>
-                    <mat-error id="start-run-failure-step-error">
-                      @if (form.controls.failureStepId.hasError('required')) {
-                        Select the step that must fail.
-                      } @else if (seedFailureStepServerError(); as message) {
-                        {{ message }}
-                      }
-                    </mat-error>
-                  </mat-form-field>
-                }
+              @if (totals(); as sums) {
+                <dl class="totals">
+                  <div>
+                    <dt>Steps</dt>
+                    <dd class="pd-tabular">{{ sums.stepCount }}</dd>
+                  </div>
+                  <div>
+                    <dt>Total samples</dt>
+                    <dd class="pd-tabular">{{ sums.totalSamples | number }}</dd>
+                  </div>
+                  <div>
+                    <dt>Nominal duration</dt>
+                    <dd class="pd-tabular">{{ formatDuration(sums.totalDurationMs) }}</dd>
+                  </div>
+                </dl>
+              }
 
-                @if (scenario() === 'RANDOM') {
-                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-field">
-                    <mat-label>Error probability</mat-label>
-                    <input
-                      matInput
-                      id="start-run-error-probability"
-                      type="text"
-                      inputmode="decimal"
-                      autocomplete="off"
-                      formControlName="errorProbability"
-                    />
-                    <mat-hint id="start-run-error-probability-hint">
-                      A decimal from 0 to 1 with at most 6 decimal places. 0 keeps every sample
-                      inside tolerance; 1 moves every sample outside it.
-                    </mat-hint>
-                    <mat-error id="start-run-error-probability-error">
-                      @if (form.controls.errorProbability.hasError('required')) {
-                        Error probability is required.
-                      } @else if (form.controls.errorProbability.hasError('probability')) {
-                        Enter a decimal from 0 to 1 with at most 6 decimal places.
-                      } @else if (probabilityServerError(); as message) {
-                        {{ message }}
-                      }
-                    </mat-error>
-                  </mat-form-field>
+              <div class="steps-block">
+                <h3 class="pd-subheading" id="steps-heading">Ordered steps</h3>
+                @if (version.steps.length === 0) {
+                  <p class="empty-note">This published version has no measurement steps.</p>
+                } @else {
+                  <div class="table-scroll">
+                    <table>
+                      <caption class="visually-hidden">
+                        Ordered measurement steps of published version {{ version.versionNumber }}
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Step</th>
+                          <th scope="col">Samples</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (step of version.steps; track step.logicalStepId; let index = $index) {
+                          <tr>
+                            <td>
+                              <span class="step-name">{{ index + 1 }}. {{ step.name }}</span>
+                              <span class="step-detail">
+                                {{ step.minimum }} – {{ step.maximum }} {{ step.unit }} · interval
+                                {{ step.intervalMs | number }} ms
+                              </span>
+                            </td>
+                            <td class="step-samples pd-tabular">{{ step.sampleCount | number }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 }
               </div>
-            </fieldset>
 
-            <div class="form-actions">
-              <button
-                mat-flat-button
-                type="submit"
-                id="start-run-submit"
-                [disabled]="!canSubmit()"
-                [attr.aria-busy]="runs.startPending()"
-                aria-describedby="start-run-submit-hint"
-              >
-                {{ runs.startPending() ? 'Starting run…' : 'Start run' }}
-              </button>
-              <p id="start-run-submit-hint" class="submit-hint">
-                @if (!isOperator()) {
-                  Only an Operator can start a run.
-                } @else if (runs.startPending()) {
-                  Waiting for the server to accept the run. Do not submit again.
-                } @else {
-                  All settings for the selected scenario must be valid.
-                }
-              </p>
-            </div>
-          </form>
-        </mat-card>
-
-        @if (startFailure(); as failure) {
-          <section
-            id="start-run-error-panel"
-            class="inline-error"
-            role="alert"
-            tabindex="-1"
-            aria-labelledby="start-run-error-heading"
-          >
-            <h2 id="start-run-error-heading">{{ startErrorHeading() }}</h2>
-            <p>{{ startErrorMessage() }}</p>
-            <p>Your settings are still here. Nothing is marked as started until the server confirms it.</p>
-
-            @if (isActiveRunConflict()) {
-              @if (activeRunId(); as runId) {
-                <a mat-flat-button [routerLink]="['/runs', runId]">Open active run</a>
-              } @else {
-                <p class="detail-note">
-                  The response did not include an active run id. Open Run History to find the
-                  active run.
-                </p>
-                <a mat-stroked-button routerLink="/runs">Open Run History</a>
-              }
-            }
-
-            @if (isUnauthenticated()) {
-              <a mat-stroked-button routerLink="/login">Sign in again</a>
-            }
-
-            @if (isForbidden()) {
-              <a mat-stroked-button routerLink="/plans">Back to Test Plans</a>
-            }
-
-            @if (failure.error.requestId; as requestId) {
-              <p class="request-id">
-                Request ID: <code>{{ requestId }}</code>
-              </p>
-            }
-          </section>
-        }
+              <details class="pd-disclosure version-details">
+                <summary>Version details</summary>
+                <div class="pd-disclosure-body">
+                  <dl class="pd-meta pd-meta--inline">
+                    <div>
+                      <dt>Plan</dt>
+                      <dd>{{ version.name }}</dd>
+                    </div>
+                    <div>
+                      <dt>Version</dt>
+                      <dd>{{ version.versionNumber }}</dd>
+                    </div>
+                    <div>
+                      <dt>Version ID</dt>
+                      <dd class="version-id pd-mono">{{ version.id }}</dd>
+                    </div>
+                  </dl>
+                  <p class="pd-hint">
+                    The run copies these immutable rules exactly. Values are shown as published and
+                    cannot be edited on this screen.
+                  </p>
+                </div>
+              </details>
+            </section>
+          </aside>
+        </div>
       }
     }
     @case ('error') {
       @if (plans.versionError()?.status === 404) {
-        <section class="not-found" role="alert" aria-labelledby="version-not-found-heading">
+        <section class="not-found pd-card" role="alert" aria-labelledby="version-not-found-heading">
           <h2 id="version-not-found-heading">Published version not found</h2>
           <p>
             This version does not exist, is not published, or is not available to your role. A run
             cannot be configured without its published steps.
           </p>
           @if (plans.versionError()?.requestId; as requestId) {
-            <p class="request-id">
-              Request ID: <code>{{ requestId }}</code>
+            <p class="request-id pd-meta-line">
+              Request ID: <code class="pd-code">{{ requestId }}</code>
             </p>
           }
           <div class="error-actions">

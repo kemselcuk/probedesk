@@ -152,6 +152,59 @@ export class LiveRunPage {
 
   protected readonly progressPercent = this.live.progressPercent;
 
+  /** Visible badge classes reuse the shared `.pd-badge` semantic palette. */
+  protected statusBadgeClass(tone: string): string {
+    switch (tone) {
+      case 'passed':
+        return 'pd-badge--success';
+      case 'failed':
+      case 'error':
+        return 'pd-badge--danger';
+      case 'running':
+        return 'pd-badge--primary';
+      case 'interrupted':
+        return 'pd-badge--warning';
+      default:
+        return 'pd-badge--neutral';
+    }
+  }
+
+  protected connectionBadgeClass(tone: ConnectionView['tone']): string {
+    switch (tone) {
+      case 'connected':
+        return 'pd-badge--success';
+      case 'connecting':
+      case 'reconnecting':
+        return 'pd-badge--warning';
+      default:
+        return 'pd-badge--danger';
+    }
+  }
+
+  protected stepStatusBadgeClass(status: string): string {
+    switch (status) {
+      case 'COMPLETED':
+        return 'pd-badge--success';
+      case 'RUNNING':
+        return 'pd-badge--primary';
+      case 'ERROR':
+      case 'UNAVAILABLE':
+        return 'pd-badge--danger';
+      case 'INTERRUPTED':
+        return 'pd-badge--warning';
+      default:
+        return 'pd-badge--neutral';
+    }
+  }
+
+  protected stepOutcomeBadgeClass(outcome: string): string {
+    return outcome === 'PASSED'
+      ? 'pd-badge--success'
+      : outcome === 'FAILED'
+        ? 'pd-badge--danger'
+        : 'pd-badge--neutral';
+  }
+
   protected readonly partialResults = computed(() => {
     const run = this.live.snapshot();
     return run !== null && isPartialResult(run);
@@ -448,8 +501,19 @@ export class LiveRunPage {
   }
 
   private focusAfterRender(elementId: string): void {
-    afterNextRender(() => document.getElementById(elementId)?.focus(), {
-      injector: this.injector,
-    });
+    afterNextRender(
+      () => {
+        const target = document.getElementById(elementId);
+        // Measurement rows live inside a collapsed disclosure so a long live
+        // run stays scannable. Open it before moving focus, otherwise focus
+        // would land on a hidden element.
+        const disclosure = target?.closest('details');
+        if (disclosure instanceof HTMLDetailsElement) {
+          disclosure.open = true;
+        }
+        target?.focus();
+      },
+      { injector: this.injector },
+    );
   }
 }

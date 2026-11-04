@@ -11,7 +11,7 @@
   }
   @if (showCancelAction()) {
     <button
-      mat-flat-button
+      mat-stroked-button
       type="button"
       id="cancel-run-button"
       class="cancel-run-button"
@@ -27,7 +27,7 @@
 <p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
 
 @if (missingRunId()) {
-  <section class="not-found" role="alert" aria-labelledby="missing-live-run-heading">
+  <section class="not-found pd-card" role="alert" aria-labelledby="missing-live-run-heading">
     <h2 id="missing-live-run-heading">Choose a run</h2>
     <p>
       This address does not include a run id, so no live run can be loaded. Open Run History to
@@ -42,7 +42,7 @@
         @if (live.streamError(); as streamError) {
           <section
             id="live-stream-warning"
-            class="inline-error"
+            class="inline-error pd-inline-error"
             role="alert"
             aria-labelledby="live-stream-warning-heading"
           >
@@ -66,7 +66,7 @@
         @if (live.cancelError(); as failure) {
           <section
             id="cancel-error-panel"
-            class="inline-error"
+            class="inline-error pd-inline-error"
             role="alert"
             aria-labelledby="cancel-error-heading"
           >
@@ -74,7 +74,7 @@
             <p>{{ cancelErrorMessage() }}</p>
             @if (failure.requestId; as requestId) {
               <p class="request-id">
-                Request ID: <code>{{ requestId }}</code>
+                Request ID: <code class="pd-code">{{ requestId }}</code>
               </p>
             }
             <div class="error-actions">
@@ -90,68 +90,38 @@
 
         <section
           id="live-run-summary"
-          class="run-summary"
+          class="run-summary pd-card"
           aria-labelledby="live-run-summary-heading"
         >
           <div class="run-heading">
             <div class="run-heading-text">
               <h2 id="live-run-summary-heading">{{ run.planName }}</h2>
               <p class="run-meta-line">
-                Version {{ run.versionNumber }} · {{ scenario(run.scenario) }} · Run ID
-                <code>{{ run.id }}</code>
+                Version {{ run.versionNumber }} · {{ scenario(run.scenario) }} ·
+                {{ run.recordedSampleCount }} of {{ run.expectedSampleCount }} samples
               </p>
             </div>
 
-            @if (statusView(); as status) {
-              <span [class]="'status-badge status-badge--' + status.tone">
-                <span class="status-label">{{ status.label }}</span>
+            <div class="run-state">
+              @if (statusView(); as status) {
+                <span [class]="'status-badge pd-badge ' + statusBadgeClass(status.tone)">
+                  <span class="status-label">{{ status.label }}</span>
+                </span>
+              }
+              <span [class]="'connection-badge pd-badge ' + connectionBadgeClass(connection().tone)">
+                Connection: {{ connection().label }}
               </span>
-            }
+            </div>
           </div>
 
-          @if (statusView(); as status) {
-            <p class="status-detail">{{ status.detail }}</p>
-          }
-
-          <section
+          <div
             class="connection-panel"
             [attr.data-connection]="live.connection()"
-            aria-labelledby="connection-heading"
+            role="note"
+            aria-label="Live connection state"
           >
-            <span [class]="'connection-badge connection-badge--' + connection().tone">
-              Connection: {{ connection().label }}
-            </span>
-            <p id="connection-heading" class="connection-detail">{{ connection().detail }}</p>
-          </section>
-
-          @if (run.status === 'RUNNING') {
-            <p class="partial-note partial-note--running" role="note">
-              <strong>Provisional snapshot.</strong>
-              The run is still in progress. Counts and samples can still change.
-            </p>
-          } @else if (partialResults()) {
-            <p class="partial-note" role="note">
-              <strong>Partial results.</strong>
-              The run stopped before every expected sample was recorded. Missing samples are shown
-              as not recorded, never as zero.
-            </p>
-          } @else if (stoppedAfterAllSamples()) {
-            <p class="partial-note" role="note">
-              <strong>All expected samples were recorded.</strong>
-              The run stopped during finalization or because of a technical error, so it is not
-              presented as a completed result.
-            </p>
-          }
-
-          @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
-            <p class="reason-code">
-              @if (run.reasonCode) {
-                Reason code: <code>{{ run.reasonCode }}</code>
-              } @else {
-                No reason code was recorded.
-              }
-            </p>
-          }
+            <p class="connection-detail section-hint">{{ connection().detail }}</p>
+          </div>
 
           <div class="progress-block">
             <p class="progress-label">
@@ -171,12 +141,41 @@
             }
           </div>
 
+          @if (run.status === 'RUNNING') {
+            <p class="partial-note pd-inline-warning" role="note">
+              <strong>Provisional snapshot.</strong>
+              The run is still in progress. Counts and samples can still change.
+            </p>
+          } @else if (partialResults()) {
+            <p class="partial-note pd-inline-error" role="note">
+              <strong>Partial results.</strong>
+              The run stopped before every expected sample was recorded. Missing samples are shown
+              as not recorded, never as zero.
+            </p>
+          } @else if (stoppedAfterAllSamples()) {
+            <p class="partial-note pd-inline-error" role="note">
+              <strong>All expected samples were recorded.</strong>
+              The run stopped during finalization or because of a technical error, so it is not
+              presented as a completed result.
+            </p>
+          }
+
+          @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
+            <p class="reason-code">
+              @if (run.reasonCode) {
+                Reason code: <code class="pd-code">{{ run.reasonCode }}</code>
+              } @else {
+                No reason code was recorded.
+              }
+            </p>
+          }
+
           @if (live.finalizing()) {
             <p class="finalizing" role="status">Loading the final step snapshot…</p>
           }
 
           @if (terminalSummary(); as summary) {
-            <section class="terminal-summary" role="status" aria-labelledby="terminal-summary-heading">
+            <section class="terminal-summary pd-notice" role="status" aria-labelledby="terminal-summary-heading">
               <h3 id="terminal-summary-heading">Run finished</h3>
               <p>{{ summary }}</p>
               <p class="terminal-stream-note">
@@ -188,7 +187,7 @@
           @if (live.finalStepStateUnavailable()) {
             <section
               id="live-final-steps-warning"
-              class="inline-error"
+              class="inline-error pd-inline-error"
               role="alert"
               aria-labelledby="live-final-steps-warning-heading"
             >
@@ -209,65 +208,76 @@
             </section>
           }
 
-          <dl class="run-metadata">
-            <div>
-              <dt>Plan version</dt>
-              <dd>{{ run.planName }} · Version {{ run.versionNumber }}</dd>
+          <details class="pd-disclosure run-metadata-disclosure">
+            <summary>Run metadata</summary>
+            <div class="pd-disclosure-body">
+              <dl class="run-metadata">
+                <div>
+                  <dt>Plan version</dt>
+                  <dd>{{ run.planName }} · Version {{ run.versionNumber }}</dd>
+                </div>
+                <div>
+                  <dt>Scenario</dt>
+                  <dd>{{ scenario(run.scenario) }} ({{ run.scenario }})</dd>
+                </div>
+                <div>
+                  <dt>Seed</dt>
+                  <dd class="mono">{{ run.seed }}</dd>
+                </div>
+                <div>
+                  <dt>Recorded samples</dt>
+                  <dd>{{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}</dd>
+                </div>
+                <div>
+                  <dt>Snapshot event sequence</dt>
+                  <dd class="mono">{{ run.lastEventSequence }}</dd>
+                </div>
+                <div>
+                  <dt>Started at (UTC)</dt>
+                  <dd>
+                    <time [attr.datetime]="run.startedAt">
+                      {{ run.startedAt | date: 'medium' : 'UTC' }} UTC
+                    </time>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Finished at (UTC)</dt>
+                  <dd>
+                    @if (run.finishedAt !== null) {
+                      <time [attr.datetime]="run.finishedAt">
+                        {{ run.finishedAt | date: 'medium' : 'UTC' }} UTC
+                      </time>
+                    } @else if (run.status === 'RUNNING') {
+                      Still running
+                    } @else {
+                      Not recorded
+                    }
+                  </dd>
+                </div>
+                <div>
+                  <dt>Run ID</dt>
+                  <dd class="mono run-id">{{ run.id }}</dd>
+                </div>
+              </dl>
             </div>
-            <div>
-              <dt>Scenario</dt>
-              <dd>{{ scenario(run.scenario) }} ({{ run.scenario }})</dd>
-            </div>
-            <div>
-              <dt>Seed</dt>
-              <dd class="mono">{{ run.seed }}</dd>
-            </div>
-            <div>
-              <dt>Recorded samples</dt>
-              <dd>{{ run.recordedSampleCount }} of {{ run.expectedSampleCount }}</dd>
-            </div>
-            <div>
-              <dt>Snapshot event sequence</dt>
-              <dd class="mono">{{ run.lastEventSequence }}</dd>
-            </div>
-            <div>
-              <dt>Started at (UTC)</dt>
-              <dd>
-                <time [attr.datetime]="run.startedAt">
-                  {{ run.startedAt | date: 'medium' : 'UTC' }} UTC
-                </time>
-              </dd>
-            </div>
-            <div>
-              <dt>Finished at (UTC)</dt>
-              <dd>
-                @if (run.finishedAt !== null) {
-                  <time [attr.datetime]="run.finishedAt">
-                    {{ run.finishedAt | date: 'medium' : 'UTC' }} UTC
-                  </time>
-                } @else if (run.status === 'RUNNING') {
-                  Still running
-                } @else {
-                  Not recorded
-                }
-              </dd>
-            </div>
-          </dl>
+          </details>
         </section>
 
         @if (!isOperator()) {
-          <p class="role-note" role="note">
+          <p class="role-note pd-notice" role="note">
             Cancelling a running run is an Operator action. Your role can follow this run and review
             its measurements.
           </p>
         }
 
         <section class="steps-section" aria-labelledby="live-steps-heading">
-          <h2 id="live-steps-heading" class="section-heading">Live steps</h2>
-          <p class="section-hint">
-            Steps run in order. Counts and tolerance markers come from backend events; this screen
-            does not recalculate a verdict.
-          </p>
+          <div class="section-heading-row">
+            <h2 id="live-steps-heading" class="pd-section-heading">Live steps</h2>
+            <p class="section-hint">
+              Counts and tolerance markers come from backend events; this screen does not
+              recalculate a verdict.
+            </p>
+          </div>
 
           @if (run.steps.length === 0) {
             <app-empty-state
@@ -311,7 +321,7 @@
                     }
 
                     @if (isFirstViolation(step)) {
-                      <p class="violation" data-first-violation>
+                      <p class="violation pd-inline-error" data-first-violation>
                         <strong>Out-of-tolerance sample recorded.</strong>
                         @if (step.firstFailureSampleIndex !== null) {
                           First failing sample:
@@ -325,43 +335,45 @@
                     }
                   </div>
 
-                  <div class="step-badges">
-                    @if (stepStateUnavailable(step)) {
-                      <span class="step-status" data-status="UNAVAILABLE">Unavailable</span>
-                    } @else {
-                      <span class="step-status" [attr.data-status]="step.status">
-                        {{ stepStatus(step.status) }}
-                      </span>
-                    }
-                    @if (stepOutcome(step.outcome); as outcome) {
-                      <span class="step-outcome" [attr.data-outcome]="step.outcome">
-                        {{ outcome }}
-                      </span>
-                    }
-                  </div>
+                  <div class="step-side">
+                    <div class="step-badges">
+                      @if (stepStateUnavailable(step)) {
+                        <span class="step-status pd-badge pd-badge--danger" data-status="UNAVAILABLE">Unavailable</span>
+                      } @else {
+                        <span [class]="'step-status pd-badge ' + stepStatusBadgeClass(step.status)" [attr.data-status]="step.status">
+                          {{ stepStatus(step.status) }}
+                        </span>
+                      }
+                      @if (stepOutcome(step.outcome); as outcome) {
+                        <span [class]="'step-outcome pd-badge ' + stepOutcomeBadgeClass(outcome)" [attr.data-outcome]="step.outcome">
+                          {{ outcome }}
+                        </span>
+                      }
+                    </div>
 
-                  <dl class="step-counters">
-                    <div>
-                      <dt>Recorded</dt>
-                      <dd>{{ step.recordedCount }} of {{ step.sampleCount }}</dd>
-                    </div>
-                    <div>
-                      <dt>Out of tolerance</dt>
-                      <dd>{{ step.outOfToleranceCount }}</dd>
-                    </div>
-                    <div>
-                      <dt>First failure index</dt>
-                      <dd>
-                        @if (step.firstFailureSampleIndex !== null) {
-                          {{ step.firstFailureSampleIndex }}
-                        } @else if (step.hasOutOfTolerance) {
-                          Not recorded
-                        } @else {
-                          None
-                        }
-                      </dd>
-                    </div>
-                  </dl>
+                    <dl class="step-counters">
+                      <div>
+                        <dt>Recorded</dt>
+                        <dd>{{ step.recordedCount }} of {{ step.sampleCount }}</dd>
+                      </div>
+                      <div>
+                        <dt>Out of tolerance</dt>
+                        <dd>{{ step.outOfToleranceCount }}</dd>
+                      </div>
+                      <div>
+                        <dt>First failure index</dt>
+                        <dd>
+                          @if (step.firstFailureSampleIndex !== null) {
+                            {{ step.firstFailureSampleIndex }}
+                          } @else if (step.hasOutOfTolerance) {
+                            Not recorded
+                          } @else {
+                            None
+                          }
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
                 </li>
               }
             </ol>
@@ -375,136 +387,141 @@
           [attr.data-chart-sample-count]="chartSampleCount()"
           [attr.data-recorded-sample-count]="run.recordedSampleCount"
         >
-          <h2 id="live-charts-heading" class="section-heading">Live measurement charts</h2>
-          <p class="section-hint">
-            One chart per step and unit. The X axis is the recorded elapsed time and the shaded
-            area is the tolerance copied into this run snapshot. Drawing updates are grouped so a
-            fast stream stays responsive, while the state store keeps every sample; the final
-            chart and full table below show the same recorded sample count as the run.
-          </p>
+          <div class="section-heading-row">
+            <h2 id="live-charts-heading" class="pd-section-heading">Live measurement charts</h2>
+            <p class="section-hint">
+              Same recorded values and backend tolerance results as the measurement tables.
+            </p>
+          </div>
 
           @if (live.chartSnapshot(); as chartRun) {
-            <p class="section-hint" role="status">
-              Charts and tables currently show {{ chartSampleCount() }} of
+            <p class="chart-status section-hint" role="status">
+              Charts and tables show {{ chartSampleCount() }} of
               {{ chartRun.recordedSampleCount }} recorded samples.
             </p>
 
-            <div class="step-list">
+            <div class="chart-step-list">
               @for (step of chartRun.steps; track step.runStepId) {
                 <article
-                  class="step-row"
-                  style="display: block; min-width: 0"
+                  class="chart-step pd-card"
                   [attr.data-run-step-id]="step.runStepId"
                   [attr.data-logical-step-id]="step.logicalStepId"
                 >
-                <h3 class="step-title">
-                  Step {{ step.position }}: {{ step.name }} ({{ step.unit }})
-                </h3>
-                <p class="step-subtitle">
-                  {{ step.measurements.length }} of {{ step.sampleCount }} samples recorded ·
-                  tolerance {{ step.minimum }} – {{ step.maximum }} {{ step.unit }}
-                </p>
+                  <div class="chart-step-heading">
+                    <h3 class="step-title">
+                      Step {{ step.position }}: {{ step.name }} ({{ step.unit }})
+                    </h3>
+                    <p class="step-subtitle">
+                      {{ step.measurements.length }} of {{ step.sampleCount }} samples recorded ·
+                      tolerance {{ step.minimum }} – {{ step.maximum }} {{ step.unit }}
+                    </p>
+                  </div>
 
-                <app-measurement-chart
-                  [runId]="chartRun.id"
-                  [planName]="chartRun.planName"
-                  [step]="step"
-                  [selectedSample]="activeSelection()"
-                  (sampleSelected)="selectSample($event)"
-                  (tableViewRequested)="focusMeasurementsTable($event)"
-                />
+                  <app-measurement-chart
+                    [runId]="chartRun.id"
+                    [planName]="chartRun.planName"
+                    [step]="step"
+                    [selectedSample]="activeSelection()"
+                    (sampleSelected)="selectSample($event)"
+                    (tableViewRequested)="focusMeasurementsTable($event)"
+                  />
 
-                <section
-                  class="step-measurements"
-                  [attr.aria-labelledby]="'step-measurements-heading-' + step.runStepId"
-                >
-                  <h4 [id]="'step-measurements-heading-' + step.runStepId" class="step-title">
-                    Recorded measurements
-                  </h4>
-                  @if (step.measurements.length === 0) {
-                    <p class="empty-note">No samples were recorded for this step.</p>
-                  } @else {
-                    <div
-                      class="table-scroll"
-                      [id]="tableId(step.runStepId)"
-                      role="region"
-                      tabindex="0"
-                      [attr.aria-label]="
-                        'Measurement table for step ' +
-                        step.position +
-                        ': ' +
-                        step.name +
-                        ' (' +
-                        step.unit +
-                        '). Scroll horizontally to reach every column.'
-                      "
-                    >
-                      <table>
-                        <caption class="visually-hidden">
-                          Recorded measurements for step
-                          {{ step.position }}:
-                          {{ step.name }}
-                          ({{ step.unit }}). The table contains every sample in the chart.
-                        </caption>
-                        <thead>
-                          <tr>
-                            <th scope="col">Sample index</th>
-                            <th scope="col">Value</th>
-                            <th scope="col">Unit</th>
-                            <th scope="col">Tolerance</th>
-                            <th scope="col">Elapsed (ms)</th>
-                            <th scope="col">Recorded at (UTC)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (measurement of step.measurements; track measurement.sampleIndex) {
-                            <tr
-                              [id]="rowId(step.runStepId, measurement.sampleIndex)"
-                              [class.is-selected]="
-                                isSampleSelected(step, measurement.sampleIndex)
-                              "
-                              [attr.tabindex]="
-                                measurementRowTabIndex(measurement.isWithinTolerance)
-                              "
-                              [attr.aria-label]="
-                                measurementRowLabel(step, measurement.sampleIndex)
-                              "
-                              [attr.aria-current]="
-                                isSampleSelected(step, measurement.sampleIndex) ? 'true' : null
-                              "
-                              (click)="selectMeasurementRow(step, measurement.sampleIndex)"
-                              (keydown.enter)="
-                                selectMeasurementRow(step, measurement.sampleIndex)
-                              "
-                              (keydown.space)="
-                                selectMeasurementRow(step, measurement.sampleIndex);
-                                $event.preventDefault()
-                              "
-                            >
-                              <td>{{ measurement.sampleIndex }}</td>
-                              <td class="mono">{{ measurement.value }}</td>
-                              <td>{{ step.unit }}</td>
-                              <td>
-                                @if (measurement.isWithinTolerance) {
-                                  <span class="tolerance tolerance--within">Within tolerance</span>
-                                } @else {
-                                  <span class="tolerance tolerance--outside">Outside tolerance</span>
+                  <details class="pd-disclosure step-measurements">
+                    <summary>Recorded measurements ({{ step.measurements.length }} samples)</summary>
+                    <div class="pd-disclosure-body">
+                      <section [attr.aria-labelledby]="'step-measurements-heading-' + step.runStepId">
+                        <h4
+                          [id]="'step-measurements-heading-' + step.runStepId"
+                          class="visually-hidden"
+                        >
+                          Recorded measurements for step {{ step.position }}: {{ step.name }}
+                        </h4>
+                        @if (step.measurements.length === 0) {
+                          <p class="empty-note">No samples were recorded for this step.</p>
+                        } @else {
+                          <div
+                            class="pd-table-wrap"
+                            [id]="tableId(step.runStepId)"
+                            role="region"
+                            tabindex="0"
+                            [attr.aria-label]="
+                              'Measurement table for step ' +
+                              step.position +
+                              ': ' +
+                              step.name +
+                              ' (' +
+                              step.unit +
+                              '). Scroll horizontally to reach every column.'
+                            "
+                          >
+                            <table class="pd-table">
+                              <caption class="visually-hidden">
+                                Recorded measurements for step
+                                {{ step.position }}:
+                                {{ step.name }}
+                                ({{ step.unit }}). The table contains every sample in the chart.
+                              </caption>
+                              <thead>
+                                <tr>
+                                  <th scope="col">Sample index</th>
+                                  <th scope="col">Value</th>
+                                  <th scope="col">Unit</th>
+                                  <th scope="col">Tolerance</th>
+                                  <th scope="col">Elapsed (ms)</th>
+                                  <th scope="col">Recorded at (UTC)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                @for (measurement of step.measurements; track measurement.sampleIndex) {
+                                  <tr
+                                    [id]="rowId(step.runStepId, measurement.sampleIndex)"
+                                    [class.is-selected]="
+                                      isSampleSelected(step, measurement.sampleIndex)
+                                    "
+                                    [attr.tabindex]="
+                                      measurementRowTabIndex(measurement.isWithinTolerance)
+                                    "
+                                    [attr.aria-label]="
+                                      measurementRowLabel(step, measurement.sampleIndex)
+                                    "
+                                    [attr.aria-current]="
+                                      isSampleSelected(step, measurement.sampleIndex) ? 'true' : null
+                                    "
+                                    (click)="selectMeasurementRow(step, measurement.sampleIndex)"
+                                    (keydown.enter)="
+                                      selectMeasurementRow(step, measurement.sampleIndex)
+                                    "
+                                    (keydown.space)="
+                                      selectMeasurementRow(step, measurement.sampleIndex);
+                                      $event.preventDefault()
+                                    "
+                                  >
+                                    <td>{{ measurement.sampleIndex }}</td>
+                                    <td class="mono">{{ measurement.value }}</td>
+                                    <td>{{ step.unit }}</td>
+                                    <td>
+                                      @if (measurement.isWithinTolerance) {
+                                        <span class="tolerance tolerance--within">Within tolerance</span>
+                                      } @else {
+                                        <span class="tolerance tolerance--outside">Outside tolerance</span>
+                                      }
+                                    </td>
+                                    <td>{{ measurement.elapsedMs | number }}</td>
+                                    <td>
+                                      <time [attr.datetime]="measurement.recordedAt">
+                                        {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
+                                      </time>
+                                    </td>
+                                  </tr>
                                 }
-                              </td>
-                              <td>{{ measurement.elapsedMs | number }}</td>
-                              <td>
-                                <time [attr.datetime]="measurement.recordedAt">
-                                  {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
-                                </time>
-                              </td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
+                              </tbody>
+                            </table>
+                          </div>
+                        }
+                      </section>
                     </div>
-                  }
-                </section>
-              </article>
+                  </details>
+                </article>
               }
             </div>
           } @else {
@@ -513,18 +530,18 @@
         </section>
 
         <section class="measurements-section" aria-labelledby="recent-measurements-heading">
-          <h2 id="recent-measurements-heading" class="section-heading">Recent measurements</h2>
+          <h2 id="recent-measurements-heading" class="pd-section-heading">Recent measurements</h2>
           @if (live.recentMeasurements().length === 0) {
             <p class="empty-note">No samples have been recorded for this run yet.</p>
           } @else {
             <div
-              class="table-scroll"
+              class="pd-table-wrap"
               role="region"
               tabindex="0"
               aria-label="Recent recorded measurements across all steps. Scroll horizontally to reach every column."
             >
-              <table>
-                <caption>
+              <table class="pd-table">
+                <caption class="visually-hidden">
                   Recent recorded measurements across all steps, newest first. The table shows the
                   last 20 samples; every sample remains in the run record.
                 </caption>
@@ -575,16 +592,16 @@
     }
     @case ('error') {
       @if (live.loadError()?.status === 404) {
-        <section class="not-found" role="alert" aria-labelledby="live-run-not-found-heading">
+        <section class="not-found pd-card" role="alert" aria-labelledby="live-run-not-found-heading">
           <h2 id="live-run-not-found-heading">Run not found</h2>
           <p>
             This run does not exist or is not available to your role. No status, outcome, or
             measurements are assumed.
           </p>
-          <p class="request-id">Run ID: <code>{{ runId() }}</code></p>
+          <p class="request-id">Run ID: <code class="pd-code">{{ runId() }}</code></p>
           @if (live.loadError()?.requestId; as requestId) {
             <p class="request-id">
-              Request ID: <code>{{ requestId }}</code>
+              Request ID: <code class="pd-code">{{ requestId }}</code>
             </p>
           }
           <div class="error-actions">

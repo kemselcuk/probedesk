@@ -1,18 +1,21 @@
 :host {
   display: block;
+  min-width: 0;
 }
 
 .measurement-chart {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--mat-sys-outline-variant);
+  min-width: 0;
+  margin-top: var(--pd-space-3);
+  padding-top: var(--pd-space-3);
+  border-top: 1px solid var(--pd-border);
 }
 
 .chart-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--pd-space-2) var(--pd-space-4);
 }
 
 .chart-heading-text {
@@ -21,25 +24,30 @@
 
 .chart-header h4 {
   margin: 0;
-  font: var(--mat-sys-title-small);
+  color: var(--pd-text);
+  font-size: var(--pd-font-subsection-size);
+  font-weight: 600;
+  line-height: var(--pd-font-subsection-line);
   overflow-wrap: anywhere;
 }
 
 .chart-caption {
-  max-width: 82ch;
-  margin: 4px 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
+  max-width: 80ch;
+  margin: 0.125rem 0 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .reset-view {
   flex: 0 0 auto;
+  --mat-button-outlined-container-height: var(--pd-button-height-compact);
 }
 
 .chart-frame {
   position: relative;
-  height: 300px;
-  margin-top: 12px;
+  height: var(--pd-chart-height);
+  margin-top: var(--pd-space-2);
 }
 
 .chart-frame canvas {
@@ -55,72 +63,79 @@
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 24px;
-  border: 1px dashed var(--mat-sys-outline-variant);
-  border-radius: 8px;
-  background: var(--mat-sys-surface-container-low);
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-medium);
+  padding: var(--pd-space-4);
+  border: 1px dashed var(--pd-border-strong);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-surface-subtle);
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
   text-align: center;
 }
 
 .chart-overlay--warning {
-  border-color: var(--mat-sys-error);
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  border-color: var(--pd-danger-border);
+  background: var(--pd-danger-bg);
+  color: var(--pd-danger);
 }
 
 .chart-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 20px;
-  margin: 12px 0 0;
+  gap: var(--pd-space-1) var(--pd-space-4);
+  margin: var(--pd-space-2) 0 0;
   padding: 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
   list-style: none;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
 }
 
 .chart-legend li {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--pd-space-1);
 }
 
 .chart-legend svg {
-  width: 16px;
-  height: 16px;
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .band-swatch {
-  width: 16px;
-  height: 12px;
+  width: 0.875rem;
+  height: 0.75rem;
   border: 1px dashed rgba(0, 105, 92, 0.65);
   background: rgba(0, 105, 92, 0.08);
 }
 
 .failure-list {
-  margin-top: 16px;
-  padding: 12px 16px;
-  border-left: 3px solid var(--mat-sys-error);
-  border-radius: 4px;
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  margin-top: var(--pd-space-3);
+  padding: var(--pd-space-2) var(--pd-space-3);
+  border: 1px solid var(--pd-danger-border);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-danger-bg);
+  color: var(--pd-text);
 }
 
 .failure-list h5 {
   margin: 0;
-  font: var(--mat-sys-title-small);
+  color: var(--pd-danger);
+  font-size: var(--pd-font-body-size);
+  font-weight: 600;
+  line-height: var(--pd-font-body-line);
 }
 
 .failure-hint {
-  margin: 4px 0 10px;
-  font: var(--mat-sys-body-small);
+  margin: 0.125rem 0 var(--pd-space-2);
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .failure-list ul {
   display: grid;
-  gap: 8px;
+  gap: var(--pd-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -130,53 +145,63 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 14px;
+  gap: var(--pd-space-1) var(--pd-space-3);
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--mat-sys-error);
-  border-radius: 6px;
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
+  min-height: var(--pd-button-height-compact);
+  padding: var(--pd-space-1) var(--pd-space-2);
+  border: 1px solid var(--pd-danger-border);
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-surface);
+  color: var(--pd-text);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
   text-align: left;
   cursor: pointer;
 }
 
+.failure-item:hover {
+  background: var(--pd-danger-bg);
+}
+
 .failure-item[aria-pressed='true'] {
-  outline: 3px solid var(--mat-sys-primary);
+  outline: 2px solid var(--pd-focus-ring);
   outline-offset: 1px;
 }
 
 .failure-shape {
-  color: var(--mat-sys-error);
+  color: var(--pd-danger);
 }
 
 .failure-index {
-  font: var(--mat-sys-label-large);
+  font-weight: 600;
 }
 
 .failure-value {
-  font-family: 'SFMono-Regular', Consolas, Menlo, monospace;
+  font-family: var(--pd-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .failure-meta {
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-small);
+  color: var(--pd-text-secondary);
 }
 
 .failure-first {
-  padding: 2px 8px;
+  padding: 0 var(--pd-space-2);
   border: 1px solid currentcolor;
-  border-radius: 999px;
-  font: var(--mat-sys-label-small);
+  border-radius: var(--pd-radius-badge);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .table-link-row {
-  margin: 12px 0 0;
+  margin: var(--pd-space-2) 0 0;
 }
 
 .table-link {
-  font: var(--mat-sys-label-large);
+  color: var(--pd-primary);
+  font-size: var(--pd-font-meta-size);
+  font-weight: 500;
+  line-height: var(--pd-font-meta-line);
 }
 
 .visually-hidden {
@@ -191,8 +216,20 @@
   border: 0;
 }
 
-@media (max-width: 720px) {
-  .chart-header {
-    flex-direction: column;
+@media (max-width: 859px) {
+  .chart-frame {
+    height: var(--pd-chart-height-compact);
+  }
+}
+
+@media (max-width: 519px) {
+  .chart-frame {
+    height: 13.75rem; // 220px minimum touch-friendly chart area
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .failure-item {
+    transition: none;
   }
 }
