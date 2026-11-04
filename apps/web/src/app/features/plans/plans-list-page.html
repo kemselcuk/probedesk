@@ -48,7 +48,7 @@
 
     <form [formGroup]="createForm" (ngSubmit)="submitCreate()" novalidate>
       <div class="create-fields">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Plan name</mat-label>
           <input
             id="create-plan-name"
@@ -68,7 +68,7 @@
           </mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Device profile</mat-label>
           <select
             id="create-plan-profile"

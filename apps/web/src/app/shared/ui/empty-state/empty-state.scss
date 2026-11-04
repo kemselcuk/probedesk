@@ -1,27 +1,28 @@
 .state {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
-  padding: 24px;
-  border: 1px dashed var(--mat-sys-outline-variant);
-  border-radius: var(--mat-sys-corner-large);
-  background: var(--mat-sys-surface-container-low);
+  gap: var(--pd-space-3);
+  min-height: 10rem;
+  padding: var(--pd-space-5);
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-card);
+  background: var(--pd-surface);
 }
 
 .state-icon {
   display: grid;
   flex: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--mat-sys-corner-full);
-  background: var(--mat-sys-surface-container-high);
-  color: var(--mat-sys-on-surface-variant);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-surface-subtle);
+  color: var(--pd-text-secondary);
 }
 
 .state-icon svg {
-  width: 24px;
-  height: 24px;
+  width: var(--pd-icon-size);
+  height: var(--pd-icon-size);
 }
 
 .state-body {
@@ -30,20 +31,29 @@
 
 .state-heading {
   margin: 0;
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-title-medium);
+  color: var(--pd-text);
+  font-size: var(--pd-font-body-size);
+  font-weight: 600;
+  line-height: var(--pd-font-body-line);
 }
 
 .state-message {
   max-width: 64ch;
-  margin: 8px 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-medium);
+  margin: var(--pd-space-1) 0 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-body-size);
+  line-height: var(--pd-font-body-line);
 }
 
 .state-actions:not(:empty) {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
+  gap: var(--pd-space-2);
+  margin-top: var(--pd-space-3);
+}
+
+@media (max-width: 599px) {
+  .state {
+    padding: var(--pd-space-4);
+  }
 }

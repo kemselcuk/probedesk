@@ -20,7 +20,7 @@
     </div>
 
     <div class="filter-grid">
-      <mat-form-field appearance="outline" class="plan-field">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan-field">
         <mat-label>Plan</mat-label>
         <select matNativeControl id="history-plan" formControlName="planId">
           <option value="">All plans</option>
@@ -35,7 +35,7 @@
         </select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Status</mat-label>
         <select matNativeControl id="history-status" formControlName="status">
           <option value="">Any status</option>
@@ -47,7 +47,7 @@
         </select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Outcome</mat-label>
         <select matNativeControl id="history-outcome" formControlName="outcome">
           <option value="">Any outcome</option>
@@ -56,12 +56,12 @@
         </select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>From date (UTC)</mat-label>
         <input matInput type="date" id="history-from" formControlName="from" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>To date (UTC, exclusive)</mat-label>
         <input matInput type="date" id="history-to" formControlName="to" />
       </mat-form-field>

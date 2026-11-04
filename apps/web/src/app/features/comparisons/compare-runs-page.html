@@ -63,7 +63,7 @@
 
     <form [formGroup]="selectionForm" (ngSubmit)="applySelection()" novalidate>
       <div class="selection-grid">
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Left run</mat-label>
           <select
             matNativeControl
@@ -85,7 +85,7 @@
           </select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Right run</mat-label>
           <select
             matNativeControl

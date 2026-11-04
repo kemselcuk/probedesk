@@ -1,0 +1,207 @@
+@use '@angular/material' as mat;
+@use './tokens';
+
+// Public Angular Material theme + component override API only. No private MDC
+// selector chains, no global `zoom`/`transform` scaling and no root font-size
+// shrinking. Density -1 is the app-wide default; the form field is separately
+// tuned to a 40px visual control through documented override tokens.
+//
+// The `overrides` mixins take token names without the component prefix.
+
+$pd-font-stack:
+  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+  sans-serif;
+
+@mixin theme {
+  html {
+    color-scheme: light;
+
+    @include mat.theme(
+      (
+        color: (
+          theme-type: light,
+          primary: mat.$azure-palette,
+          tertiary: mat.$blue-palette,
+        ),
+        typography: (
+          plain-family: $pd-font-stack,
+          brand-family: $pd-font-stack,
+        ),
+        density: -1,
+      )
+    );
+
+    // Align the Material system tokens with the ProbeDesk palette for the
+    // components that resolve their own colour through system variables.
+    --mat-sys-primary: var(--pd-primary);
+    --mat-sys-on-primary: #ffffff;
+    --mat-sys-primary-container: var(--pd-primary-soft);
+    --mat-sys-on-primary-container: #1e3a8a;
+    --mat-sys-surface: var(--pd-surface);
+    --mat-sys-surface-dim: var(--pd-bg);
+    --mat-sys-surface-bright: var(--pd-surface);
+    --mat-sys-surface-container-lowest: var(--pd-surface);
+    --mat-sys-surface-container-low: var(--pd-surface-subtle);
+    --mat-sys-surface-container: var(--pd-surface-hover);
+    --mat-sys-surface-container-high: var(--pd-neutral-bg);
+    --mat-sys-surface-container-highest: var(--pd-border);
+    --mat-sys-on-surface: var(--pd-text);
+    --mat-sys-on-surface-variant: var(--pd-text-secondary);
+    --mat-sys-outline: var(--pd-border-strong);
+    --mat-sys-outline-variant: var(--pd-border);
+    --mat-sys-background: var(--pd-bg);
+    --mat-sys-on-background: var(--pd-text);
+    --mat-sys-error: var(--pd-danger);
+    --mat-sys-on-error: #ffffff;
+    --mat-sys-error-container: var(--pd-danger-bg);
+    --mat-sys-on-error-container: #7f1d1d;
+
+    @include mat.button-overrides(
+      (
+        filled-container-shape: var(--pd-radius-control),
+        outlined-container-shape: var(--pd-radius-control),
+        protected-container-shape: var(--pd-radius-control),
+        text-container-shape: var(--pd-radius-control),
+        tonal-container-shape: var(--pd-radius-control),
+        filled-horizontal-padding: 0.875rem,
+        outlined-horizontal-padding: 0.75rem,
+        protected-horizontal-padding: 0.75rem,
+        text-horizontal-padding: 0.625rem,
+        tonal-horizontal-padding: 0.75rem,
+        filled-icon-spacing: 0.375rem,
+        outlined-icon-spacing: 0.375rem,
+        protected-icon-spacing: 0.375rem,
+        text-icon-spacing: 0.375rem,
+        tonal-icon-spacing: 0.375rem,
+        filled-label-text-size: 0.8125rem,
+        outlined-label-text-size: 0.8125rem,
+        protected-label-text-size: 0.8125rem,
+        text-label-text-size: 0.8125rem,
+        tonal-label-text-size: 0.8125rem,
+        filled-label-text-weight: 500,
+        outlined-label-text-weight: 500,
+        protected-label-text-weight: 500,
+        text-label-text-weight: 500,
+        tonal-label-text-weight: 500,
+        filled-label-text-tracking: 0,
+        outlined-label-text-tracking: 0,
+        protected-label-text-tracking: 0,
+        text-label-text-tracking: 0,
+        tonal-label-text-tracking: 0,
+        filled-container-color: var(--pd-primary),
+        filled-label-text-color: #ffffff,
+        filled-state-layer-color: #ffffff,
+        filled-ripple-color: rgba(255, 255, 255, 0.24),
+        filled-disabled-container-color: var(--pd-border),
+        filled-disabled-label-text-color: var(--pd-text-soft),
+        outlined-label-text-color: var(--pd-primary),
+        outlined-outline-color: var(--pd-border-strong),
+        outlined-state-layer-color: var(--pd-primary),
+        outlined-ripple-color: rgba(37, 99, 235, 0.16),
+        outlined-disabled-label-text-color: var(--pd-text-soft),
+        outlined-disabled-outline-color: var(--pd-border),
+        text-label-text-color: var(--pd-primary),
+        text-state-layer-color: var(--pd-primary),
+        text-disabled-label-text-color: var(--pd-text-soft),
+        tonal-container-color: var(--pd-primary-soft),
+        tonal-label-text-color: #1e3a8a,
+      )
+    );
+
+    @include mat.form-field-overrides(
+      (
+        container-height: var(--pd-control-height),
+        container-vertical-padding: 0.5rem,
+        outlined-container-shape: var(--pd-radius-control),
+        filled-container-shape: var(--pd-radius-control),
+        container-text-size: var(--pd-font-body-size),
+        container-text-line-height: var(--pd-font-body-line),
+        outlined-label-text-size: var(--pd-font-body-size),
+        outlined-label-text-populated-size: var(--pd-font-meta-size),
+        filled-label-text-size: var(--pd-font-body-size),
+        subscript-text-size: var(--pd-font-meta-size),
+        subscript-text-line-height: var(--pd-font-meta-line),
+        outlined-outline-color: var(--pd-border-strong),
+        outlined-hover-outline-color: #94a3b8,
+        outlined-focus-outline-color: var(--pd-primary),
+        outlined-label-text-color: var(--pd-text-secondary),
+        outlined-hover-label-text-color: var(--pd-text),
+        outlined-focus-label-text-color: var(--pd-primary),
+        outlined-input-text-color: var(--pd-text),
+        error-text-color: var(--pd-danger),
+        outlined-error-outline-color: var(--pd-danger),
+        outlined-error-focus-outline-color: var(--pd-danger),
+        outlined-error-label-text-color: var(--pd-danger),
+      )
+    );
+
+    @include mat.card-overrides(
+      (
+        outlined-container-shape: var(--pd-radius-card),
+        outlined-outline-color: var(--pd-border),
+        outlined-container-color: var(--pd-surface),
+        outlined-container-elevation: none,
+        elevated-container-shape: var(--pd-radius-card),
+        elevated-container-color: var(--pd-surface),
+        elevated-container-elevation: none,
+        filled-container-shape: var(--pd-radius-card),
+        filled-container-color: var(--pd-surface-subtle),
+      )
+    );
+
+    @include mat.dialog-overrides(
+      (
+        container-shape: var(--pd-radius-card),
+        container-max-width: 35rem,
+        container-small-max-width: calc(100vw - 2rem),
+        headline-padding: 0.75rem 1.5rem 0.5rem,
+        content-padding: 0 1.5rem 1rem,
+        with-actions-content-padding: 0 1.5rem 0.5rem,
+        actions-padding: 0.75rem 1.5rem 1rem,
+        subhead-size: 1.125rem,
+        subhead-line-height: 1.5rem,
+        supporting-text-size: var(--pd-font-body-size),
+        supporting-text-line-height: var(--pd-font-body-line),
+        container-color: var(--pd-surface),
+      )
+    );
+
+    @include mat.toolbar-overrides(
+      (
+        standard-height: var(--pd-toolbar-height),
+        mobile-height: var(--pd-toolbar-height),
+        container-background-color: var(--pd-surface),
+        container-text-color: var(--pd-text),
+      )
+    );
+
+    @include mat.checkbox-overrides(
+      (
+        selected-icon-color: var(--pd-primary),
+        selected-focus-icon-color: var(--pd-primary),
+        selected-hover-icon-color: var(--pd-primary),
+        selected-pressed-icon-color: var(--pd-primary),
+        selected-checkmark-color: #ffffff,
+        selected-focus-state-layer-color: var(--pd-primary),
+        selected-hover-state-layer-color: var(--pd-primary),
+        selected-pressed-state-layer-color: var(--pd-primary),
+        label-text-size: var(--pd-font-body-size),
+      )
+    );
+
+    @include mat.sidenav-overrides(
+      (
+        container-background-color: var(--pd-surface-subtle),
+        container-text-color: var(--pd-text-secondary),
+        content-background-color: var(--pd-bg),
+        container-shape: 0,
+      )
+    );
+
+    @include mat.progress-spinner-overrides(
+      (
+        active-indicator-color: var(--pd-primary),
+      )
+    );
+  }
+}

@@ -1,0 +1,408 @@
+// Shared visual primitives. These classes are intentionally global: every
+// feature screen uses the same card, table, badge, metadata and state grammar
+// instead of re-inventing padding and type per page.
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pd-card {
+  padding: var(--pd-card-padding);
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-card);
+  background: var(--pd-surface);
+  box-shadow: none;
+}
+
+.pd-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pd-space-3);
+  margin-bottom: var(--pd-space-3);
+}
+
+.pd-card-header > :first-child {
+  min-width: 0;
+}
+
+.pd-section {
+  margin-bottom: var(--pd-space-5);
+}
+
+.pd-section:last-child {
+  margin-bottom: 0;
+}
+
+.pd-section-heading {
+  margin: 0;
+  color: var(--pd-text);
+  font-size: var(--pd-font-section-size);
+  font-weight: var(--pd-font-section-weight);
+  line-height: var(--pd-font-section-line);
+}
+
+.pd-subheading {
+  margin: 0;
+  color: var(--pd-text);
+  font-size: var(--pd-font-subsection-size);
+  font-weight: var(--pd-font-subsection-weight);
+  line-height: var(--pd-font-subsection-line);
+}
+
+.pd-hint {
+  max-width: 80ch;
+  margin: var(--pd-space-1) 0 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
+}
+
+.pd-muted {
+  color: var(--pd-text-secondary);
+}
+
+.pd-body {
+  font-size: var(--pd-font-body-size);
+  line-height: var(--pd-font-body-line);
+}
+
+.pd-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--pd-space-3) var(--pd-space-4);
+  margin: 0;
+}
+
+.pd-meta dt {
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  font-weight: 500;
+  line-height: var(--pd-font-meta-line);
+}
+
+.pd-meta dd {
+  margin: 0.125rem 0 0;
+  color: var(--pd-text);
+  font-size: var(--pd-font-body-size);
+  line-height: var(--pd-font-body-line);
+  overflow-wrap: anywhere;
+}
+
+.pd-meta--inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pd-space-2) var(--pd-space-5);
+}
+
+.pd-meta--inline > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pd-space-1);
+}
+
+.pd-meta--inline dd {
+  margin: 0;
+}
+
+.pd-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pd-space-2);
+}
+
+.pd-toolbar--between {
+  justify-content: space-between;
+}
+
+.pd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pd-space-2);
+}
+
+.pd-actions--start {
+  justify-content: flex-start;
+}
+
+.pd-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-card);
+  background: var(--pd-surface);
+}
+
+.pd-table-wrap:focus-visible {
+  outline: 2px solid var(--pd-focus-ring);
+  outline-offset: 2px;
+}
+
+.pd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--pd-font-table-size);
+  line-height: var(--pd-font-table-line);
+}
+
+.pd-table caption {
+  padding: var(--pd-space-2) var(--pd-space-3);
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
+  text-align: left;
+}
+
+.pd-table th,
+.pd-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--pd-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.pd-table thead th {
+  height: var(--pd-table-header-height);
+  background: var(--pd-surface-subtle);
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  font-weight: 500;
+  line-height: var(--pd-font-meta-line);
+  white-space: nowrap;
+}
+
+.pd-table tbody td {
+  height: var(--pd-table-row-height);
+  color: var(--pd-text);
+}
+
+.pd-table tbody tr:hover {
+  background: var(--pd-surface-hover);
+}
+
+.pd-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.pd-table .pd-cell-title {
+  color: var(--pd-text);
+  font-weight: 600;
+}
+
+.pd-table .pd-cell-detail {
+  margin-top: 0.125rem;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
+}
+
+.pd-table .pd-cell-detail,
+.pd-table .pd-cell-title {
+  display: block;
+}
+
+.pd-table .pd-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-badge {
+  display: inline-flex;
+  min-height: 1.375rem;
+  align-items: center;
+  gap: var(--pd-space-1);
+  padding: 0 0.5rem;
+  border: 1px solid var(--pd-border-strong);
+  border-radius: var(--pd-radius-badge);
+  background: var(--pd-neutral-bg);
+  color: var(--pd-neutral-text);
+  font-size: var(--pd-font-meta-size);
+  font-weight: 500;
+  line-height: var(--pd-font-meta-line);
+  white-space: nowrap;
+}
+
+.pd-badge svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.pd-badge--primary {
+  border-color: var(--pd-primary-soft-border);
+  background: var(--pd-primary-soft);
+  color: #1e40af;
+}
+
+.pd-badge--success {
+  border-color: var(--pd-success-border);
+  background: var(--pd-success-bg);
+  color: var(--pd-success);
+}
+
+.pd-badge--danger {
+  border-color: var(--pd-danger-border);
+  background: var(--pd-danger-bg);
+  color: var(--pd-danger);
+}
+
+.pd-badge--warning {
+  border-color: var(--pd-warning-border);
+  background: var(--pd-warning-bg);
+  color: var(--pd-warning);
+}
+
+.pd-badge--neutral {
+  border-color: var(--pd-border);
+  background: var(--pd-neutral-bg);
+  color: var(--pd-neutral-text);
+}
+
+.pd-inline-error,
+.pd-inline-warning,
+.pd-notice {
+  padding: var(--pd-space-3) var(--pd-space-4);
+  border: 1px solid var(--pd-border);
+  border-radius: var(--pd-radius-card);
+  background: var(--pd-surface-subtle);
+  color: var(--pd-text);
+  font-size: var(--pd-font-body-size);
+  line-height: var(--pd-font-body-line);
+}
+
+.pd-inline-error {
+  border-color: var(--pd-danger-border);
+  background: var(--pd-danger-bg);
+}
+
+.pd-inline-error h2,
+.pd-inline-error h3,
+.pd-inline-warning h2,
+.pd-inline-warning h3,
+.pd-notice h2,
+.pd-notice h3 {
+  margin: 0 0 var(--pd-space-1);
+  font-size: var(--pd-font-body-size);
+  font-weight: 600;
+  line-height: var(--pd-font-body-line);
+}
+
+.pd-inline-error p,
+.pd-inline-warning p,
+.pd-notice p {
+  margin: 0 0 var(--pd-space-2);
+}
+
+.pd-inline-error p:last-child,
+.pd-inline-warning p:last-child,
+.pd-notice p:last-child {
+  margin-bottom: 0;
+}
+
+.pd-inline-warning {
+  border-color: var(--pd-warning-border);
+  background: var(--pd-warning-bg);
+}
+
+.pd-notice {
+  border-color: var(--pd-primary-soft-border);
+  background: var(--pd-primary-soft);
+}
+
+.pd-disclosure {
+  border-top: 1px solid var(--pd-border);
+}
+
+.pd-disclosure > summary {
+  display: flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: var(--pd-space-2);
+  padding: var(--pd-space-2) 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  font-weight: 500;
+  line-height: var(--pd-font-meta-line);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pd-disclosure > summary:hover {
+  color: var(--pd-text);
+}
+
+.pd-disclosure > summary:focus-visible {
+  outline: 2px solid var(--pd-focus-ring);
+  outline-offset: 2px;
+}
+
+.pd-disclosure[open] > summary {
+  color: var(--pd-text);
+}
+
+.pd-disclosure-body {
+  padding: 0 0 var(--pd-space-3);
+}
+
+.pd-code {
+  padding: 0.0625rem 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--pd-neutral-bg);
+  color: var(--pd-text);
+  font-family: var(--pd-font-mono);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.pd-mono {
+  font-family: var(--pd-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-focus-target:focus {
+  outline: none;
+}
+
+.pd-focus-target:focus-visible {
+  outline: 2px solid var(--pd-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .mat-mdc-button-base {
+    min-height: var(--pd-touch-target);
+  }
+
+  .mat-mdc-icon-button {
+    min-width: var(--pd-touch-target);
+    min-height: var(--pd-touch-target);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    scroll-behavior: auto;
+  }
+
+  .pd-card,
+  .pd-table tbody tr,
+  .pd-nav-link {
+    transition: none;
+  }
+}

@@ -1,26 +1,14 @@
-@use '@angular/material' as mat;
+@use './styles/tokens';
+@use './styles/material-theme';
+@use './styles/primitives';
 
-$probedesk-font-stack:
-  -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-  sans-serif;
+@include material-theme.theme;
 
 html {
-  color-scheme: light;
-
-  @include mat.theme(
-    (
-      color: (
-        theme-type: light,
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
-      ),
-      typography: (
-        plain-family: $probedesk-font-stack,
-        brand-family: $probedesk-font-stack,
-      ),
-      density: 0,
-    )
-  );
+  // Keep the user's default root size. Density comes from documented Material
+  // tokens, never from shrinking the root font or scaling the page.
+  font-size: 100%;
+  height: 100%;
 }
 
 *,
@@ -29,24 +17,33 @@ html {
   box-sizing: border-box;
 }
 
-html,
 body {
   height: 100%;
-}
-
-body {
   margin: 0;
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
+  background: var(--pd-bg);
+  color: var(--pd-text);
+  font: 400 var(--pd-font-body-size) / var(--pd-font-body-line) var(--pd-font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 :focus-visible {
-  outline: 3px solid var(--mat-sys-primary);
+  outline: 2px solid var(--pd-focus-ring);
   outline-offset: 2px;
 }
 
 a {
-  color: var(--mat-sys-primary);
+  color: var(--pd-primary);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--pd-primary-soft);
+  color: var(--pd-text);
 }

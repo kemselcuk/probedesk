@@ -1,28 +1,29 @@
 .state {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
-  padding: 24px;
-  border: 1px solid var(--mat-sys-error);
-  border-radius: var(--mat-sys-corner-large);
-  background: var(--mat-sys-error-container);
-  color: var(--mat-sys-on-error-container);
+  gap: var(--pd-space-3);
+  min-height: 10rem;
+  padding: var(--pd-space-5);
+  border: 1px solid var(--pd-danger-border);
+  border-radius: var(--pd-radius-card);
+  background: var(--pd-danger-bg);
+  color: var(--pd-danger);
 }
 
 .state-icon {
   display: grid;
   flex: none;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--mat-sys-corner-full);
-  background: var(--mat-sys-error);
-  color: var(--mat-sys-on-error);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--pd-radius-control);
+  background: var(--pd-danger);
+  color: #ffffff;
 }
 
 .state-icon svg {
-  width: 24px;
-  height: 24px;
+  width: var(--pd-icon-size);
+  height: var(--pd-icon-size);
 }
 
 .state-body {
@@ -31,30 +32,45 @@
 
 .state-heading {
   margin: 0;
-  font: var(--mat-sys-title-medium);
+  color: #7f1d1d;
+  font-size: var(--pd-font-body-size);
+  font-weight: 600;
+  line-height: var(--pd-font-body-line);
 }
 
 .state-message {
   max-width: 64ch;
-  margin: 8px 0 0;
-  font: var(--mat-sys-body-medium);
+  margin: var(--pd-space-1) 0 0;
+  color: var(--pd-danger);
+  font-size: var(--pd-font-body-size);
+  line-height: var(--pd-font-body-line);
 }
 
 .request-id {
-  margin: 12px 0 0;
-  font: var(--mat-sys-body-small);
+  margin: var(--pd-space-2) 0 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-meta-size);
+  line-height: var(--pd-font-meta-line);
 }
 
 .request-id code {
-  padding: 2px 6px;
-  border-radius: var(--mat-sys-corner-extra-small);
-  background: color-mix(in srgb, var(--mat-sys-on-error-container) 10%, transparent);
-  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  padding: 0.0625rem 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--pd-surface);
+  color: var(--pd-text);
+  font-family: var(--pd-font-mono);
   overflow-wrap: anywhere;
 }
 
 .state-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 16px;
+  flex-wrap: wrap;
+  gap: var(--pd-space-2);
+  margin-top: var(--pd-space-3);
+}
+
+@media (max-width: 599px) {
+  .state {
+    padding: var(--pd-space-4);
+  }
 }

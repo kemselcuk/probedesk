@@ -1,14 +1,14 @@
 :host {
   display: block;
-  margin-bottom: 24px;
+  margin-bottom: var(--pd-space-4);
 }
 
 .page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: var(--pd-space-3);
 }
 
 .page-heading {
@@ -18,22 +18,33 @@
 
 h1 {
   margin: 0;
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-headline-medium);
+  color: var(--pd-text);
+  font-size: var(--pd-font-h1-size);
+  font-weight: var(--pd-font-h1-weight);
+  letter-spacing: -0.01em;
+  line-height: var(--pd-font-h1-line);
 }
 
 .page-subtitle {
-  margin: 8px 0 0;
-  color: var(--mat-sys-on-surface-variant);
-  font: var(--mat-sys-body-large);
+  margin: var(--pd-space-1) 0 0;
+  color: var(--pd-text-secondary);
+  font-size: var(--pd-font-body-size);
+  line-height: var(--pd-font-body-line);
 }
 
 .page-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: var(--pd-space-2);
 }
 
 .page-actions:empty {
   display: none;
+}
+
+@media (max-width: 599px) {
+  .page-actions {
+    width: 100%;
+  }
 }

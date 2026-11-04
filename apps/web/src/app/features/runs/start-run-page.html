@@ -126,7 +126,7 @@
               <legend class="visually-hidden">Scenario, seed, and scenario-specific settings</legend>
 
               <div class="settings-grid">
-                <mat-form-field appearance="outline" class="wide-field">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-field">
                   <mat-label>Scenario</mat-label>
                   <select
                     matNativeControl
@@ -154,7 +154,7 @@
                 </mat-form-field>
 
                 <div class="seed-row">
-                  <mat-form-field appearance="outline">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic">
                     <mat-label>Seed</mat-label>
                     <input
                       matInput
@@ -191,7 +191,7 @@
                 </div>
 
                 @if (scenario() === 'FORCED_FAILURE') {
-                  <mat-form-field appearance="outline" class="wide-field">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-field">
                     <mat-label>Failing step</mat-label>
                     <select
                       matNativeControl
@@ -219,7 +219,7 @@
                 }
 
                 @if (scenario() === 'RANDOM') {
-                  <mat-form-field appearance="outline" class="wide-field">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-field">
                     <mat-label>Error probability</mat-label>
                     <input
                       matInput
