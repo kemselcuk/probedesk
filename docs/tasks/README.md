@@ -113,12 +113,12 @@ P0 belgeleri hazırlanmış olduğundan In Review'dur; uygulama tamamlanması an
 
 | Görev | Sahiplik | Durum |
 |---|---|---|
-| [P8-01 — Tam Docker Compose teslimi](P8-01.md) | Entegrasyon | Planned |
-| [P8-02 — Hazır örnek veriler](P8-02.md) | Backend | Planned |
-| [P8-03 — Temiz kurulum ve kalıcılık kontrolü](P8-03.md) | Entegrasyon | Planned |
-| [P8-04 — README ve teknik belgeler](P8-04.md) | Dokümantasyon | Planned |
-| [P8-05 — Kısa demo videosu](P8-05.md) | Dokümantasyon | Planned |
-| [P8-06 — Sürüm adayı ve nihai kabul paketi](P8-06.md) | Entegrasyon; nihai kabul kullanıcı | Planned |
+| [P8-01 — Tam Docker Compose teslimi](P8-01.md) | Entegrasyon | In Review |
+| [P8-02 — Hazır örnek veriler](P8-02.md) | Backend | In Review |
+| [P8-03 — Temiz kurulum ve kalıcılık kontrolü](P8-03.md) | Entegrasyon | In Review |
+| [P8-04 — README ve teknik belgeler](P8-04.md) | Dokümantasyon | In Review |
+| [P8-05 — Kısa demo videosu](P8-05.md) | Dokümantasyon | Deferred (user) |
+| [P8-06 — Sürüm adayı ve nihai kabul paketi](P8-06.md) | Entegrasyon; nihai kabul kullanıcı | In Progress |
 
 ## Kart ve kapanış standardı
 

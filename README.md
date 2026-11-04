@@ -11,7 +11,7 @@ demo history, automated tests, and a Docker Compose stack served through an ngin
 proxy at `http://127.0.0.1:8080`.
 
 **Current status (2026-11-04):** phases 1–7 are technically accepted. Phase 8 delivery tasks
-P8-01–P8-05 are `In Review`; P8-06 (release candidate) is in progress. The final product
+P8-01–P8-04 and P8-06 are in progress; P8-05 (demo video) was waived by the user. The final product
 acceptance belongs to the user and has not been recorded. The application is a localhost demo,
 not a hosted production service.
 
@@ -47,8 +47,6 @@ The failure and comparison screenshots come from the P7 main demo
 ([evidence](docs/evidence/phase-7-e2e.md)); the editor screenshot comes from the Phase 2 plan
 lifecycle evidence ([evidence](docs/evidence/phase-2-demo.md)).
 
-A 35-second narrated-by-captions walkthrough is available as
-[`docs/evidence/probedesk-demo.mp4`](docs/evidence/probedesk-demo.mp4) ([recording notes](docs/evidence/phase-8-video.md)).
 
 ## Quick start
 
@@ -61,7 +59,7 @@ Docker. Ports `4200`, `3000`, and `5432` must be free.
 npx npm@11.6.2 ci
 cp .env.example .env
 docker compose up -d
-# wait until `docker compose ps` reports the postgres service as healthy
+# wait until `docker compose ps -a` reports postgres healthy
 npm run db:migrate
 npm run demo:seed
 npm run dev

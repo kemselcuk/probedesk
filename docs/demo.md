@@ -124,11 +124,9 @@ script'tir; normal seed, `verify` veya delivery başlangıcı tarafından çalı
 
 ## Demo videosu
 
-P8-05 kapsamındaki kısa video hazırdır: [probedesk-demo.mp4](evidence/probedesk-demo.mp4)
-(35 sn, 1280×800, H.264, İngilizce ekran üstü caption). Plan/sürüm, Run History, FAILED run
-ayrıntısı ve gerçek grafik tooltip'i, v1/v2 karşılaştırması ve v2 PASSED run gösterilir.
-Kayıt notları: [phase-8-video.md](evidence/phase-8-video.md). Video Docker Compose delivery
-stack'inden alınmıştır ve ürün kullanıcı kabulü değildir.
+P8-05 kapsamındaki video **kullanıcı kararıyla kapsam dışı bırakılmıştır**;
+dosya ve bağlantı yoktur. Bu, ürünün çalışan demosunun veya diğer kanıtların yerine
+geçmez.
 
 ## Kanıt bağlantıları
 

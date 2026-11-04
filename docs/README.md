@@ -44,7 +44,7 @@ teknik kararlar birlikte uyarlanır. Çelişkiler sessizce yorumlanarak uygulama
 
 - Ürün yaklaşımı kullanıcı tarafından onaylandı.
 - P1–P6 görevleri bağımsız teknik incelemeden geçmiştir (`Accepted`, 2026-11-03/04).
-- P7-01–P7-06 ile P8-01–P8-04 `In Review`; P8-05 ve P8-06 `Planned`. Görev kartındaki durum
+- P7-01–P7-06 kabul edilmiştir; P8-01–P8-04 `In Review`; P8-05 kullanıcı kararıyla kapsam dışı; P8-06 sürüm adayı hazırlığında. Görev kartındaki durum
   birincil kaynaktır.
 - Yerel delivery temiz veritabanında migration + seed + API + web zinciriyle doğrulandı; kapat/aç
   sonrasında planlar ve run geçmişi korundu.

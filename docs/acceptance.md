@@ -51,8 +51,8 @@ kabulü açıktır; işaretli bir teknik kontrol ürün kabulü anlamına gelmez
 - [ ] Test/coverage/süre sayıları gerçek raporlardan alınmış. — Test sayıları ve süreler gerçek
   raporlardan; coverage yüzdesi iddia edilmiyor. Nihai paket P8-06'da kapatılacak.
 - [ ] README çalışan ekran görüntüsü ve gerçek demo bağlantısı içeriyor. — Ekran görüntüleri var;
-  demo videosu (gerçek bağlantı) henüz yok.
-- [x] Kısa video dosyası açılıyor; ana demo sonuçlarını gösteriyor. — `docs/evidence/probedesk-demo.mp4` (35 sn, ffprobe ile doğrulandı).
+  demo videosu kullanıcı kararıyla kapsam dışıdır.
+- [ ] Kısa video dosyası açılıyor; ana demo sonuçlarını gösteriyor. — Kullanıcı kararıyla kapsam dışı (video yok).
 - [ ] Belgeler, CI, görseller ve video aynı teslim sürümüyle ilişkilendirilmiş. — P8-06 nihai
   commit bağlantısı bekliyor.
 - [ ] Ek altyapı maliyeti hedefi korunmuş; onaysız ücretli hizmet yok. — Yerel Compose ve ücretsiz
