@@ -3,6 +3,41 @@ import { Client } from 'pg';
 
 const createdPlanIds: string[] = [];
 const createdRunIds: string[] = [];
+let baselineSessionIds: string[] = [];
+
+async function readBaselineSessionIds(): Promise<string[]> {
+  const connectionString = process.env.E2E_DATABASE_URL;
+  if (!connectionString) {
+    return [];
+  }
+
+  const client = new Client({ connectionString });
+  await client.connect();
+  try {
+    const result = await client.query<{ id: string }>('SELECT id FROM sessions');
+    return result.rows.map((row) => row.id);
+  } finally {
+    await client.end();
+  }
+}
+
+async function cleanupSessions(): Promise<void> {
+  const connectionString = process.env.E2E_DATABASE_URL;
+  if (!connectionString || baselineSessionIds.length === 0) {
+    return;
+  }
+
+  const client = new Client({ connectionString });
+  await client.connect();
+  try {
+    await client.query(
+      'DELETE FROM "sessions" WHERE "userId" IN (SELECT id FROM "users" WHERE email = ANY($1)) AND id <> ALL($2)',
+      [['planner@probedesk.local', 'operator@probedesk.local'], baselineSessionIds],
+    );
+  } finally {
+    await client.end();
+  }
+}
 
 async function cleanupCreatedData(): Promise<void> {
   const connectionString = process.env.E2E_DATABASE_URL;
@@ -43,8 +78,13 @@ async function cleanupCreatedData(): Promise<void> {
   }
 }
 
+test.beforeAll(async () => {
+  baselineSessionIds = await readBaselineSessionIds();
+});
+
 test.afterAll(async () => {
   await cleanupCreatedData();
+  await cleanupSessions();
 });
 
 const API = process.env.E2E_API_URL ?? 'http://127.0.0.1:3100';
