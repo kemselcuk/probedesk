@@ -52,7 +52,7 @@ describe('App', () => {
 
     expect(root.querySelector('header')?.textContent).toContain('ProbeDesk');
     expect(root.querySelector('.user-email')?.textContent).toContain('planner@probedesk.local');
-    expect(root.querySelector('.role-chip')?.textContent).toContain('Role: Planner');
+    expect(root.querySelector('.role-chip')?.textContent).toContain('Planner');
     expect(root.querySelector('nav[aria-label="Primary navigation"]')).not.toBeNull();
     expect(root.querySelector('main#main-content')).not.toBeNull();
     expect(root.querySelector('h1')?.textContent?.trim()).toBe('Test Plans');

@@ -13,8 +13,6 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatListModule } from '@angular/material/list';
 import { MatSidenavContent, MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import {
@@ -32,33 +30,19 @@ import { UnsavedChangesService } from '../../core/navigation/unsaved-changes.ser
 interface NavigationItem {
   readonly path: string;
   readonly label: string;
-  readonly description: string;
+  readonly icon: 'plans' | 'history' | 'compare';
 }
 
 const NAVIGATION_ITEMS: readonly NavigationItem[] = [
-  {
-    path: '/plans',
-    label: 'Test Plans',
-    description: 'Draft, publish, and inspect plans',
-  },
-  {
-    path: '/runs',
-    label: 'Run History',
-    description: 'Review recorded executions',
-  },
-  {
-    path: '/compare',
-    label: 'Compare Runs',
-    description: 'Compare two terminal runs',
-  },
+  { path: '/plans', label: 'Test Plans', icon: 'plans' },
+  { path: '/runs', label: 'Run History', icon: 'history' },
+  { path: '/compare', label: 'Compare Runs', icon: 'compare' },
 ];
 
 @Component({
   selector: 'app-shell',
   imports: [
     MatButtonModule,
-    MatDividerModule,
-    MatListModule,
     MatSidenavModule,
     MatToolbarModule,
     RouterLink,
@@ -217,7 +201,7 @@ export class AppShell {
       return;
     }
 
-    const query = window.matchMedia('(max-width: 959px)');
+    const query = window.matchMedia('(max-width: 1023px)');
     this.compactViewport.set(query.matches);
 
     const onChange = (event: MediaQueryListEvent): void => {

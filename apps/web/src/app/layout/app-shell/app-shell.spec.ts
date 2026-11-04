@@ -136,7 +136,7 @@ describe('AppShell', () => {
     const root = rootOf(harness);
 
     expect(root.querySelector('.user-email')?.textContent).toContain('planner@probedesk.local');
-    expect(root.querySelector('.role-chip')?.textContent).toContain('Role: Planner');
+    expect(root.querySelector('.role-chip')?.textContent).toContain('Planner');
 
     const newPlan = findAction(root, 'New plan');
     expect(newPlan?.tagName).toBe('A');
@@ -157,12 +157,9 @@ describe('AppShell', () => {
     expect(startRun?.tagName).toBe('A');
     expect(startRun?.getAttribute('href')).toBe('/plans');
     expect(startRun?.getAttribute('disabled')).toBeNull();
-    expect(root.querySelector('#start-run-requirement')?.textContent).toContain(
-      'choose a published version on Test Plans',
-    );
     expect(root.textContent).not.toContain('available with P3-09');
     expect(findAction(root, 'New plan')).toBeUndefined();
-    expect(root.querySelector('.role-chip')?.textContent).toContain('Role: Operator');
+    expect(root.querySelector('.role-chip')?.textContent).toContain('Operator');
   });
 
   it('shows a read-only note for a Viewer without action placeholders', async () => {
@@ -175,7 +172,8 @@ describe('AppShell', () => {
 
     expect(findAction(root, 'New plan')).toBeUndefined();
     expect(findAction(root, 'Start run')).toBeUndefined();
-    expect(root.textContent).toContain('Your role has read-only access to plans and runs.');
+    expect(root.querySelector('.nav-actions')).toBeNull();
+    expect(root.querySelector('.sign-out-action')).not.toBeNull();
   });
 
   it('signs out through the API, clears state, notifies, and returns to login', async () => {

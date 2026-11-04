@@ -36,13 +36,14 @@ export interface PublishConfirmData {
   styles: `
     :host {
       display: block;
-      max-width: 520px;
+      max-width: 33rem;
     }
 
     p {
       margin: 0 0 12px;
-      color: var(--mat-sys-on-surface-variant);
-      font: var(--mat-sys-body-medium);
+      color: var(--pd-text-secondary);
+      font-size: var(--pd-font-body-size);
+      line-height: var(--pd-font-body-relaxed-line);
     }
 
     p:last-child {
@@ -50,7 +51,7 @@ export interface PublishConfirmData {
     }
 
     strong {
-      color: var(--mat-sys-on-surface);
+      color: var(--pd-text);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

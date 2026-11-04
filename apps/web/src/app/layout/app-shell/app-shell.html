@@ -32,7 +32,7 @@
       @if (userEmail(); as email) {
         <span class="user-email" [title]="email">{{ email }}</span>
       }
-      <span class="role-chip">Role: {{ roleLabel() }}</span>
+      <span class="role-chip">{{ roleLabel() }}</span>
     </span>
   </mat-toolbar>
 </header>
@@ -42,78 +42,112 @@
     class="shell-sidenav"
     [mode]="navMode()"
     [opened]="sidenavOpened()"
+    [attr.role]="compactViewport() ? 'dialog' : null"
+    [attr.aria-modal]="compactViewport() ? 'true' : null"
+    [attr.aria-label]="compactViewport() ? 'Navigation' : null"
     [disableClose]="navMode() === 'side'"
     (openedChange)="onSidenavOpenedChange($event)"
   >
-    <nav id="primary-navigation" class="shell-nav" aria-label="Primary navigation">
-      <h2 class="nav-heading">Workspace</h2>
-      <mat-list>
-        @for (item of navigationItems; track item.path) {
-          <a
-            mat-list-item
-            [routerLink]="item.path"
-            routerLinkActive="is-active"
-            #primaryLink="routerLinkActive"
-            [activated]="primaryLink.isActive"
-            ariaCurrentWhenActive="page"
-            (click)="closeNavigationOnNavigate()"
-          >
-            <span matListItemTitle>{{ item.label }}</span>
-            <span matListItemLine>{{ item.description }}</span>
-          </a>
-        }
-      </mat-list>
-    </nav>
+    <div class="sidenav-inner">
+      <nav id="primary-navigation" class="shell-nav" aria-label="Primary navigation">
+        <h2 class="nav-heading">Workspace</h2>
+        <div class="nav-list">
+          @for (item of navigationItems; track item.path) {
+            <a
+              class="nav-link"
+              [routerLink]="item.path"
+              routerLinkActive="is-active"
+              ariaCurrentWhenActive="page"
+              (click)="closeNavigationOnNavigate()"
+            >
+              @switch (item.icon) {
+                @case ('plans') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M7 4h7l4 4v12H7zM14 4v4h4M10 12h5M10 16h5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.7"
+                    />
+                  </svg>
+                }
+                @case ('history') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="8"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                    />
+                    <path
+                      d="M12 8v4l3 2"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.7"
+                    />
+                  </svg>
+                }
+                @case ('compare') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M5 5v14M19 5v14M8 9h4M12 15h4M12 9l3 3-3 3"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.7"
+                    />
+                  </svg>
+                }
+              }
+              <span class="nav-label">{{ item.label }}</span>
+            </a>
+          }
+        </div>
+      </nav>
 
-    <mat-divider />
+      @if (canCreatePlan() || canStartRun()) {
+        <section class="nav-actions" aria-labelledby="nav-actions-heading">
+          <h2 id="nav-actions-heading" class="nav-heading">Actions</h2>
+          @if (canCreatePlan()) {
+            <a
+              mat-stroked-button
+              routerLink="/plans"
+              [queryParams]="{ create: 1 }"
+              class="planned-action nav-action"
+            >
+              New plan
+            </a>
+          }
+          @if (canStartRun()) {
+            <a mat-stroked-button routerLink="/plans" class="planned-action nav-action">
+              Start run
+            </a>
+          }
+        </section>
+      }
 
-    <section class="planned-actions" aria-labelledby="planned-actions-heading">
-      <h2 id="planned-actions-heading" class="nav-heading">Actions</h2>
+      <div class="sidebar-spacer"></div>
 
-      @if (canCreatePlan()) {
-        <a
-          mat-stroked-button
-          routerLink="/plans"
-          [queryParams]="{ create: 1 }"
-          class="planned-action"
-          aria-describedby="create-plan-requirement"
+      <div class="sidebar-footer">
+        <button
+          mat-button
+          type="button"
+          class="sign-out-action"
+          [disabled]="auth.pending()"
+          [attr.aria-busy]="auth.pending()"
+          (click)="signOut()"
         >
-          New plan
-        </a>
-        <p id="create-plan-requirement" class="action-requirement">
-          Planner action · create and edit a plan draft on Test Plans.
-        </p>
-      }
-
-      @if (canStartRun()) {
-        <a
-          mat-stroked-button
-          routerLink="/plans"
-          class="planned-action"
-          aria-describedby="start-run-requirement"
-        >
-          Start run
-        </a>
-        <p id="start-run-requirement" class="action-requirement">
-          Operator action · choose a published version on Test Plans.
-        </p>
-      }
-
-      @if (!canCreatePlan() && !canStartRun()) {
-        <p class="action-requirement">Your role has read-only access to plans and runs.</p>
-      }
-
-      <button
-        mat-stroked-button
-        type="button"
-        class="sign-out-action"
-        [disabled]="auth.pending()"
-        [attr.aria-busy]="auth.pending()"
-        (click)="signOut()"
-      >
-        {{ auth.pending() ? 'Signing out…' : 'Sign out' }}
-      </button>
-    </section>
+          {{ auth.pending() ? 'Signing out…' : 'Sign out' }}
+        </button>
+      </div>
+    </div>
   </mat-sidenav>
 
   <mat-sidenav-content class="shell-content">

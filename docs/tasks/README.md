@@ -135,7 +135,7 @@ Ayrıntılar: [başlangıç rehberi](../implementation-guide.md), [test/inceleme
 | Görev | Kapsam | Durum |
 |---|---|---|
 | [UI-01](UI-01.md) | Ortak tasarım tokenları ve Material ölçeği | In Review |
-| [UI-02](UI-02.md) | Shell, Login ve ortak durumlar | Planned |
+| [UI-02](UI-02.md) | Shell, Login ve ortak durumlar | In Review |
 | [UI-03](UI-03.md) | Test Plans ve Published Version | Planned |
 | [UI-04](UI-04.md) | Plan Editor bilgi hiyerarşisi | Planned |
 | [UI-05](UI-05.md) | Start Run ve Live Run görünümü | Planned |

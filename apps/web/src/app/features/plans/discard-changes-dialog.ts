@@ -29,18 +29,19 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
   styles: `
     :host {
       display: block;
-      max-width: 460px;
+      max-width: 29rem;
     }
 
     p {
       margin: 0;
-      color: var(--mat-sys-on-surface-variant);
-      font: var(--mat-sys-body-medium);
+      color: var(--pd-text-secondary);
+      font-size: var(--pd-font-body-size);
+      line-height: var(--pd-font-body-relaxed-line);
     }
 
     .discard-button {
-      --mat-button-filled-container-color: var(--mat-sys-error);
-      --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+      --mat-button-filled-container-color: var(--pd-danger);
+      --mat-button-filled-label-text-color: #ffffff;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
