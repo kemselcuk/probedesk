@@ -34,6 +34,42 @@ export interface PublishedRunFixture {
   steps: RunFixtureStep[];
 }
 
+export interface RunFixtureStepTemplate {
+  name: string;
+  unit: string;
+  minimum: string;
+  maximum: string;
+  sampleCount: number;
+  intervalMs: number;
+}
+
+const DEFAULT_STEP_TEMPLATES: readonly RunFixtureStepTemplate[] = [
+  {
+    name: 'Output Voltage',
+    unit: 'V',
+    minimum: '4.750000',
+    maximum: '5.250000',
+    sampleCount: 2,
+    intervalMs: 200,
+  },
+  {
+    name: 'Current Draw',
+    unit: 'A',
+    minimum: '0.450000',
+    maximum: '0.550000',
+    sampleCount: 3,
+    intervalMs: 250,
+  },
+  {
+    name: 'Case Temperature',
+    unit: '°C',
+    minimum: '20.000000',
+    maximum: '60.000000',
+    sampleCount: 1,
+    intervalMs: 500,
+  },
+];
+
 export async function createRunTestUser(
   prisma: PrismaClient,
   role: Role,
@@ -66,16 +102,21 @@ export async function createPublishedRunFixture(
   prisma: PrismaClient,
   plannerId: string,
   profile: PublishedRunFixture['profile'],
-  options: { planName?: string; versionNumber?: number } = {},
+  options: {
+    planName?: string;
+    versionNumber?: number;
+    steps?: readonly RunFixtureStepTemplate[];
+  } = {},
 ): Promise<PublishedRunFixture> {
   const planName = options.planName ?? 'Run start fixture';
   const versionNumber = options.versionNumber ?? 1;
+  const stepTemplates = options.steps ?? DEFAULT_STEP_TEMPLATES;
   const plan = await prisma.testPlan.create({
     data: { createdById: plannerId, deviceProfileId: profile.id },
   });
 
   const identities = await Promise.all(
-    [1, 2, 3].map(() =>
+    stepTemplates.map(() =>
       prisma.stepIdentity.create({ data: { planId: plan.id } }),
     ),
   );
@@ -90,44 +131,18 @@ export async function createPublishedRunFixture(
   });
 
   await prisma.planStep.createMany({
-    data: [
-      {
-        planId: plan.id,
-        revisionId: draft.id,
-        logicalStepId: identities[0]!.id,
-        position: 1,
-        name: 'Output Voltage',
-        unit: 'V',
-        minimum: '4.750000',
-        maximum: '5.250000',
-        sampleCount: 2,
-        intervalMs: 200,
-      },
-      {
-        planId: plan.id,
-        revisionId: draft.id,
-        logicalStepId: identities[1]!.id,
-        position: 2,
-        name: 'Current Draw',
-        unit: 'A',
-        minimum: '0.450000',
-        maximum: '0.550000',
-        sampleCount: 3,
-        intervalMs: 250,
-      },
-      {
-        planId: plan.id,
-        revisionId: draft.id,
-        logicalStepId: identities[2]!.id,
-        position: 3,
-        name: 'Case Temperature',
-        unit: '°C',
-        minimum: '20.000000',
-        maximum: '60.000000',
-        sampleCount: 1,
-        intervalMs: 500,
-      },
-    ],
+    data: stepTemplates.map((step, index) => ({
+      planId: plan.id,
+      revisionId: draft.id,
+      logicalStepId: identities[index]!.id,
+      position: index + 1,
+      name: step.name,
+      unit: step.unit,
+      minimum: step.minimum,
+      maximum: step.maximum,
+      sampleCount: step.sampleCount,
+      intervalMs: step.intervalMs,
+    })),
   });
 
   const published = await prisma.planRevision.update({

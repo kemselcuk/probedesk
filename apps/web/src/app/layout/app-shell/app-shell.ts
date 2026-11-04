@@ -116,7 +116,10 @@ export class AppShell {
         this.mobileNavigationOpen.set(false);
         afterNextRender(
           () => {
-            this.contentScroller()?.scrollTo({ top: 0, left: 0 });
+            const scroller = this.contentScroller();
+            if (typeof scroller?.scrollTo === 'function') {
+              scroller.scrollTo({ top: 0, left: 0 });
+            }
             this.focusMainContent();
           },
           { injector: this.injector },

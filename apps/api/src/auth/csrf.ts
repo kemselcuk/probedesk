@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { ApiException } from '../common/errors/api.exception.js';
 import { CSRF_HEADER_NAME } from './auth.constants.js';
 import type { AuthContext } from './auth.types.js';
+import { assertSameOrigin } from './origin.js';
 import { hashToken, tokenHashMatches } from './token.js';
 
 /** Safe methods never require the double-submit header. */
@@ -31,6 +32,11 @@ export function assertCsrfRequest(request: Request, auth: AuthContext): void {
   if (isSafeMethod(request.method)) {
     return;
   }
+
+  // A browser cannot read the CSRF cookie cross-origin, but an attacker can
+  // still submit a form with an Origin it controls. Reject that Origin before
+  // evaluating the token; non-browser clients without Origin keep working.
+  assertSameOrigin(request);
 
   if (
     !hasValidCsrfToken(request.headers[CSRF_HEADER_NAME], auth.csrfTokenHash)

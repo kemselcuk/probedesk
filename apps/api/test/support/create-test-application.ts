@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import type { INestApplication, InjectionToken } from '@nestjs/common';
+import type {
+  INestApplication,
+  InjectionToken,
+  LoggerService,
+} from '@nestjs/common';
 import { AppModule } from '../../src/app.module.js';
 import { configureApp } from '../../src/common/bootstrap/configure-app.js';
 import { setupSwagger } from '../../src/common/openapi/openapi.js';
@@ -14,6 +18,11 @@ export interface TestApplicationOptions {
   swagger?: boolean;
   /** Replaces providers such as the run scheduler for a deterministic test. */
   overrides?: readonly TestProviderOverride[];
+  /**
+   * Receives Nest's log calls instead of discarding them. Tests use this to
+   * assert that secrets never reach the log sink.
+   */
+  logger?: LoggerService;
 }
 
 export async function createTestApplication(
@@ -36,7 +45,9 @@ export async function createTestApplication(
   }
 
   const moduleFixture = await builder.compile();
-  const app = moduleFixture.createNestApplication({ logger: false });
+  const app = moduleFixture.createNestApplication(
+    options.logger ? { logger: options.logger } : { logger: false },
+  );
   configureApp(app);
 
   if (options.swagger) {
