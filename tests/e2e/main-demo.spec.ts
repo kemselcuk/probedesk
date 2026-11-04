@@ -5,7 +5,12 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
-import { Client } from 'pg';
+import {
+  assertE2eSerialExecution,
+  cleanupE2eData,
+  prepareE2eDatabase,
+  type E2eDatabaseBaseline,
+} from './support/database';
 
 /**
  * P7-01 — the main demo flow through the real Angular application.
@@ -34,7 +39,7 @@ const OPERATOR = {
   password: 'OperatorDemo!2026',
 };
 
-const PLAN_NAME = `E2E Main Demo ${Date.now()}`;
+const PLAN_NAME = `E2E Main Demo ${Date.now()} ${crypto.randomUUID().slice(0, 8)}`;
 const PROFILE_LABEL = 'DC Power Module (DC_POWER_MODULE)';
 const SEED = '42';
 
@@ -88,14 +93,10 @@ interface ChartDebugEntry {
 type ChartDebugWindow = Window & { __probedeskCharts?: ChartDebugEntry[] };
 
 const createdPlanIds: string[] = [];
-let baselineSessionIds: string[] = [];
+let baseline: E2eDatabaseBaseline | undefined;
 let plannerContext: BrowserContext | undefined;
 let operatorContext: BrowserContext | undefined;
 const browserErrors: string[] = [];
-
-function databaseUrl(): string | undefined {
-  return process.env.E2E_DATABASE_URL;
-}
 
 async function login(
   page: Page,
@@ -335,133 +336,25 @@ async function startV2NormalRun(page: Page): Promise<string> {
   return runId;
 }
 
-async function readBaselineSessionIds(): Promise<string[]> {
-  const connectionString = databaseUrl();
-  if (!connectionString) {
-    return [];
-  }
-
-  const client = new Client({ connectionString });
-  await client.connect();
-  try {
-    const result = await client.query<{ id: string }>(
-      'SELECT id FROM sessions',
-    );
-    return result.rows.map((row) => row.id);
-  } finally {
-    await client.end();
-  }
-}
-
-async function cleanupCreatedData(): Promise<void> {
-  const connectionString = databaseUrl();
-  if (!connectionString) {
-    return;
-  }
-
-  const client = new Client({ connectionString });
-  await client.connect();
-  try {
-    const namedPlans = await client.query<{ planId: string }>(
-      'SELECT DISTINCT "planId" FROM plan_revisions WHERE name = $1',
-      [PLAN_NAME],
-    );
-    const planIds = new Set(createdPlanIds);
-    for (const row of namedPlans.rows) {
-      planIds.add(row.planId);
-    }
-
-    if (planIds.size > 0) {
-      const ids = [...planIds];
-      const deadline = Date.now() + 20_000;
-      while (Date.now() < deadline) {
-        const active = await client.query(
-          `SELECT 1 FROM test_runs WHERE "planId" = ANY($1) AND status = 'RUNNING' LIMIT 1`,
-          [ids],
-        );
-        if (active.rowCount === 0) {
-          break;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-
-      await client.query('BEGIN');
-      for (const table of [
-        'plan_steps',
-        'plan_revisions',
-        'test_runs',
-        'run_steps',
-      ]) {
-        await client.query(`ALTER TABLE "${table}" DISABLE TRIGGER USER`);
-      }
-      await client.query(
-        'DELETE FROM "run_events" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))',
-        [ids],
-      );
-      await client.query(
-        'DELETE FROM "measurements" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))',
-        [ids],
-      );
-      await client.query(
-        'DELETE FROM "run_steps" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))',
-        [ids],
-      );
-      await client.query('DELETE FROM "test_runs" WHERE "planId" = ANY($1)', [
-        ids,
-      ]);
-      await client.query('DELETE FROM "plan_steps" WHERE "planId" = ANY($1)', [
-        ids,
-      ]);
-      await client.query(
-        'DELETE FROM "plan_revisions" WHERE "planId" = ANY($1)',
-        [ids],
-      );
-      await client.query(
-        'DELETE FROM "step_identities" WHERE "planId" = ANY($1)',
-        [ids],
-      );
-      await client.query('DELETE FROM "test_plans" WHERE id = ANY($1)', [ids]);
-      for (const table of [
-        'plan_steps',
-        'plan_revisions',
-        'test_runs',
-        'run_steps',
-      ]) {
-        await client.query(`ALTER TABLE "${table}" ENABLE TRIGGER USER`);
-      }
-      await client.query('COMMIT');
-    }
-
-    // Sign-out revokes the two UI sessions; remove only the rows created by
-    // this run so the database's session baseline is restored as well.
-    if (baselineSessionIds.length > 0) {
-      await client.query(
-        'DELETE FROM "sessions" WHERE "userId" IN (SELECT id FROM "users" WHERE email = ANY($1)) AND id <> ALL($2)',
-        [[PLANNER.email, OPERATOR.email], baselineSessionIds],
-      );
-    }
-  } catch (error) {
-    await client.query('ROLLBACK').catch(() => undefined);
-    throw error;
-  } finally {
-    await client.end();
-  }
-}
-
 test.beforeAll(async () => {
-  if (!databaseUrl()) {
-    throw new Error(
-      'E2E_DATABASE_URL is required so the test can leave the database at baseline. ' +
-        'Point it at the database used by the API under test.',
-    );
-  }
-  baselineSessionIds = await readBaselineSessionIds();
+  baseline = await prepareE2eDatabase();
+});
+
+test.beforeEach(() => {
+  assertE2eSerialExecution(test.info().config.workers);
 });
 
 test.afterAll(async () => {
   await plannerContext?.close();
   await operatorContext?.close();
-  await cleanupCreatedData();
+  if (!baseline) return;
+
+  await cleanupE2eData({
+    planIds: createdPlanIds,
+    planNames: [PLAN_NAME],
+    sessionBaseline: baseline.sessionIds,
+    userEmails: [PLANNER.email, OPERATOR.email],
+  });
 });
 
 test('runs the main demo flow through plans, live execution, history, compare and v2', async ({

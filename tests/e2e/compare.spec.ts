@@ -1,90 +1,40 @@
-import { expect, test, type APIRequestContext, type Page, type Playwright } from '@playwright/test';
-import { Client } from 'pg';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+  type Playwright,
+} from '@playwright/test';
+import {
+  assertE2eSerialExecution,
+  cleanupE2eData,
+  prepareE2eDatabase,
+  type E2eDatabaseBaseline,
+} from './support/database';
 
 const createdPlanIds: string[] = [];
-const createdRunIds: string[] = [];
-let baselineSessionIds: string[] = [];
-
-async function readBaselineSessionIds(): Promise<string[]> {
-  const connectionString = process.env.E2E_DATABASE_URL;
-  if (!connectionString) {
-    return [];
-  }
-
-  const client = new Client({ connectionString });
-  await client.connect();
-  try {
-    const result = await client.query<{ id: string }>('SELECT id FROM sessions');
-    return result.rows.map((row) => row.id);
-  } finally {
-    await client.end();
-  }
-}
-
-async function cleanupSessions(): Promise<void> {
-  const connectionString = process.env.E2E_DATABASE_URL;
-  if (!connectionString || baselineSessionIds.length === 0) {
-    return;
-  }
-
-  const client = new Client({ connectionString });
-  await client.connect();
-  try {
-    await client.query(
-      'DELETE FROM "sessions" WHERE "userId" IN (SELECT id FROM "users" WHERE email = ANY($1)) AND id <> ALL($2)',
-      [['planner@probedesk.local', 'operator@probedesk.local'], baselineSessionIds],
-    );
-  } finally {
-    await client.end();
-  }
-}
-
-async function cleanupCreatedData(): Promise<void> {
-  const connectionString = process.env.E2E_DATABASE_URL;
-  if (!connectionString || createdPlanIds.length === 0) {
-    return;
-  }
-
-  const client = new Client({ connectionString });
-  await client.connect();
-  try {
-    await client.query('BEGIN');
-    for (const table of ['plan_steps', 'plan_revisions', 'test_runs', 'run_steps']) {
-      await client.query(`ALTER TABLE "${table}" DISABLE TRIGGER USER`);
-    }
-    await client.query(
-      'DELETE FROM "run_events" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))',
-      [createdPlanIds],
-    );
-    await client.query(
-      'DELETE FROM "measurements" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))',
-      [createdPlanIds],
-    );
-    await client.query('DELETE FROM "run_steps" WHERE "runId" IN (SELECT id FROM "test_runs" WHERE "planId" = ANY($1))', [createdPlanIds]);
-    await client.query('DELETE FROM "test_runs" WHERE "planId" = ANY($1)', [createdPlanIds]);
-    await client.query('DELETE FROM "plan_steps" WHERE "planId" = ANY($1)', [createdPlanIds]);
-    await client.query('DELETE FROM "plan_revisions" WHERE "planId" = ANY($1)', [createdPlanIds]);
-    await client.query('DELETE FROM "step_identities" WHERE "planId" = ANY($1)', [createdPlanIds]);
-    await client.query('DELETE FROM "test_plans" WHERE id = ANY($1)', [createdPlanIds]);
-    for (const table of ['plan_steps', 'plan_revisions', 'test_runs', 'run_steps']) {
-      await client.query(`ALTER TABLE "${table}" ENABLE TRIGGER USER`);
-    }
-    await client.query('COMMIT');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    await client.end();
-  }
-}
+let baseline: E2eDatabaseBaseline | undefined;
+const PLANNER = { email: 'planner@probedesk.local', password: 'PlannerDemo!2026' };
+const OPERATOR = { email: 'operator@probedesk.local', password: 'OperatorDemo!2026' };
+const PLAN_NAME = `Version consistency ${Date.now()} ${crypto.randomUUID().slice(0, 8)}`;
 
 test.beforeAll(async () => {
-  baselineSessionIds = await readBaselineSessionIds();
+  baseline = await prepareE2eDatabase();
+});
+
+test.beforeEach(() => {
+  assertE2eSerialExecution(test.info().config.workers);
 });
 
 test.afterAll(async () => {
-  await cleanupCreatedData();
-  await cleanupSessions();
+  if (!baseline) return;
+
+  await cleanupE2eData({
+    planIds: createdPlanIds,
+    planNames: [PLAN_NAME],
+    sessionBaseline: baseline.sessionIds,
+    userEmails: [PLANNER.email, OPERATOR.email],
+  });
 });
 
 const API = process.env.E2E_API_URL ?? 'http://127.0.0.1:3100';
@@ -164,13 +114,13 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
 }) => {
   const planner = await newRequestContext(
     playwright,
-    'planner@probedesk.local',
-    'PlannerDemo!2026',
+    PLANNER.email,
+    PLANNER.password,
   );
   const operator = await newRequestContext(
     playwright,
-    'operator@probedesk.local',
-    'OperatorDemo!2026',
+    OPERATOR.email,
+    OPERATOR.password,
   );
 
   const profiles = await (await planner.get(`${API}/api/device-profiles`)).json();
@@ -178,7 +128,7 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
 
   const created = await planner.post(`${API}/api/plans`, {
     headers: await mutationHeaders(planner),
-    data: { name: `Version consistency ${Date.now()}`, profileId },
+    data: { name: PLAN_NAME, profileId },
   });
   expect(created.status()).toBe(201);
   const planId = (await created.json()).id as string;
@@ -192,7 +142,7 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
 
   const saved = await planner.put(`${API}/api/plans/${planId}/draft`, {
     headers: await mutationHeaders(planner),
-    data: { name: 'Version consistency', expectedRevision: 1, steps },
+    data: { name: PLAN_NAME, expectedRevision: 1, steps },
   });
   expect(saved.status()).toBe(200);
   const savedDraft = await saved.json();
@@ -211,7 +161,6 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
     seed: 15,
     failureStepId: currentDraw.logicalStepId,
   });
-  createdRunIds.push(v1RunId);
   const v1Run = await waitForTerminal(operator, v1RunId);
   expect(v1Run.outcome).toBe('FAILED');
   expect(v1Run.steps.find((step: any) => step.name === 'Current Draw').measurements[1].value).toBe('0.600000');
@@ -258,7 +207,7 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
   });
   const savedV2 = await planner.put(`${API}/api/plans/${planId}/draft`, {
     headers: await mutationHeaders(planner),
-    data: { name: 'Version consistency', expectedRevision: 1, steps: updated },
+    data: { name: PLAN_NAME, expectedRevision: 1, steps: updated },
   });
   expect(savedV2.status()).toBe(200);
   const publishedV2 = await planner.post(`${API}/api/plans/${planId}/draft/publish`, {
@@ -274,7 +223,6 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
     seed: 15,
     failureStepId: currentDraw.logicalStepId,
   });
-  createdRunIds.push(v2RunId);
   const v2Run = await waitForTerminal(operator, v2RunId);
   expect(v2Run.outcome).toBe('FAILED');
 
@@ -313,7 +261,7 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
   await page.addInitScript(() => {
     (window as any).__probedeskChartDebug = true;
   });
-  await loginUi(page, 'operator@probedesk.local', 'OperatorDemo!2026');
+  await loginUi(page, OPERATOR.email, OPERATOR.password);
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
