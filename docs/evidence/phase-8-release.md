@@ -81,3 +81,12 @@ Bağlantı kontrolü: README + `docs/` kapsamındaki 16 dosyada 349 göreli bağ
 `v0.1.0-rc.1` etiketi `270a399` commit'ine atıldı ve `origin`e push edildi. Bu commit'in CI koşusu
 `41900767940` altı işin tamamında yeşildir. Etiketin hedefi ve koşu bağlantısı P8-06 kartında da
 kayıtlıdır.
+
+## Genel inceleme sonrası düzeltmeler ve rc.2
+
+`v0.1.0-rc.1` sonrasında yapılan genel kod incelemesi altı doğrulanmış ürün hatası buldu; düzeltmeler
+`3f15ab9`, `76b2b6f`, `c2e3660`, `44de016` ve `6f889a8` commit'lerinde, kanıtları
+[general-review-fixes.md](general-review-fixes.md) içindedir. Bunlar yalnız doküman değil çalışma
+zamanı davranışı değiştirdiği için `v0.1.0-rc.1` süperseded olur. Yeni sürüm adayı
+**`v0.1.0-rc.2`**, bu kanıtı içeren commit'e CI yeşil olduktan sonra atanır; nihai etiket hedefi ve
+koşu bağlantısı P8-06 kartında kayıtlıdır.

@@ -37,6 +37,8 @@ gerçekten üretildiğinde eklenir.
 - [Phase 8 Compose](phase-8-compose.md), [seed](phase-8-seed.md), [temiz kurulum](phase-8-clean-install.md),
   [dokümanlar](phase-8-docs.md), [inceleme](phase-8-review.md) ve [sürüm adayı](phase-8-release.md):
   yerel teslim, demo verisi, kalıcılık, doküman doğrulaması ve RC paketi.
+- [Genel kod incelemesi düzeltmeleri](general-review-fixes.md): auth oturum yarışları, CSRF
+  kurtarma, UUID kanonikleştirme, Start→Live navigasyonu ve nginx özel port yönlendirmesi.
 
 ## Kayıt biçimi
 
