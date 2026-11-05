@@ -124,7 +124,11 @@
 
 .pd-table--rules.rules-table--one-sided { width: 26rem; }
 
-// Requested value-column alignment, shared by headers and every sample cell.
-.pd-table .pd-value {
+// Measurement grids use centered headers and data throughout. Keep this
+// scoped to telemetry: names/actions in the plan/history lists retain their layout.
+.pd-table.pd-table--measurements th,
+.pd-table.pd-table--measurements td,
+.pd-table.pd-table--recent th,
+.pd-table.pd-table--recent td {
   text-align: center;
 }
