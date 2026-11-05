@@ -103,6 +103,7 @@ test('measurement columns stay grouped on wide screens and scroll locally on mob
     return {
       rowHeight: row.getBoundingClientRect().height,
       alignments: cells.map(c => getComputedStyle(c).textAlign),
+      valueHeaderAlignment: getComputedStyle(t.querySelector('thead .pd-value')!).textAlign,
       value: cells[1].textContent!.trim(),
       timestamp: time.textContent!.trim(),
       storedTimestamp: time.getAttribute('datetime'),
@@ -111,7 +112,8 @@ test('measurement columns stay grouped on wide screens and scroll locally on mob
   });
   expect(geometry.rowHeight).toBeGreaterThanOrEqual(34);
   expect(geometry.rowHeight).toBeLessThanOrEqual(38);
-  expect(geometry.alignments).toEqual(['right', 'right', 'right', 'left', 'left']);
+  expect(geometry.alignments).toEqual(['right', 'center', 'right', 'left', 'left']);
+  expect(geometry.valueHeaderAlignment).toBe('center');
   expect(geometry.value).toMatch(/^-?\d+\.\d{6}$/);
   expect(geometry.timestamp).toBe(geometry.storedTimestamp!.replace('T', ' ').replace('Z', ''));
   expect(geometry.fullTimestamp).toBe(geometry.storedTimestamp);

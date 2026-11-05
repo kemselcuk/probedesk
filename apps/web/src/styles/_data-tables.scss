@@ -123,3 +123,8 @@
 }
 
 .pd-table--rules.rules-table--one-sided { width: 26rem; }
+
+// Requested value-column alignment, shared by headers and every sample cell.
+.pd-table .pd-value {
+  text-align: center;
+}

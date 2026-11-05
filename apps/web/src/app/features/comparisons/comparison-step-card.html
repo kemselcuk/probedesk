@@ -319,7 +319,7 @@
                     <thead>
                       <tr>
                         <th scope="col" class="pd-numeric">Sample index</th>
-                        <th scope="col" class="pd-numeric">Value ({{ side.step.unit }})</th>
+                        <th scope="col" class="pd-numeric pd-value">Value ({{ side.step.unit }})</th>
                         <th scope="col" class="pd-numeric">Elapsed (ms)</th>
                         <th scope="col">Stored result</th>
                         <th scope="col">Recorded (UTC)</th>
@@ -333,7 +333,7 @@
                           [attr.tabindex]="measurement.isWithinTolerance ? -1 : 0"
                         >
                           <td class="pd-numeric">{{ measurement.sampleIndex }}</td>
-                          <td class="mono pd-numeric">{{ measurement.value }}</td>
+                          <td class="mono pd-numeric pd-value">{{ measurement.value }}</td>
                           <td class="pd-numeric">{{ measurement.elapsedMs }}</td>
 
                           <td>

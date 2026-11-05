@@ -487,7 +487,7 @@
                               <thead>
                                 <tr>
                                   <th scope="col" class="pd-numeric">Sample index</th>
-                                  <th scope="col" class="pd-numeric">Value ({{ step.unit }})</th>
+                                  <th scope="col" class="pd-numeric pd-value">Value ({{ step.unit }})</th>
                                   <th scope="col" class="pd-numeric">Elapsed (ms)</th>
                                   <th scope="col">Tolerance</th>
 
@@ -525,7 +525,7 @@
                                     "
                                   >
                                     <td class="pd-numeric">{{ measurement.sampleIndex }}</td>
-                                    <td class="mono pd-numeric">{{ measurement.value }}</td>
+                                    <td class="mono pd-numeric pd-value">{{ measurement.value }}</td>
                                     <td class="pd-numeric">{{ measurement.elapsedMs | number }}</td>
                                     <td>
                                       @if (measurement.isWithinTolerance) {
@@ -596,7 +596,7 @@
                   <tr>
                     <th scope="col">Step</th>
                     <th scope="col" class="pd-numeric">Sample index</th>
-                    <th scope="col" class="pd-numeric">Value</th>
+                    <th scope="col" class="pd-numeric pd-value">Value</th>
                     <th scope="col">Unit</th>
                     <th scope="col">Tolerance</th>
                     <th scope="col" class="pd-numeric">Elapsed (ms)</th>
@@ -611,7 +611,7 @@
                     <tr>
                       <td>{{ row.stepPosition }}: {{ row.stepName }}</td>
                       <td class="pd-numeric">{{ row.sampleIndex }}</td>
-                      <td class="mono pd-numeric">{{ row.value }}</td>
+                      <td class="mono pd-numeric pd-value">{{ row.value }}</td>
                       <td>{{ row.unit }}</td>
                       <td>
                         @if (row.isWithinTolerance) {
