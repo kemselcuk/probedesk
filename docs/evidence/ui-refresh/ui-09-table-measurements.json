@@ -1,0 +1,418 @@
+[
+  {
+    "name": "plans",
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ]
+    }
+  },
+  {
+    "name": "published",
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ]
+    }
+  },
+  {
+    "name": "start",
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ]
+    }
+  },
+  {
+    "name": "details",
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ]
+    }
+  },
+  {
+    "name": "live",
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "align": "right",
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ]
+    }
+  },
+  {
+    "name": "compare",
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "align": "right",
+          "cls": "rules-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "align": "right",
+          "cls": "measurement-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "align": "right",
+          "cls": "measurement-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ]
+    }
+  },
+  {
+    "name": "history",
+    "width": 768,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table history-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "name": "plans",
+    "width": 768,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "name": "published",
+    "width": 768,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "name": "start",
+    "width": 768,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "name": "details",
+    "width": 768,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "name": "live",
+    "width": 768,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "name": "compare",
+    "width": 768,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "rules-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "measurement-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "measurement-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "name": "history",
+    "width": 390,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table history-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "name": "plans",
+    "width": 390,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "name": "published",
+    "width": 390,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "name": "start",
+    "width": 390,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "name": "details",
+    "width": 390,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "name": "live",
+    "width": 390,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "name": "compare",
+    "width": 390,
+    "data": {
+      "overflow": 0,
+      "tables": [
+        {
+          "cls": "rules-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "measurement-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        },
+        {
+          "cls": "measurement-table pd-table",
+          "end": "16px",
+          "start": "16px"
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  }
+]

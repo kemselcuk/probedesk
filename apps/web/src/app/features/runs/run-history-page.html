@@ -19,48 +19,66 @@
     <div class="filter-grid">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="plan-field">
         <mat-label>Plan</mat-label>
-        <select matNativeControl id="history-plan" formControlName="planId">
-          <option value="">All plans</option>
+        <mat-select id="history-plan" formControlName="planId">
+          <mat-option class="pd-select-option" value="">All plans</mat-option>
           @for (plan of plans.plans(); track plan.id) {
-            <option [value]="plan.id">{{ planOptionLabel(plan) }}</option>
+            <mat-option class="pd-select-option" [value]="plan.id">{{ planOptionLabel(plan) }}</mat-option>
           }
           @if (selectedPlanMissing() && currentQuery().planId) {
-            <option [value]="currentQuery().planId ?? ''">
+            <mat-option class="pd-select-option" [value]="currentQuery().planId ?? ''">
               Selected plan ({{ currentQuery().planId }})
-            </option>
+            </mat-option>
           }
-        </select>
+        </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="status-field">
         <mat-label>Status</mat-label>
-        <select matNativeControl id="history-status" formControlName="status">
-          <option value="">Any status</option>
-          <option value="RUNNING">Running</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
-          <option value="INTERRUPTED">Interrupted</option>
-          <option value="ERROR">Error</option>
-        </select>
+        <mat-select id="history-status" formControlName="status">
+          <mat-option class="pd-select-option" value="">Any status</mat-option>
+          <mat-option class="pd-select-option" value="RUNNING">Running</mat-option>
+          <mat-option class="pd-select-option" value="COMPLETED">Completed</mat-option>
+          <mat-option class="pd-select-option" value="CANCELLED">Cancelled</mat-option>
+          <mat-option class="pd-select-option" value="INTERRUPTED">Interrupted</mat-option>
+          <mat-option class="pd-select-option" value="ERROR">Error</mat-option>
+        </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="outcome-field">
         <mat-label>Outcome</mat-label>
-        <select matNativeControl id="history-outcome" formControlName="outcome">
-          <option value="">Any outcome</option>
-          <option value="PASSED">Passed</option>
-          <option value="FAILED">Failed</option>
-        </select>
+        <mat-select id="history-outcome" formControlName="outcome">
+          <mat-option class="pd-select-option" value="">Any outcome</mat-option>
+          <mat-option class="pd-select-option" value="PASSED">Passed</mat-option>
+          <mat-option class="pd-select-option" value="FAILED">Failed</mat-option>
+        </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="from-field">
         <mat-label>From date (UTC)</mat-label>
-        <input matInput type="date" id="history-from" formControlName="from" />
+        <input
+          matInput
+          [matDatepicker]="fromPicker"
+          id="history-from"
+          formControlName="from"
+          placeholder="YYYY-MM-DD"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="fromPicker" aria-label="Choose from date" />
+        <mat-datepicker #fromPicker />
+        <mat-error>Enter a valid date as YYYY-MM-DD.</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="to-field">
         <mat-label>To date (UTC, exclusive)</mat-label>
-        <input matInput type="date" id="history-to" formControlName="to" />
+        <input
+          matInput
+          [matDatepicker]="toPicker"
+          id="history-to"
+          formControlName="to"
+          placeholder="YYYY-MM-DD"
+        />
+        <mat-datepicker-toggle matIconSuffix [for]="toPicker" aria-label="Choose to date" />
+        <mat-datepicker #toPicker />
+        <mat-error>Enter a valid date as YYYY-MM-DD.</mat-error>
       </mat-form-field>
 
       <div class="filter-actions">
@@ -113,7 +131,9 @@
       to continue.
     </p>
     @if (history.error()?.requestId; as requestId) {
-      <p class="request-id">Request ID: <code class="pd-code">{{ requestId }}</code></p>
+      <p class="request-id">
+        Request ID: <code class="pd-code">{{ requestId }}</code>
+      </p>
     }
     <a mat-flat-button routerLink="/login">Sign in again</a>
   </section>
@@ -126,16 +146,8 @@
             <h2 id="history-results-heading" tabindex="-1">Recorded runs</h2>
             <p class="result-range" aria-live="polite">{{ resultRange() }}</p>
           </div>
-          <app-empty-state
-            heading="This page is out of range"
-            [message]="outOfRangeMessage()"
-          >
-            <button
-              mat-flat-button
-              type="button"
-              id="history-first-page"
-              (click)="goToPage(1)"
-            >
+          <app-empty-state heading="This page is out of range" [message]="outOfRangeMessage()">
+            <button mat-flat-button type="button" id="history-first-page" (click)="goToPage(1)">
               Go to first page
             </button>
             <button
@@ -158,9 +170,7 @@
           "
         >
           @if (hasActiveFilters()) {
-            <button mat-stroked-button type="button" (click)="clearFilters()">
-              Clear filters
-            </button>
+            <button mat-stroked-button type="button" (click)="clearFilters()">Clear filters</button>
           }
         </app-empty-state>
       } @else {
@@ -244,7 +254,7 @@
                     Samples / <abbr title="Out of tolerance">OOT</abbr>
                     <span class="visually-hidden">out of tolerance</span>
                   </th>
-                  <th scope="col" class="col-details">Details</th>
+                  <th scope="col" class="col-details pd-cell-end">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,7 +320,7 @@
                         <span class="stopped-chip">All samples recorded; stopped</span>
                       }
                     </td>
-                    <td>
+                    <td class="pd-cell-action">
                       <a
                         mat-button
                         [routerLink]="['/runs', run.id]"

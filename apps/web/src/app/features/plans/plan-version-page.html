@@ -83,7 +83,9 @@
       <mat-card class="steps-card" appearance="outlined" aria-labelledby="steps-heading">
         <div class="card-heading">
           <h2 id="steps-heading" class="section-heading">Ordered steps</h2>
-          <p class="section-hint">Values copied into version {{ version.versionNumber }} at publish time.</p>
+          <p class="section-hint">
+            Values copied into version {{ version.versionNumber }} at publish time.
+          </p>
         </div>
 
         @if (version.steps.length === 0) {
@@ -92,7 +94,10 @@
           <div class="table-scroll">
             <table class="pd-table">
               <caption class="visually-hidden">
-                Ordered measurement steps of published version {{ version.versionNumber }}
+                Ordered measurement steps of published version
+                {{
+                  version.versionNumber
+                }}
               </caption>
               <thead>
                 <tr>
@@ -102,7 +107,7 @@
                   <th scope="col">Minimum</th>
                   <th scope="col">Maximum</th>
                   <th scope="col">Sample count</th>
-                  <th scope="col">Interval (ms)</th>
+                  <th scope="col" class="pd-cell-end">Interval (ms)</th>
                 </tr>
               </thead>
               <tbody>
@@ -257,9 +262,7 @@
           }
           <div class="error-actions">
             @if (facade.createDraftError()?.reason === 'OPEN_DRAFT_EXISTS') {
-              <a mat-flat-button [routerLink]="['/plans', planId, 'edit']">
-                Open existing draft
-              </a>
+              <a mat-flat-button [routerLink]="['/plans', planId, 'edit']"> Open existing draft </a>
             }
             <button mat-stroked-button type="button" (click)="retryPlanState()">
               Reload plan state
@@ -269,19 +272,27 @@
       }
 
       @if (facade.versionsStatus() === 'loaded' && facade.versions().length > 1) {
-        <mat-card class="versions-card" appearance="outlined" aria-labelledby="version-history-heading">
+        <mat-card
+          class="versions-card"
+          appearance="outlined"
+          aria-labelledby="version-history-heading"
+        >
           <h2 id="version-history-heading" class="section-heading">Published versions</h2>
           <ul class="version-history">
             @for (entry of facade.versions(); track entry.id; let first = $first) {
               <li class="version-history-item" [class.is-current]="first">
-                <a [routerLink]="['/plans', planId, 'versions', entry.id]" [attr.aria-current]="first ? 'true' : null">
+                <a
+                  [routerLink]="['/plans', planId, 'versions', entry.id]"
+                  [attr.aria-current]="first ? 'true' : null"
+                >
                   Version {{ entry.versionNumber }}
                 </a>
                 @if (first) {
                   <span class="pd-badge pd-badge--primary">Current</span>
                 }
                 <span class="version-history-meta">
-                  {{ entry.publishedAt | date: 'medium' : 'UTC' }} UTC · {{ entry.publishedBy.email }}
+                  {{ entry.publishedAt | date: 'medium' : 'UTC' }} UTC ·
+                  {{ entry.publishedBy.email }}
                 </span>
               </li>
             }

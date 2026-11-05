@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import { NotificationService } from '../../shared/notifications/notification.service';
@@ -35,6 +36,7 @@ import { PlansFacade } from './plans.facade';
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     PageHeader,
     ReactiveFormsModule,
     RouterLink,

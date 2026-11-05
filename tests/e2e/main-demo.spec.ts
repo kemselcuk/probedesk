@@ -157,9 +157,8 @@ async function createPlan(page: Page): Promise<string> {
   await page.getByRole('button', { name: 'New plan' }).click();
   await expect(page.getByRole('heading', { name: 'New plan' })).toBeVisible();
   await page.locator('#create-plan-name').fill(PLAN_NAME);
-  await page
-    .locator('#create-plan-profile')
-    .selectOption({ label: PROFILE_LABEL });
+  await page.locator('#create-plan-profile').click();
+  await page.getByRole('option', { name: PROFILE_LABEL, exact: true }).click();
   await page.getByRole('button', { name: 'Create plan' }).click();
 
   await expect(page).toHaveURL(/\/plans\/[0-9a-f-]+\/edit$/);
@@ -279,19 +278,15 @@ async function startRun(
     page.getByRole('heading', { name: 'Start Run', level: 1 }),
   ).toBeVisible();
 
-  await page.locator('#start-run-scenario').selectOption(scenario);
+  await page.locator('#start-run-scenario').click();
+  await page.getByRole('option', { name: scenario === 'NORMAL' ? 'Normal' : scenario === 'FORCED_FAILURE' ? 'Forced failure' : 'Random', exact: true }).click();
   await page.locator('#start-run-seed').fill(SEED);
 
   if (scenario === 'FORCED_FAILURE') {
     const failureStep = page.locator('#start-run-failure-step');
     await expect(failureStep).toBeVisible();
-    const optionValue = await failureStep
-      .locator('option')
-      .filter({ hasText: failureStepName ?? '' })
-      .first()
-      .getAttribute('value');
-    expect(optionValue).toBeTruthy();
-    await failureStep.selectOption(optionValue!);
+    await failureStep.click();
+    await page.getByRole('option').filter({ hasText: failureStepName ?? '' }).first().click();
   }
 
   await expect(page.locator('#start-run-submit')).toBeEnabled();
@@ -602,9 +597,8 @@ test('runs the main demo flow through plans, live execution, history, compare an
     .getByRole('link', { name: /Run History/ })
     .click();
   await expect(operatorPage).toHaveURL(/\/runs$/);
-  await operatorPage
-    .locator('#history-plan')
-    .selectOption({ label: PLAN_NAME });
+  await operatorPage.locator('#history-plan').click();
+  await operatorPage.getByRole('option', { name: PLAN_NAME, exact: true }).click();
   await expect(operatorPage).toHaveURL(
     new RegExp(`/runs\\?.*planId=${planId}`),
   );

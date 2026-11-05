@@ -1,3 +1,4 @@
+import { selectValue, materialSelect } from '../../../testing/material-select';
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -5,7 +6,12 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, TitleStrategy, provideRouter, withDisabledInitialNavigation } from '@angular/router';
+import {
+  Router,
+  TitleStrategy,
+  provideRouter,
+  withDisabledInitialNavigation,
+} from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { routes } from '../../app.routes';
@@ -165,16 +171,6 @@ describe('RunHistoryPage', () => {
     return harness;
   }
 
-  function selectValue(root: HTMLElement, selector: string, value: string): void {
-    const select = root.querySelector<HTMLSelectElement>(selector);
-    if (select === null) {
-      throw new Error(`Select not found: ${selector}`);
-    }
-
-    select.value = value;
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-
   function typeInto(root: HTMLElement, selector: string, value: string): void {
     const input = root.querySelector<HTMLInputElement>(selector);
     if (input === null) {
@@ -211,9 +207,9 @@ describe('RunHistoryPage', () => {
     expect(root.textContent).toContain('First failure');
     expect(root.textContent).toContain('Step 2: Current draw');
     expect(root.textContent).toContain('Sample index 1');
-    expect(row?.querySelector<HTMLAnchorElement>(`a[href="/runs/${RUN_ID}"]`)?.textContent).toContain(
-      'View details',
-    );
+    expect(
+      row?.querySelector<HTMLAnchorElement>(`a[href="/runs/${RUN_ID}"]`)?.textContent,
+    ).toContain('View details');
     expect(root.textContent).toContain('Showing 1-1 of 1 runs');
 
     const tableRegion = root.querySelector('#run-history-table');
@@ -259,9 +255,9 @@ describe('RunHistoryPage', () => {
     await settle(harness);
 
     const root = rootOf(harness);
-    expect(root.querySelector<HTMLSelectElement>('#history-plan')?.value).toBe(PLAN_ID);
-    expect(root.querySelector<HTMLSelectElement>('#history-status')?.value).toBe('COMPLETED');
-    expect(root.querySelector<HTMLSelectElement>('#history-outcome')?.value).toBe('FAILED');
+    expect(materialSelect(root, '#history-plan').value).toBe(PLAN_ID);
+    expect(materialSelect(root, '#history-status').value).toBe('COMPLETED');
+    expect(materialSelect(root, '#history-outcome').value).toBe('FAILED');
     expect(root.querySelector<HTMLInputElement>('#history-from')?.value).toBe('2026-11-01');
     expect(root.querySelector<HTMLInputElement>('#history-to')?.value).toBe('2026-11-03');
     expect(root.textContent).toContain('Showing 21-22 of 43 runs');
@@ -288,9 +284,7 @@ describe('RunHistoryPage', () => {
     expect(request.request.params.get('page')).toBe('1');
     expect(request.request.params.get('planId')).toBeNull();
 
-    request.flush(
-      historyPage([historyItem({ status: 'ERROR', outcome: null, finishedAt: null })]),
-    );
+    request.flush(historyPage([historyItem({ status: 'ERROR', outcome: null, finishedAt: null })]));
     await settle(harness);
 
     expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
@@ -451,9 +445,7 @@ describe('RunHistoryPage', () => {
   });
 
   it('pages forward and back with the page number in the URL', async () => {
-    const harness = await openLoaded(
-      historyPage([historyItem()], { total: 21, totalPages: 2 }),
-    );
+    const harness = await openLoaded(historyPage([historyItem()], { total: 21, totalPages: 2 }));
     const root = rootOf(harness);
 
     findButton(root, 'Next page')?.click();
@@ -519,22 +511,15 @@ describe('RunHistoryPage', () => {
     const lastPage = expectHistoryRequest();
     expect(lastPage.request.params.get('status')).toBe('COMPLETED');
     expect(lastPage.request.params.get('page')).toBe('2');
-    lastPage.flush(
-      historyPage([historyItem()], { page: 2, total: 36, totalPages: 2 }),
-    );
+    lastPage.flush(historyPage([historyItem()], { page: 2, total: 36, totalPages: 2 }));
     await settle(harness);
 
     expect(root.textContent).toContain('Page 2 of 2');
-    expect(root.querySelector('select#history-status')).toHaveProperty(
-      'value',
-      'COMPLETED',
-    );
+    expect(materialSelect(root, '#history-status')).toHaveProperty('value', 'COMPLETED');
   });
 
   it('moves focus to the results heading after page navigation', async () => {
-    const harness = await openLoaded(
-      historyPage([historyItem()], { total: 21, totalPages: 2 }),
-    );
+    const harness = await openLoaded(historyPage([historyItem()], { total: 21, totalPages: 2 }));
     const root = rootOf(harness);
 
     const next = findButton(root, 'Next page');
@@ -622,17 +607,15 @@ describe('RunHistoryPage', () => {
     expectHistoryRequest().flush(historyPage([historyItem()]));
     await settle(harness);
 
-    const options = Array.from(
-      root.querySelectorAll<HTMLOptionElement>('#history-plan option'),
-    );
+    const options = materialSelect(root, '#history-plan').options.toArray();
     expect(options).toHaveLength(3);
-    expect(options[1]?.textContent).toContain('Power rail verification');
-    expect(options[1]?.textContent).toContain('version 2');
-    expect(options[1]?.textContent).toContain(PLAN_ID.slice(0, 8));
-    expect(options[2]?.textContent).toContain('Power rail verification');
-    expect(options[2]?.textContent).toContain('version 7');
-    expect(options[2]?.textContent).toContain(OTHER_PLAN_ID.slice(0, 8));
-    expect(options[1]?.textContent).not.toBe(options[2]?.textContent);
+    expect(options[1]?.viewValue).toContain('Power rail verification');
+    expect(options[1]?.viewValue).toContain('version 2');
+    expect(options[1]?.viewValue).toContain(PLAN_ID.slice(0, 8));
+    expect(options[2]?.viewValue).toContain('Power rail verification');
+    expect(options[2]?.viewValue).toContain('version 7');
+    expect(options[2]?.viewValue).toContain(OTHER_PLAN_ID.slice(0, 8));
+    expect(options[1]?.viewValue).not.toBe(options[2]?.viewValue);
 
     expect(root.querySelector('tbody td.plan-cell .cell-detail')?.textContent).toContain(
       PLAN_ID.slice(0, 8),
@@ -655,7 +638,7 @@ describe('RunHistoryPage', () => {
     expect(root.textContent).toContain('Status "BOGUS"');
     expect(root.textContent).toContain('Page "abc"');
     expect(root.textContent).toContain('From date "notadate"');
-    expect(root.querySelector<HTMLSelectElement>('#history-status')?.value).toBe('');
+    expect(materialSelect(root, '#history-status').value).toBe('');
     expect(root.querySelector<HTMLInputElement>('#history-from')?.value).toBe('');
 
     findButton(root, 'Remove invalid filters')?.click();
@@ -673,9 +656,7 @@ describe('RunHistoryPage', () => {
   });
 
   it('keeps valid URL filters when removing only the invalid values', async () => {
-    const harness = await open(
-      '/runs?status=COMPLETED&outcome=NOPE&from=notadate&page=abc',
-    );
+    const harness = await open('/runs?status=COMPLETED&outcome=NOPE&from=notadate&page=abc');
     const root = rootOf(harness);
 
     respondToPlans();
@@ -698,7 +679,7 @@ describe('RunHistoryPage', () => {
     cleaned.flush(historyPage([historyItem()]));
     await settle(harness);
 
-    expect(root.querySelector<HTMLSelectElement>('#history-status')?.value).toBe('COMPLETED');
+    expect(materialSelect(root, '#history-status').value).toBe('COMPLETED');
   });
 
   it('labels Running, Cancelled, Interrupted, Error, Passed, and Failed distinctly', async () => {
@@ -778,19 +759,15 @@ describe('RunHistoryPage', () => {
     expect(checkboxes[1]?.checked).toBe(true);
     expect(checkboxes[2]?.disabled).toBe(true);
     expect(root.textContent).toContain('2 of 2 selected');
-    expect(
-      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled,
-    ).toBe(false);
-    expect(
-      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.textContent,
-    ).toContain('Compare');
+    expect(root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled).toBe(false);
+    expect(root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.textContent).toContain(
+      'Compare',
+    );
 
     checkboxes[0]?.click();
     harness.detectChanges();
     expect(checkboxes[2]?.disabled).toBe(false);
-    expect(
-      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled,
-    ).toBe(true);
+    expect(root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled).toBe(true);
   });
 
   it('blocks a different-plan pair and does not navigate', async () => {
@@ -813,18 +790,14 @@ describe('RunHistoryPage', () => {
     checkboxes[1]?.click();
     harness.detectChanges();
 
-    expect(
-      root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled,
-    ).toBe(true);
+    expect(root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.disabled).toBe(true);
     expect(root.textContent).toContain('Choose two runs of the same plan');
 
     root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.click();
     await settle(harness);
 
     expect(TestBed.inject(Router).url).toBe('/runs');
-    expect(
-      httpClient().match((request) => request.url === '/api/comparisons'),
-    ).toHaveLength(0);
+    expect(httpClient().match((request) => request.url === '/api/comparisons')).toHaveLength(0);
   });
 
   it('opens the comparison route with both selected run ids', async () => {
@@ -843,9 +816,7 @@ describe('RunHistoryPage', () => {
     root.querySelector<HTMLButtonElement>('#compare-selected-runs')?.click();
     await settle(harness);
 
-    expect(TestBed.inject(Router).url).toBe(
-      `/compare?leftRunId=${RUN_ID}&rightRunId=${RUN_2_ID}`,
-    );
+    expect(TestBed.inject(Router).url).toBe(`/compare?leftRunId=${RUN_ID}&rightRunId=${RUN_2_ID}`);
 
     const comparisonRequest = httpClient().expectOne(
       (request) => request.url === '/api/comparisons',
@@ -881,7 +852,7 @@ describe('RunHistoryPage', () => {
     await settle(harness);
 
     expect(root.textContent).toContain('Plan names could not be loaded');
-    expect(root.querySelector<HTMLSelectElement>('#history-plan')?.value).toBe(PLAN_ID);
+    expect(materialSelect(root, '#history-plan').value).toBe(PLAN_ID);
     expect(root.querySelectorAll('tbody tr')).toHaveLength(1);
   });
 });

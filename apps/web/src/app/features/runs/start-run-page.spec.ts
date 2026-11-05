@@ -1,7 +1,13 @@
+import { selectValue, materialSelect } from '../../../testing/material-select';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, TitleStrategy, provideRouter, withDisabledInitialNavigation } from '@angular/router';
+import {
+  Router,
+  TitleStrategy,
+  provideRouter,
+  withDisabledInitialNavigation,
+} from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { routes } from '../../app.routes';
@@ -81,12 +87,13 @@ describe('StartRunPage', () => {
     });
   }
 
-  async function open(role: Role, versionId: string | null = VERSION_ID): Promise<RouterTestingHarness> {
+  async function open(
+    role: Role,
+    versionId: string | null = VERSION_ID,
+  ): Promise<RouterTestingHarness> {
     actAs(role);
     const url =
-      versionId === null
-        ? '/runs/new'
-        : `/runs/new?versionId=${encodeURIComponent(versionId)}`;
+      versionId === null ? '/runs/new' : `/runs/new?versionId=${encodeURIComponent(versionId)}`;
     const harness = await RouterTestingHarness.create(url);
     harness.detectChanges();
     return harness;
@@ -97,7 +104,9 @@ describe('StartRunPage', () => {
     version: object = VERSION_DETAIL,
   ): Promise<RouterTestingHarness> {
     const harness = await open(role);
-    TestBed.inject(HttpTestingController).expectOne(`/api/plan-versions/${VERSION_ID}`).flush(version);
+    TestBed.inject(HttpTestingController)
+      .expectOne(`/api/plan-versions/${VERSION_ID}`)
+      .flush(version);
     await harness.fixture.whenStable();
     harness.detectChanges();
     return harness;
@@ -107,12 +116,7 @@ describe('StartRunPage', () => {
     return harness.fixture.nativeElement as HTMLElement;
   }
 
-  function typeInto(
-    root: HTMLElement,
-    selector: string,
-    value: string,
-    blur = false,
-  ): void {
+  function typeInto(root: HTMLElement, selector: string, value: string, blur = false): void {
     const input = root.querySelector<HTMLInputElement>(selector);
     if (input === null) {
       throw new Error(`Input not found: ${selector}`);
@@ -125,16 +129,6 @@ describe('StartRunPage', () => {
     }
   }
 
-  function selectValue(root: HTMLElement, selector: string, value: string): void {
-    const select = root.querySelector<HTMLSelectElement>(selector);
-    if (select === null) {
-      throw new Error(`Select not found: ${selector}`);
-    }
-
-    select.value = value;
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-
   function submit(root: HTMLElement): void {
     const form = root.querySelector('form');
     if (form === null) {
@@ -144,7 +138,9 @@ describe('StartRunPage', () => {
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   }
 
-  function idempotencyKey(request: { request: { headers: { get(name: string): string | null } } }): string {
+  function idempotencyKey(request: {
+    request: { headers: { get(name: string): string | null } };
+  }): string {
     const key = request.request.headers.get('Idempotency-Key');
     if (key === null) {
       throw new Error('Idempotency-Key header is missing');
@@ -158,10 +154,7 @@ describe('StartRunPage', () => {
    * screen immediately issues GET /api/runs/:id. Answering it proves the
    * navigation and leaves no request open for the next test.
    */
-  async function flushRunNavigation(
-    harness: RouterTestingHarness,
-    runId: string,
-  ): Promise<void> {
+  async function flushRunNavigation(harness: RouterTestingHarness, runId: string): Promise<void> {
     const request = TestBed.inject(HttpTestingController).expectOne(`/api/runs/${runId}`);
     expect(request.request.method).toBe('GET');
     request.flush(
@@ -295,7 +288,7 @@ describe('StartRunPage', () => {
     selectValue(root, '#start-run-scenario', 'FORCED_FAILURE');
     harness.detectChanges();
 
-    const failureSelect = root.querySelector<HTMLSelectElement>('#start-run-failure-step');
+    const failureSelect = materialSelect(root, '#start-run-failure-step');
     expect(failureSelect?.value).toBe('');
     expect(root.querySelector('#start-run-error-probability')).toBeNull();
 
@@ -403,9 +396,7 @@ describe('StartRunPage', () => {
     const root = rootOf(harness);
     const http = TestBed.inject(HttpTestingController);
 
-    root
-      .querySelector<HTMLButtonElement>('#start-run-generate-seed')
-      ?.click();
+    root.querySelector<HTMLButtonElement>('#start-run-generate-seed')?.click();
     harness.detectChanges();
 
     const seed = root.querySelector<HTMLInputElement>('#start-run-seed')?.value ?? '';
@@ -489,9 +480,7 @@ describe('StartRunPage', () => {
     expect(root.textContent).toContain('Another run is already active');
     expect(root.textContent).toContain('Your settings are still here.');
     expect(root.textContent).toContain('req-active-1');
-    const link = root.querySelector<HTMLAnchorElement>(
-      `a[href="/runs/${ACTIVE_RUN_ID}"]`,
-    );
+    const link = root.querySelector<HTMLAnchorElement>(`a[href="/runs/${ACTIVE_RUN_ID}"]`);
     expect(link?.textContent).toContain('Open active run');
     expect(TestBed.inject(Router).url).toContain('/runs/new');
   });

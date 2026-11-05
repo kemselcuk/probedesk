@@ -20,7 +20,11 @@
       @if (plans.version(); as version) {
         <div class="start-layout">
           <div class="start-primary">
-            <mat-card class="settings-card" appearance="outlined" aria-labelledby="run-settings-heading">
+            <mat-card
+              class="settings-card"
+              appearance="outlined"
+              aria-labelledby="run-settings-heading"
+            >
               <div class="card-heading">
                 <h2 id="run-settings-heading" class="pd-section-heading">Run settings</h2>
                 <span class="pd-badge pd-badge--neutral">One run at a time</span>
@@ -37,26 +41,30 @@
 
               <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
                 <fieldset [disabled]="!isOperator()">
-                  <legend class="visually-hidden">Scenario, seed, and scenario-specific settings</legend>
+                  <legend class="visually-hidden">
+                    Scenario, seed, and scenario-specific settings
+                  </legend>
 
                   <div class="settings-grid">
                     <mat-form-field appearance="outline" subscriptSizing="dynamic">
                       <mat-label>Scenario</mat-label>
-                      <select
-                        matNativeControl
-                        id="start-run-scenario"
-                        formControlName="scenario"
-                      >
-                        <option value="NORMAL">NORMAL — every sample stays within tolerance</option>
-                        <option value="FORCED_FAILURE">
-                          FORCED_FAILURE — a guaranteed violation at one step
-                        </option>
-                        <option value="RANDOM">
-                          RANDOM — each sample fails with the given probability
-                        </option>
-                      </select>
+                      <mat-select id="start-run-scenario" formControlName="scenario">
+                        <mat-option class="pd-select-option" value="NORMAL">Normal</mat-option>
+                        <mat-option class="pd-select-option" value="FORCED_FAILURE"> Forced failure </mat-option>
+                        <mat-option class="pd-select-option" value="RANDOM"> Random </mat-option>
+                      </mat-select>
                       <mat-hint id="start-run-scenario-hint">
-                        Only settings for this scenario are sent.
+                        @switch (scenario()) {
+                          @case ('NORMAL') {
+                            Every sample stays within tolerance.
+                          }
+                          @case ('FORCED_FAILURE') {
+                            A guaranteed violation at the selected step.
+                          }
+                          @case ('RANDOM') {
+                            Each sample fails with the configured probability.
+                          }
+                        }
                       </mat-hint>
                       <mat-error id="start-run-scenario-error">
                         @if (form.controls.scenario.hasError('required')) {
@@ -106,18 +114,18 @@
                     @if (scenario() === 'FORCED_FAILURE') {
                       <mat-form-field appearance="outline" subscriptSizing="dynamic">
                         <mat-label>Failing step</mat-label>
-                        <select
-                          matNativeControl
-                          id="start-run-failure-step"
-                          formControlName="failureStepId"
-                        >
-                          <option value="" disabled>Select a step</option>
-                          @for (step of version.steps; track step.logicalStepId; let index = $index) {
-                            <option [value]="step.logicalStepId">
+                        <mat-select id="start-run-failure-step" formControlName="failureStepId">
+                          <mat-option class="pd-select-option" value="" disabled>Select a step</mat-option>
+                          @for (
+                            step of version.steps;
+                            track step.logicalStepId;
+                            let index = $index
+                          ) {
+                            <mat-option class="pd-select-option" [value]="step.logicalStepId">
                               {{ index + 1 }}. {{ step.name }} ({{ step.unit }})
-                            </option>
+                            </mat-option>
                           }
-                        </select>
+                        </mat-select>
                         <mat-hint>
                           The selected step gets a guaranteed violation in this run.
                         </mat-hint>
@@ -194,7 +202,10 @@
               >
                 <h2 id="start-run-error-heading">{{ startErrorHeading() }}</h2>
                 <p>{{ startErrorMessage() }}</p>
-                <p>Your settings are still here. Nothing is marked as started until the server confirms it.</p>
+                <p>
+                  Your settings are still here. Nothing is marked as started until the server
+                  confirms it.
+                </p>
 
                 @if (isActiveRunConflict()) {
                   @if (activeRunId(); as runId) {
@@ -258,9 +269,12 @@
                   <p class="empty-note">This published version has no measurement steps.</p>
                 } @else {
                   <div class="table-scroll">
-                    <table>
+                    <table class="pd-table">
                       <caption class="visually-hidden">
-                        Ordered measurement steps of published version {{ version.versionNumber }}
+                        Ordered measurement steps of published version
+                        {{
+                          version.versionNumber
+                        }}
                       </caption>
                       <thead>
                         <tr>

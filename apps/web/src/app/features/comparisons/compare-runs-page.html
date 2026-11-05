@@ -41,8 +41,7 @@
   >
     <h2 id="compare-selection-heading">Choose two runs</h2>
     <p class="selection-hint">
-      Both runs must be terminal and belong to the same plan. Different versions of that plan are
-      allowed; shared steps are matched by logicalStepId.
+      Choose two finished runs from the same plan. Different versions are allowed.
     </p>
 
     @if (runOptionsError(); as failure) {
@@ -55,7 +54,9 @@
           </p>
         }
         <div class="error-actions">
-          <button mat-stroked-button type="button" (click)="retryRunOptions()">Retry run list</button>
+          <button mat-stroked-button type="button" (click)="retryRunOptions()">
+            Retry run list
+          </button>
         </div>
       </div>
     }
@@ -68,46 +69,44 @@
       <div class="selection-grid">
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Left run</mat-label>
-          <select
-            matNativeControl
+          <mat-select
             id="compare-left-run"
             formControlName="leftRunId"
-            (change)="onLeftChange()"
+            (selectionChange)="onLeftChange()"
           >
-            <option value="">Choose a terminal run</option>
+            <mat-option class="pd-select-option" value="">Choose a terminal run</mat-option>
             @for (run of runOptions(); track run.id) {
-              <option [value]="run.id" [disabled]="isOptionDisabled(run, draft().rightRunId)">
+              <mat-option class="pd-select-option" [value]="run.id" [disabled]="isOptionDisabled(run, draft().rightRunId)">
                 {{ optionLabel(run) }}{{ optionState(run) ? ' · ' + optionState(run) : '' }}
-              </option>
+              </mat-option>
             }
             @if (unknownDraftRun('left'); as unknownId) {
-              <option [value]="unknownId">
+              <mat-option class="pd-select-option" [value]="unknownId">
                 Selected run {{ unknownId }} · not in the latest 100
-              </option>
+              </mat-option>
             }
-          </select>
+          </mat-select>
         </mat-form-field>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Right run</mat-label>
-          <select
-            matNativeControl
+          <mat-select
             id="compare-right-run"
             formControlName="rightRunId"
-            (change)="onRightChange()"
+            (selectionChange)="onRightChange()"
           >
-            <option value="">Choose a terminal run</option>
+            <mat-option class="pd-select-option" value="">Choose a terminal run</mat-option>
             @for (run of runOptions(); track run.id) {
-              <option [value]="run.id" [disabled]="isOptionDisabled(run, draft().leftRunId)">
+              <mat-option class="pd-select-option" [value]="run.id" [disabled]="isOptionDisabled(run, draft().leftRunId)">
                 {{ optionLabel(run) }}{{ optionState(run) ? ' · ' + optionState(run) : '' }}
-              </option>
+              </mat-option>
             }
             @if (unknownDraftRun('right'); as unknownId) {
-              <option [value]="unknownId">
+              <mat-option class="pd-select-option" [value]="unknownId">
                 Selected run {{ unknownId }} · not in the latest 100
-              </option>
+              </mat-option>
             }
-          </select>
+          </mat-select>
         </mat-form-field>
       </div>
 
@@ -115,13 +114,11 @@
         @if (runOptionsTotal() > 0) {
           Showing {{ runOptions().length }} of {{ runOptionsTotal() }} matching recent runs.
         }
-        Running runs stay visible but disabled. The server checks both ids again.
+        Choose one finished run on each side.
       </p>
 
       @if (draftValidation().valid) {
-        <p class="selection-ok" role="status">
-          Ready to compare. The server repeats the terminal, distinct-run, and same-plan checks.
-        </p>
+        <p class="selection-ok" role="status">Ready to compare the selected runs.</p>
       } @else if (draft().leftRunId.length > 0 || draft().rightRunId.length > 0) {
         <p class="selection-error" role="status">{{ draftValidation().reason }}</p>
       }
@@ -199,14 +196,14 @@
               <p class="side-label">{{ card.label }}</p>
               <h3>{{ card.run.planName }} · Version {{ card.run.versionNumber }}</h3>
             </div>
-            <app-run-status-badge
-              [status]="card.run.status"
-              [outcome]="card.run.outcome"
-            />
+            <app-run-status-badge [status]="card.run.status" [outcome]="card.run.outcome" />
           </header>
 
           <p class="run-band">
-            <span>{{ card.run.recordedSampleCount }} of {{ card.run.expectedSampleCount }} samples</span>
+            <span
+              >{{ card.run.recordedSampleCount }} of
+              {{ card.run.expectedSampleCount }} samples</span
+            >
             <span [class.violation]="card.run.outOfToleranceCount > 0">
               {{ card.run.outOfToleranceCount }} out of tolerance
             </span>
@@ -259,7 +256,9 @@
                   </div>
                   <div>
                     <dt>Recorded samples</dt>
-                    <dd>{{ card.run.recordedSampleCount }} of {{ card.run.expectedSampleCount }}</dd>
+                    <dd>
+                      {{ card.run.recordedSampleCount }} of {{ card.run.expectedSampleCount }}
+                    </dd>
                   </div>
                   <div>
                     <dt>Steps</dt>

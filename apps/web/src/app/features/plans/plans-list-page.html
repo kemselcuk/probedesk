@@ -66,17 +66,16 @@
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Device profile</mat-label>
-          <select
+          <mat-select
             id="create-plan-profile"
-            matNativeControl
             formControlName="profileId"
             [disabled]="facade.profilesStatus() === 'loading' || facade.profiles().length === 0"
           >
-            <option value="" disabled>Select a device profile</option>
+            <mat-option class="pd-select-option" value="" disabled>Select a device profile</mat-option>
             @for (profile of facade.profiles(); track profile.id) {
-              <option [value]="profile.id">{{ profileLabel(profile) }}</option>
+              <mat-option class="pd-select-option" [value]="profile.id">{{ profileLabel(profile) }}</mat-option>
             }
-          </select>
+          </mat-select>
           <mat-error id="create-plan-profile-error">
             @if (createForm.controls.profileId.hasError('required')) {
               Select a device profile.
@@ -146,10 +145,10 @@
             <thead>
               <tr>
                 <th scope="col">Plan</th>
-                <th scope="col">Published version</th>
+                <th scope="col" class="pd-cell-end">Published version</th>
                 @if (isPlanner()) {
                   <th scope="col">Draft</th>
-                  <th scope="col">Actions</th>
+                  <th scope="col" class="pd-cell-action">Actions</th>
                 }
               </tr>
             </thead>
@@ -162,9 +161,12 @@
                       <span class="cell-detail">{{ profile.name }}</span>
                     }
                   </td>
-                  <td>
+                  <td class="pd-cell-end">
                     @if (plan.latestPublishedVersion; as version) {
-                      <a class="version-link" [routerLink]="['/plans', plan.id, 'versions', version.id]">
+                      <a
+                        class="version-link"
+                        [routerLink]="['/plans', plan.id, 'versions', version.id]"
+                      >
                         Version {{ version.versionNumber }}
                       </a>
                     } @else {
@@ -180,7 +182,7 @@
                         <span class="muted">No open draft</span>
                       }
                     </td>
-                    <td>
+                    <td class="pd-cell-action">
                       <a mat-button [routerLink]="['/plans', plan.id, 'edit']">
                         {{ plan.draft ? 'Edit draft' : 'Open editor' }}
                       </a>

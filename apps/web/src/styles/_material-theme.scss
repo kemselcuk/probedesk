@@ -9,7 +9,13 @@
 // The `overrides` mixins take token names without the component prefix.
 
 $pd-font-stack:
-  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+  'Inter',
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  'Helvetica Neue',
+  Arial,
   sans-serif;
 
 @mixin theme {
@@ -116,11 +122,11 @@ $pd-font-stack:
         filled-container-shape: var(--pd-radius-control),
         container-text-size: var(--pd-font-body-size),
         container-text-line-height: var(--pd-font-body-line),
-        outlined-label-text-size: var(--pd-font-body-size),
-        outlined-label-text-populated-size: var(--pd-font-meta-size),
+        outlined-label-text-size: 1rem,
+        outlined-label-text-populated-size: 1rem,
         filled-label-text-size: var(--pd-font-body-size),
         subscript-text-size: var(--pd-font-meta-size),
-        subscript-text-line-height: var(--pd-font-meta-line),
+        subscript-text-line-height: 1.25rem,
         outlined-outline-color: var(--pd-border-strong),
         outlined-hover-outline-color: #94a3b8,
         outlined-focus-outline-color: var(--pd-primary),
@@ -132,6 +138,22 @@ $pd-font-stack:
         outlined-error-outline-color: var(--pd-danger),
         outlined-error-focus-outline-color: var(--pd-danger),
         outlined-error-label-text-color: var(--pd-danger),
+      )
+    );
+
+    @include mat.select-overrides(
+      (
+        trigger-text-size: var(--pd-font-body-size),
+        trigger-text-line-height: var(--pd-font-body-line),
+        trigger-text-tracking: 0,
+        panel-background-color: var(--pd-surface),
+      )
+    );
+
+    @include mat.option-overrides(
+      (
+        label-text-size: var(--pd-font-body-size),
+        label-text-line-height: var(--pd-font-body-line),
       )
     );
 

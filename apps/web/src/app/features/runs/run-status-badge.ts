@@ -92,39 +92,43 @@ import { runStatusView } from './run-status';
       display: inline-flex;
       flex: 0 0 auto;
       align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
+      gap: 4px;
+      min-height: 24px;
+      padding: 2px 8px;
       border: 1px solid currentcolor;
       border-radius: 999px;
-      font: var(--mat-sys-label-large);
+      font: 500 var(--pd-font-meta-size) / var(--pd-font-meta-line) var(--pd-font-sans);
       white-space: nowrap;
     }
 
     .status-badge svg {
-      width: 18px;
-      height: 18px;
+      width: 14px;
+      height: 14px;
     }
 
     .status-badge--passed {
-      background: var(--mat-sys-tertiary-container);
-      color: var(--mat-sys-on-tertiary-container);
+      background: var(--pd-success-bg);
+      color: var(--pd-success);
     }
 
     .status-badge--failed,
     .status-badge--error {
-      background: var(--mat-sys-error-container);
-      color: var(--mat-sys-on-error-container);
+      background: var(--pd-danger-bg);
+      color: var(--pd-danger);
     }
 
     .status-badge--running {
-      background: var(--mat-sys-primary-container);
-      color: var(--mat-sys-on-primary-container);
+      background: var(--pd-primary-soft);
+      color: var(--pd-primary);
     }
 
-    .status-badge--cancelled,
+    .status-badge--cancelled {
+      background: var(--pd-neutral-bg);
+      color: var(--pd-neutral-text);
+    }
     .status-badge--interrupted {
-      background: var(--mat-sys-surface-container-highest);
-      color: var(--mat-sys-on-surface);
+      background: var(--pd-warning-bg);
+      color: var(--pd-warning);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

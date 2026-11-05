@@ -15,6 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
@@ -43,6 +44,7 @@ import { RunsFacade } from './runs.facade';
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     PageHeader,
     ReactiveFormsModule,
     RouterLink,
@@ -99,9 +101,7 @@ export class StartRunPage {
     () => this.startFailure()?.error.code === 'RUN_ALREADY_ACTIVE',
   );
   protected readonly activeRunId = computed(() => this.startFailure()?.activeRunId ?? null);
-  protected readonly isUnauthenticated = computed(
-    () => this.startFailure()?.error.status === 401,
-  );
+  protected readonly isUnauthenticated = computed(() => this.startFailure()?.error.status === 401);
   protected readonly isForbidden = computed(() => this.startFailure()?.error.status === 403);
 
   protected readonly startErrorHeading = computed(() => {
@@ -155,6 +155,7 @@ export class StartRunPage {
   });
 
   constructor() {
+    if (!this.isOperator()) this.form.disable({ emitEvent: false });
     this.runs.clearStartError();
 
     this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -201,9 +202,7 @@ export class StartRunPage {
           // A fresh start is RUNNING and belongs on the live screen. A 200
           // replay of an already-terminal run opens its immutable details.
           void this.router.navigate(
-            result.status === 'RUNNING'
-              ? ['/runs', result.runId, 'live']
-              : ['/runs', result.runId],
+            result.status === 'RUNNING' ? ['/runs', result.runId, 'live'] : ['/runs', result.runId],
           );
         },
         error: () => {

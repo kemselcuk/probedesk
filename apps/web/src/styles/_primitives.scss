@@ -173,10 +173,39 @@
 
 .pd-table th,
 .pd-table td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.75rem;
   border-bottom: 1px solid var(--pd-border);
   text-align: left;
   vertical-align: middle;
+}
+
+// Equal outer gutters; end columns align content to the matching edge.
+.pd-table tr > :first-child {
+  padding-inline-start: var(--pd-space-4);
+}
+.pd-table tr > :last-child {
+  padding-inline-end: var(--pd-space-4);
+  text-align: right;
+}
+.pd-table .pd-cell-end {
+  text-align: right;
+}
+.pd-table .pd-cell-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+.pd-table .pd-cell-action .mat-mdc-button-base {
+  margin-inline-end: -0.625rem;
+}
+
+// Public component hosts only: give labels, controls and dynamic hints room.
+mat-form-field {
+  min-width: 0;
+}
+mat-form-field mat-hint,
+mat-form-field mat-error {
+  padding-block-start: var(--pd-space-1);
 }
 
 .pd-table thead th {
@@ -521,4 +550,9 @@ body .mat-mdc-select-trigger:focus-visible {
   .pd-nav-link {
     transition: none;
   }
+}
+
+// Multi-line options need the same breathing room as form helper text.
+mat-option.pd-select-option {
+  padding-block: var(--pd-space-2);
 }

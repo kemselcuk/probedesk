@@ -161,7 +161,7 @@
 
 .history-table {
   table-layout: fixed;
-  min-width: 54rem;
+  min-width: 60rem;
 }
 
 .history-table th,
@@ -170,31 +170,25 @@
 }
 
 .col-compare {
-  width: 5%;
+  width: 5rem;
 }
-
 .col-result {
-  width: 11%;
+  width: 7.5rem;
 }
-
 .col-plan {
-  width: 30%;
+  width: auto;
 }
-
 .col-scenario {
-  width: 12%;
+  width: 7rem;
 }
-
 .col-started {
-  width: 15%;
+  width: 9rem;
 }
-
 .col-samples {
-  width: 15%;
+  width: 9rem;
 }
-
 .col-details {
-  width: 12%;
+  width: 7rem;
 }
 
 .compare-cell {

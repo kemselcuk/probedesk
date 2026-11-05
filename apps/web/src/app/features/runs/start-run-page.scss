@@ -223,27 +223,12 @@ caption {
   text-align: left;
 }
 
-thead th {
-  height: var(--pd-table-header-height);
-  padding: 0 var(--pd-space-2);
-  border-bottom: 1px solid var(--pd-border);
-  background: var(--pd-surface-subtle);
-  color: var(--pd-text-secondary);
-  font-size: var(--pd-font-meta-size);
-  font-weight: 500;
-  line-height: var(--pd-font-meta-line);
-  text-align: left;
-  white-space: nowrap;
-}
-
 thead th:last-child,
 tbody td:last-child {
   text-align: right;
 }
 
 tbody td {
-  padding: var(--pd-space-2);
-  border-bottom: 1px solid var(--pd-border);
   vertical-align: top;
 }
 

@@ -23,13 +23,15 @@
   margin: 0 0 var(--pd-space-2);
   color: var(--pd-text-secondary);
   font-size: var(--pd-font-meta-size);
-  line-height: var(--pd-font-meta-line);
+  line-height: var(--pd-font-body-line);
 }
 
 .selection-grid {
+  padding-top: var(--pd-space-2);
+  margin-bottom: var(--pd-space-3);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--pd-space-3);
+  gap: var(--pd-space-4);
 }
 
 .selection-ok,
@@ -299,8 +301,8 @@
 @media (max-width: 899px) {
   .run-card-grid,
   .selection-grid {
+    padding-top: var(--pd-space-2);
+    margin-bottom: var(--pd-space-3);
     grid-template-columns: minmax(0, 1fr);
   }
-
 }
-

@@ -1,3 +1,4 @@
+import { materialSelect, selectValue } from '../../../testing/material-select';
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -5,7 +6,12 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, TitleStrategy, provideRouter, withDisabledInitialNavigation } from '@angular/router';
+import {
+  Router,
+  TitleStrategy,
+  provideRouter,
+  withDisabledInitialNavigation,
+} from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { routes } from '../../app.routes';
@@ -13,9 +19,7 @@ import { AuthSessionStore } from '../../core/auth/auth-session.store';
 import type { Role } from '../../core/auth/auth.types';
 import { AppTitleStrategy } from '../../core/title/app-title.strategy';
 import { MEASUREMENT_CHART_FACTORY } from '../../shared/charts/measurement-chart.factory';
-import {
-  FakeMeasurementChartFactory,
-} from '../../shared/charts/testing/fake-measurement-chart';
+import { FakeMeasurementChartFactory } from '../../shared/charts/testing/fake-measurement-chart';
 import type { RunHistoryItem, RunHistoryPage } from '../runs/runs-api.types';
 import {
   ADDED_STEP_ID,
@@ -123,20 +127,14 @@ describe('CompareRunsPage', () => {
     leftRunId = LEFT_RUN_ID,
     rightRunId = RIGHT_RUN_ID,
   ): TestRequest {
-    const request = httpClient().expectOne(
-      (candidate) => candidate.url === '/api/comparisons',
-    );
+    const request = httpClient().expectOne((candidate) => candidate.url === '/api/comparisons');
     expect(request.request.params.get('leftRunId')).toBe(leftRunId);
     expect(request.request.params.get('rightRunId')).toBe(rightRunId);
     return request;
   }
 
-  async function openComparison(
-    result = comparisonResult(),
-  ): Promise<RouterTestingHarness> {
-    const harness = await open(
-      `/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`,
-    );
+  async function openComparison(result = comparisonResult()): Promise<RouterTestingHarness> {
+    const harness = await open(`/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`);
     expectComparisonRequest().flush(result);
     await settle(harness);
     return harness;
@@ -182,12 +180,8 @@ describe('CompareRunsPage', () => {
     expect(root.textContent).toContain('Only in right run');
     expect(root.textContent).toContain('Only in left run');
     expect(root.textContent).toContain('Changed rule fields');
-    expect(
-      root.querySelector<HTMLAnchorElement>(`a[href="/runs/${LEFT_RUN_ID}"]`),
-    ).not.toBeNull();
-    expect(
-      root.querySelector<HTMLAnchorElement>(`a[href="/runs/${RIGHT_RUN_ID}"]`),
-    ).not.toBeNull();
+    expect(root.querySelector<HTMLAnchorElement>(`a[href="/runs/${LEFT_RUN_ID}"]`)).not.toBeNull();
+    expect(root.querySelector<HTMLAnchorElement>(`a[href="/runs/${RIGHT_RUN_ID}"]`)).not.toBeNull();
   });
 
   it('highlights changed rule fields and keeps a renamed/reordered step on its logicalStepId', async () => {
@@ -201,14 +195,7 @@ describe('CompareRunsPage', () => {
     expect(card.textContent).toContain('Position 2 → 3');
     expect(card.textContent).toContain('Changed rule fields');
 
-    for (const field of [
-      'name',
-      'position',
-      'minimum',
-      'maximum',
-      'sampleCount',
-      'intervalMs',
-    ]) {
+    for (const field of ['name', 'position', 'minimum', 'maximum', 'sampleCount', 'intervalMs']) {
       expect(card.querySelector(`[data-field="${field}"]`)?.getAttribute('data-changed')).toBe(
         'true',
       );
@@ -223,9 +210,7 @@ describe('CompareRunsPage', () => {
     expect(card.querySelector('[data-field="intervalMs"]')?.textContent).toContain('500');
     expect(card.querySelector('[data-field="intervalMs"]')?.textContent).toContain('750');
     expect(card.querySelector('[data-field="unit"]')?.textContent).not.toContain('Changed');
-    expect(
-      findStepCard(root, VOLTAGE_STEP_ID).textContent,
-    ).toContain('No rule field changed');
+    expect(findStepCard(root, VOLTAGE_STEP_ID).textContent).toContain('No rule field changed');
   });
 
   it('shows added and removed steps one-sided without zero-filling the absent run', async () => {
@@ -357,9 +342,9 @@ describe('CompareRunsPage', () => {
     expect(tables[1]?.textContent).toContain('Outside tolerance');
     expect(tables[0]?.textContent).toContain('Within tolerance');
     expect(tables[0]?.textContent).toContain('UTC');
-    const columnHeaders = Array.from(
-      tables[0]?.querySelectorAll('th[scope="col"]') ?? [],
-    ).map((header) => header.textContent ?? '');
+    const columnHeaders = Array.from(tables[0]?.querySelectorAll('th[scope="col"]') ?? []).map(
+      (header) => header.textContent ?? '',
+    );
     expect(columnHeaders.join(' ')).toContain('Sample index');
     expect(columnHeaders.join(' ')).toContain('Stored result');
 
@@ -444,9 +429,7 @@ describe('CompareRunsPage', () => {
       heading: 'One of the runs was not found',
     },
   ])('maps $code to a clear error with recovery actions', async ({ status, code, heading }) => {
-    const harness = await open(
-      `/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`,
-    );
+    const harness = await open(`/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`);
     expectComparisonRequest().flush(
       { code, message: 'The comparison request failed.', requestId: `req-compare-${status}` },
       { status, statusText: 'Comparison failed' },
@@ -495,9 +478,7 @@ describe('CompareRunsPage', () => {
   });
 
   it('recovers from a server error with a retry of the same pair', async () => {
-    const harness = await open(
-      `/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`,
-    );
+    const harness = await open(`/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`);
     expectComparisonRequest().flush(
       {
         code: 'INTERNAL_ERROR',
@@ -525,9 +506,7 @@ describe('CompareRunsPage', () => {
   });
 
   it('shows a session-expired state on 401 with a sign-in link', async () => {
-    const harness = await open(
-      `/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`,
-    );
+    const harness = await open(`/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`);
     expectComparisonRequest().flush(
       {
         code: 'UNAUTHENTICATED',
@@ -570,34 +549,24 @@ describe('CompareRunsPage', () => {
     );
     await settle(harness);
 
-    const runningOption = Array.from(
-      root.querySelectorAll<HTMLOptionElement>('#compare-left-run option'),
-    ).find((option) => option.value === RUNNING_RUN_ID);
-    expect(runningOption?.disabled).toBe(true);
-
-    const leftSelect = root.querySelector<HTMLSelectElement>('#compare-left-run');
-    const rightSelect = root.querySelector<HTMLSelectElement>('#compare-right-run');
-    if (leftSelect === null || rightSelect === null) {
-      throw new Error('Run selectors were not rendered.');
-    }
-
-    leftSelect.value = LEFT_RUN_ID;
-    leftSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    const leftSelect = materialSelect(root, '#compare-left-run');
+    const rightSelect = materialSelect(root, '#compare-right-run');
+    expect(leftSelect.options.find((option) => option.value === RUNNING_RUN_ID)?.disabled).toBe(
+      true,
+    );
+    selectValue(root, '#compare-left-run', LEFT_RUN_ID);
     await settle(harness);
 
-    const otherPlanOption = Array.from(rightSelect.options).find(
-      (option) => option.value === OTHER_RUN_ID,
+    expect(rightSelect.options.find((option) => option.value === OTHER_RUN_ID)?.disabled).toBe(
+      true,
     );
-    expect(otherPlanOption?.disabled).toBe(true);
-
-    rightSelect.value = RIGHT_RUN_ID;
-    rightSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    selectValue(root, '#compare-right-run', RIGHT_RUN_ID);
     await settle(harness);
 
     expect(root.textContent).toContain('Ready to compare');
-    expect(
-      root.querySelector<HTMLButtonElement>('#apply-comparison-selection')?.disabled,
-    ).toBe(false);
+    expect(root.querySelector<HTMLButtonElement>('#apply-comparison-selection')?.disabled).toBe(
+      false,
+    );
 
     root.querySelector<HTMLButtonElement>('#apply-comparison-selection')?.click();
     await settle(harness);
@@ -618,27 +587,19 @@ describe('CompareRunsPage', () => {
 
     expect(incompleteRoot.textContent).toContain('missing rightRunId');
     expect(incompleteRoot.querySelector('h1')?.textContent?.trim()).toBe('Compare Runs');
-    expect(
-      httpClient().match((request) => request.url === '/api/comparisons'),
-    ).toHaveLength(0);
+    expect(httpClient().match((request) => request.url === '/api/comparisons')).toHaveLength(0);
     expectRunOptionsRequest().flush(runOptionsPage([]));
     await settle(incomplete);
 
-    await incomplete.navigateByUrl(
-      `/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${LEFT_RUN_ID}`,
-    );
+    await incomplete.navigateByUrl(`/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${LEFT_RUN_ID}`);
     await settle(incomplete);
 
     expect(incompleteRoot.textContent).toContain('cannot be compared with itself');
-    expect(
-      httpClient().match((request) => request.url === '/api/comparisons'),
-    ).toHaveLength(0);
+    expect(httpClient().match((request) => request.url === '/api/comparisons')).toHaveLength(0);
   });
 
   it('reloads when the URL changes and ignores a late response for the previous pair', async () => {
-    const harness = await open(
-      `/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`,
-    );
+    const harness = await open(`/compare?leftRunId=${LEFT_RUN_ID}&rightRunId=${RIGHT_RUN_ID}`);
     const firstRequest = expectComparisonRequest();
 
     const alternateRightRunId = 'dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb';
@@ -683,9 +644,7 @@ describe('CompareRunsPage', () => {
     expect(root.querySelector('#compare-left-run')).not.toBeNull();
     expect(root.textContent).toContain('Choose two runs');
     expect(root.textContent).not.toContain('Run summaries');
-    expect(
-      httpClient().match((request) => request.url === '/api/comparisons'),
-    ).toHaveLength(0);
+    expect(httpClient().match((request) => request.url === '/api/comparisons')).toHaveLength(0);
     expectRunOptionsRequest().flush(runOptionsPage([]));
     await settle(harness);
   });

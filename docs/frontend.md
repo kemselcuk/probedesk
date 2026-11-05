@@ -8,6 +8,8 @@ Birincil gereksinimler: REQ-03–06, REQ-15–22. Görev: [P0-04](tasks/P0-04.md
 
 Uygulanan görsel sistem: `styles/_tokens.scss`, `_material-theme.scss` ve `_primitives.scss`; 52 px toolbar, 224 px sidebar, 36 px nav satırı, 24 px sayfa / 16 px kart boşluğu, 40 px form kontrolü, 36 px primary / 32 px araç düğmesi, 6–8 px radius ve 14/20 gövde tipografisi. Ölçümler ve ekran bazlı sonuçlar [UI-08 kanıtındadır](evidence/ui-refresh/ui-08.md).
 
+2026-11-05 kullanıcı geri bildirimi düzeltmeleri [UI-09](tasks/UI-09.md): native dropdown'lar yerine Material select; tüm container tıklanabilir, uzun seçeneklerde8px dikey boşluk. History'de ISO tarih girişini ve UTC [from,to) sözleşmesini koruyan Material datepicker vardır. Ortak tablolarda iki dış kenar16px, son kolon sağ hizalı; rozet24px ve floating label görünür12px. Compare seçim panelinde açıklama→kontrol16px, kontrol→not12px; helper metinlerde20px line-height ve4px üst boşluk. Gerçek doğrulama ve8080 teslimi [kanıttadır](evidence/ui-refresh/ui-09.md).
+
 ## Yapı ve route'lar
 
 Standalone bileşenler, feature route'ları ve Angular Material/CDK kullanılır. Typed Reactive Forms açık tercihidir; farklı form sistemiyle kendiliğinden değiştirilmez.

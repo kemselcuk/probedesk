@@ -182,3 +182,5 @@ Bir aşama yalnızca kartlar kapandı diye kabul edilmez; birleşen davranışla
 ## UI yenileme ek kampanyası — kullanıcı talebi 2026-11-04
 
 [UI yenileme planı](ui-modernization-plan.md), ilk 62 görevden ayrı 8 kart ekler. Sıra UI-01 token/Material → UI-02 shell/login → UI-03 plans/version → UI-04 editor → UI-05 start/live → UI-06 history/details → UI-07 compare/charts → UI-08 responsive/görsel QA. **UI-01–UI-08 In Review; kullanıcı görsel kabulü bekleniyor**; bu kayıt uygulama veya görsel kabul değildir. Kart durumları [görev dizininde](tasks/README.md) tutulur. Eski ürün sözleşmesi/rol/ölçüm ve kabul geçmişi korunur; video kapsam dışıdır.
+
+UI-09: kullanıcı geri bildirimi üzerine dropdown/takvim/tablo/form boşluk düzeltmeleri — **In Review**; gerçek kontroller ve 8080 teslimi [UI-09 kanıtında](evidence/ui-refresh/ui-09.md).

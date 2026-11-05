@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
@@ -78,6 +79,7 @@ interface SelectionDraft {
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     PageHeader,
     ReactiveFormsModule,
     RouterLink,
@@ -278,9 +280,7 @@ export class CompareRunsPage {
     );
   });
 
-  protected readonly isUnauthenticated = computed(
-    () => this.error()?.status === 401,
-  );
+  protected readonly isUnauthenticated = computed(() => this.error()?.status === 401);
 
   protected readonly runOptions = this.comparisons.runOptions;
   protected readonly runOptionsTotal = this.comparisons.runOptionsTotal;

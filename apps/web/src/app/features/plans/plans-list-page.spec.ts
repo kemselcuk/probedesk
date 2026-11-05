@@ -1,3 +1,4 @@
+import { materialSelect } from '../../../testing/material-select';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -198,9 +199,9 @@ describe('PlansListPage', () => {
     const root = rootOf(harness);
     const http = TestBed.inject(HttpTestingController);
 
-    http.expectOne('/api/plans').flush([
-      { id: PLAN_ID, profile: PROFILE, latestPublishedVersion: null },
-    ]);
+    http
+      .expectOne('/api/plans')
+      .flush([{ id: PLAN_ID, profile: PROFILE, latestPublishedVersion: null }]);
     await harness.fixture.whenStable();
     harness.detectChanges();
 
@@ -306,7 +307,7 @@ describe('PlansListPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(root.querySelector<HTMLSelectElement>('#create-plan-profile')?.value).toBe(PROFILE.id);
+    expect(materialSelect(root, '#create-plan-profile').value).toBe(PROFILE.id);
 
     typeInto(root, '#create-plan-name', '  Thermal check  ');
     submit(root);

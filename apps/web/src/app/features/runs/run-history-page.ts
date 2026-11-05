@@ -10,11 +10,19 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { DateAdapter, MAT_DATE_FORMATS, MAT_NATIVE_DATE_FORMATS } from '@angular/material/core';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import {
+  formatCalendarDate,
+  IsoDateAdapter,
+  parseCalendarDate,
+} from '../../shared/ui/iso-date-adapter';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
 import { EmptyState } from '../../shared/ui/empty-state/empty-state';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
@@ -27,23 +35,14 @@ import {
   isTerminalStatus,
   validateCompareSelection,
 } from '../comparisons/compare-selection';
-import {
-  isPartialSampleSet,
-  isStoppedWithAllSamples,
-  scenarioLabel,
-} from './run-status';
+import { isPartialSampleSet, isStoppedWithAllSamples, scenarioLabel } from './run-status';
 import { RunHistoryFacade } from './run-history.facade';
 import { RunStatusBadge } from './run-status-badge';
-import type {
-  RunHistoryItem,
-  RunHistoryQuery,
-  RunStatus,
-} from './runs-api.types';
+import type { RunHistoryItem, RunHistoryQuery, RunStatus } from './runs-api.types';
 
 const PAGE_SIZE = 20;
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const RUN_STATUSES: readonly RunStatus[] = [
   'RUNNING',
@@ -93,12 +92,25 @@ interface ParsedHistoryUrl {
     LoadingState,
     MatButtonModule,
     MatCardModule,
+    MatDatepickerModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     PageHeader,
     ReactiveFormsModule,
     RouterLink,
     RunStatusBadge,
+  ],
+  providers: [
+    { provide: DateAdapter, useClass: IsoDateAdapter },
+    {
+      provide: MAT_DATE_FORMATS,
+      useValue: {
+        ...MAT_NATIVE_DATE_FORMATS,
+        parse: { dateInput: 'iso-date' },
+        display: { ...MAT_NATIVE_DATE_FORMATS.display, dateInput: 'iso-date' },
+      },
+    },
   ],
   templateUrl: './run-history-page.html',
   styleUrl: './run-history-page.scss',
@@ -127,8 +139,8 @@ export class RunHistoryPage {
     planId: '',
     status: '' as RunStatus | '',
     outcome: '' as OutcomeFilter,
-    from: '',
-    to: '',
+    from: new FormControl<Date | null>(null),
+    to: new FormControl<Date | null>(null),
   });
 
   protected readonly hasActiveFilters = computed(() => {
@@ -157,16 +169,10 @@ export class RunHistoryPage {
       counts.set(plan.name, (counts.get(plan.name) ?? 0) + 1);
     }
 
-    return new Set(
-      [...counts.entries()]
-        .filter(([, count]) => count > 1)
-        .map(([name]) => name),
-    );
+    return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([name]) => name));
   });
 
-  protected readonly displayTotalPages = computed(() =>
-    Math.max(1, this.history.totalPages()),
-  );
+  protected readonly displayTotalPages = computed(() => Math.max(1, this.history.totalPages()));
 
   /**
    * A page beyond the last one still has a non-zero total. That is not the same
@@ -209,9 +215,7 @@ export class RunHistoryPage {
       return '';
     }
 
-    const details = invalid
-      .map((filter) => `${filter.label} "${filter.value}"`)
-      .join(', ');
+    const details = invalid.map((filter) => `${filter.label} "${filter.value}"`).join(', ');
     return `The address contains filter values that cannot be used, so they were ignored: ${details}. Remove them to share a working link.`;
   });
 
@@ -228,31 +232,23 @@ export class RunHistoryPage {
     return error.message;
   });
 
-  protected readonly isUnauthenticated = computed(
-    () => this.history.error()?.status === 401,
-  );
+  protected readonly isUnauthenticated = computed(() => this.history.error()?.status === 401);
 
   protected readonly canGoPrevious = computed(() => this.history.page() > 1);
-  protected readonly canGoNext = computed(
-    () => this.history.page() < this.history.totalPages(),
-  );
+  protected readonly canGoNext = computed(() => this.history.page() < this.history.totalPages());
 
   protected readonly compareValidation = computed(() =>
     validateCompareSelection(this.compareSelection()),
   );
   protected readonly canCompare = computed(() => this.compareValidation().valid);
-  protected readonly compareBlockedReason = computed(
-    () => this.compareValidation().reason,
-  );
+  protected readonly compareBlockedReason = computed(() => this.compareValidation().reason);
   protected readonly compareSelectionSummary = computed(() => {
     const selected = this.compareSelection();
     if (selected.length === 0) {
       return 'No runs selected for comparison.';
     }
 
-    const labels = selected.map(
-      (run) => `${run.planName}, version ${run.versionNumber}`,
-    );
+    const labels = selected.map((run) => `${run.planName}, version ${run.versionNumber}`);
     return `${selected.length} of ${MAX_COMPARE_RUNS} selected: ${labels.join(' and ')}.`;
   });
 
@@ -279,6 +275,7 @@ export class RunHistoryPage {
   }
 
   protected applyFilters(): void {
+    if (this.filters.invalid) return;
     const filters = this.readFilters();
     this.invalidUrlFilters.set([]);
     this.pendingPageNavigation = null;
@@ -376,19 +373,11 @@ export class RunHistoryPage {
   }
 
   protected isPartialRun(run: RunHistoryItem): boolean {
-    return isPartialSampleSet(
-      run.status,
-      run.recordedSampleCount,
-      run.expectedSampleCount,
-    );
+    return isPartialSampleSet(run.status, run.recordedSampleCount, run.expectedSampleCount);
   }
 
   protected isStoppedRun(run: RunHistoryItem): boolean {
-    return isStoppedWithAllSamples(
-      run.status,
-      run.recordedSampleCount,
-      run.expectedSampleCount,
-    );
+    return isStoppedWithAllSamples(run.status, run.recordedSampleCount, run.expectedSampleCount);
   }
 
   protected detailsLabel(run: RunHistoryItem): string {
@@ -426,10 +415,7 @@ export class RunHistoryPage {
 
     const selected = this.compareSelection();
     if (target.checked) {
-      if (
-        selected.length >= MAX_COMPARE_RUNS ||
-        selected.some((entry) => entry.id === run.id)
-      ) {
+      if (selected.length >= MAX_COMPARE_RUNS || selected.some((entry) => entry.id === run.id)) {
         target.checked = selected.some((entry) => entry.id === run.id);
         return;
       }
@@ -525,8 +511,8 @@ export class RunHistoryPage {
         planId: filters.planId,
         status: filters.status,
         outcome: filters.outcome,
-        from: filters.from,
-        to: filters.to,
+        from: parseCalendarDate(filters.from),
+        to: parseCalendarDate(filters.to),
       },
       { emitEvent: false },
     );
@@ -536,13 +522,10 @@ export class RunHistoryPage {
     const value = this.filters.getRawValue();
     return {
       planId: value.planId,
-      status: RUN_STATUSES.includes(value.status as RunStatus)
-        ? (value.status as RunStatus)
-        : '',
-      outcome:
-        value.outcome === 'PASSED' || value.outcome === 'FAILED' ? value.outcome : '',
-      from: normalizeDateInput(value.from),
-      to: normalizeDateInput(value.to),
+      status: RUN_STATUSES.includes(value.status as RunStatus) ? (value.status as RunStatus) : '',
+      outcome: value.outcome === 'PASSED' || value.outcome === 'FAILED' ? value.outcome : '',
+      from: formatCalendarDate(value.from),
+      to: formatCalendarDate(value.to),
       page: 1,
     };
   }
@@ -615,9 +598,7 @@ function readPage(value: string | null): number | null {
   }
 
   const page = Number(value);
-  return /^\d+$/.test(value) && Number.isSafeInteger(page) && page >= 1
-    ? page
-    : null;
+  return /^\d+$/.test(value) && Number.isSafeInteger(page) && page >= 1 ? page : null;
 }
 
 /** Accepts the date-only value used in the URL and normalizes unexpected input. */
