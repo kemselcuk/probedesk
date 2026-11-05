@@ -130,7 +130,7 @@ Ayrıntılar: [başlangıç rehberi](../implementation-guide.md), [test/inceleme
 
 ## UI yenileme kampanyası — 2026-11-04
 
-İlk ürün paketinin 62 kartına ek **9 UI görevi** vardır; toplam kart sayısı 71 olur. UI-09 kullanıcı geri bildiriminden doğan düzeltme kartıdır. Bu kampanya eski P1–P8 kabul kayıtlarını yeniden açmaz. Kullanıcı yeni görünümün uygulanmasını yetkilendirdi; uygulama kayıtları In Review durumundadır; kullanıcı görsel kabulü verilmiş değildir. Ana sözleşme: [ayrıntılı UI planı](../ui-modernization-plan.md).
+İlk ürün paketinin 62 kartına ek **10 UI görevi** vardır; toplam kart sayısı 72 olur. UI-09 kullanıcı geri bildiriminden doğan düzeltme kartıdır. Bu kampanya eski P1–P8 kabul kayıtlarını yeniden açmaz. Kullanıcı yeni görünümün uygulanmasını yetkilendirdi; uygulama kayıtları In Review durumundadır; kullanıcı görsel kabulü verilmiş değildir. Ana sözleşme: [ayrıntılı UI planı](../ui-modernization-plan.md).
 
 | Görev | Kapsam | Durum |
 |---|---|---|
@@ -143,3 +143,4 @@ Ayrıntılar: [başlangıç rehberi](../implementation-guide.md), [test/inceleme
 | [UI-07](UI-07.md) | Compare Runs ve ortak grafik tasarımı | In Review |
 | [UI-08](UI-08.md) | Responsive, erişilebilirlik ve bütünleşik görsel teslim | In Review |
 | [UI-09](UI-09.md) | Seçim kontrolleri, takvim ve ortak boşluk düzeltmeleri | In Review |
+| [UI-10](UI-10.md) | İçerik odaklı tablolar ve panel boşluk ritmi | In Review |

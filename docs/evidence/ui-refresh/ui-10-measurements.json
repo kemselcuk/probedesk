@@ -1,0 +1,1866 @@
+[
+  {
+    "page": "plans",
+    "width": 1440,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--plans",
+          "columns": [
+            {
+              "align": "left",
+              "width": 1006
+            },
+            {
+              "align": "left",
+              "width": 160
+            }
+          ],
+          "rowHeight": 54,
+          "width": 1166,
+          "wrapper": [
+            1166,
+            1166
+          ]
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    }
+  },
+  {
+    "page": "published",
+    "width": 1440,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--steps",
+          "columns": [
+            {
+              "align": "right",
+              "width": 48
+            },
+            {
+              "align": "left",
+              "width": 208
+            },
+            {
+              "align": "left",
+              "width": 64
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "right",
+              "width": 112
+            }
+          ],
+          "rowHeight": 36,
+          "width": 768,
+          "wrapper": [
+            768,
+            768
+          ]
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    }
+  },
+  {
+    "page": "start",
+    "width": 1440,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table",
+          "columns": [
+            {
+              "align": "left",
+              "width": 255.328125
+            },
+            {
+              "align": "right",
+              "width": 77.3359375
+            }
+          ],
+          "rowHeight": 72.5,
+          "width": 332.6640625,
+          "wrapper": [
+            333,
+            333
+          ]
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    }
+  },
+  {
+    "page": "history",
+    "width": 1440,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table history-table",
+          "columns": [
+            {
+              "align": "center",
+              "width": 80
+            },
+            {
+              "align": "left",
+              "width": 120
+            },
+            {
+              "align": "left",
+              "width": 454
+            },
+            {
+              "align": "left",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "right",
+              "width": 112
+            }
+          ],
+          "rowHeight": 54.5,
+          "width": 1166,
+          "wrapper": [
+            1166,
+            1166
+          ]
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    }
+  },
+  {
+    "page": "details",
+    "width": 1440,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.484375
+            },
+            {
+              "align": "right",
+              "width": 111.8359375
+            },
+            {
+              "align": "left",
+              "width": 151.703125
+            },
+            {
+              "align": "left",
+              "width": 223.75
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    }
+  },
+  {
+    "page": "live",
+    "width": 1440,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.5078125
+            },
+            {
+              "align": "right",
+              "width": 111.828125
+            },
+            {
+              "align": "left",
+              "width": 151.6953125
+            },
+            {
+              "align": "left",
+              "width": 223.7421875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.4140625
+            },
+            {
+              "align": "right",
+              "width": 111.796875
+            },
+            {
+              "align": "left",
+              "width": 151.8671875
+            },
+            {
+              "align": "left",
+              "width": 223.6953125
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.578125
+            },
+            {
+              "align": "right",
+              "width": 111.8125
+            },
+            {
+              "align": "left",
+              "width": 151.6640625
+            },
+            {
+              "align": "left",
+              "width": 223.71875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--recent",
+          "columns": [
+            {
+              "align": "left",
+              "width": 200
+            },
+            {
+              "align": "right",
+              "width": 104
+            },
+            {
+              "align": "right",
+              "width": 128
+            },
+            {
+              "align": "left",
+              "width": 64
+            },
+            {
+              "align": "left",
+              "width": 152
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 224
+            }
+          ],
+          "rowHeight": 36,
+          "width": 984,
+          "wrapper": [
+            984,
+            984
+          ]
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    }
+  },
+  {
+    "page": "compare",
+    "width": 1440,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "rules-table pd-table pd-table--rules",
+          "columns": [
+            {
+              "align": "left",
+              "width": 208
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.671875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 768,
+          "wrapper": [
+            768,
+            768
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    }
+  },
+  {
+    "page": "plans",
+    "width": 1280,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--plans",
+          "columns": [
+            {
+              "align": "left",
+              "width": 846
+            },
+            {
+              "align": "left",
+              "width": 160
+            }
+          ],
+          "rowHeight": 54,
+          "width": 1006,
+          "wrapper": [
+            1006,
+            1006
+          ]
+        }
+      ],
+      "viewport": [
+        1280,
+        900
+      ]
+    }
+  },
+  {
+    "page": "published",
+    "width": 1280,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--steps",
+          "columns": [
+            {
+              "align": "right",
+              "width": 48
+            },
+            {
+              "align": "left",
+              "width": 208
+            },
+            {
+              "align": "left",
+              "width": 64
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "right",
+              "width": 112
+            }
+          ],
+          "rowHeight": 36,
+          "width": 768,
+          "wrapper": [
+            768,
+            768
+          ]
+        }
+      ],
+      "viewport": [
+        1280,
+        900
+      ]
+    }
+  },
+  {
+    "page": "start",
+    "width": 1280,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table",
+          "columns": [
+            {
+              "align": "left",
+              "width": 218
+            },
+            {
+              "align": "right",
+              "width": 77.3359375
+            }
+          ],
+          "rowHeight": 72.5,
+          "width": 295.3359375,
+          "wrapper": [
+            295,
+            295
+          ]
+        }
+      ],
+      "viewport": [
+        1280,
+        900
+      ]
+    }
+  },
+  {
+    "page": "history",
+    "width": 1280,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table history-table",
+          "columns": [
+            {
+              "align": "center",
+              "width": 80
+            },
+            {
+              "align": "left",
+              "width": 120
+            },
+            {
+              "align": "left",
+              "width": 294
+            },
+            {
+              "align": "left",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "right",
+              "width": 112
+            }
+          ],
+          "rowHeight": 54.5,
+          "width": 1006,
+          "wrapper": [
+            1006,
+            1006
+          ]
+        }
+      ],
+      "viewport": [
+        1280,
+        900
+      ]
+    }
+  },
+  {
+    "page": "details",
+    "width": 1280,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.484375
+            },
+            {
+              "align": "right",
+              "width": 111.8359375
+            },
+            {
+              "align": "left",
+              "width": 151.703125
+            },
+            {
+              "align": "left",
+              "width": 223.75
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        1280,
+        900
+      ]
+    }
+  },
+  {
+    "page": "live",
+    "width": 1280,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.5078125
+            },
+            {
+              "align": "right",
+              "width": 111.828125
+            },
+            {
+              "align": "left",
+              "width": 151.6953125
+            },
+            {
+              "align": "left",
+              "width": 223.7421875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.4140625
+            },
+            {
+              "align": "right",
+              "width": 111.796875
+            },
+            {
+              "align": "left",
+              "width": 151.8671875
+            },
+            {
+              "align": "left",
+              "width": 223.6953125
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.578125
+            },
+            {
+              "align": "right",
+              "width": 111.8125
+            },
+            {
+              "align": "left",
+              "width": 151.6640625
+            },
+            {
+              "align": "left",
+              "width": 223.71875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--recent",
+          "columns": [
+            {
+              "align": "left",
+              "width": 200
+            },
+            {
+              "align": "right",
+              "width": 104
+            },
+            {
+              "align": "right",
+              "width": 128
+            },
+            {
+              "align": "left",
+              "width": 64
+            },
+            {
+              "align": "left",
+              "width": 152
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 224
+            }
+          ],
+          "rowHeight": 36,
+          "width": 984,
+          "wrapper": [
+            984,
+            984
+          ]
+        }
+      ],
+      "viewport": [
+        1280,
+        900
+      ]
+    }
+  },
+  {
+    "page": "compare",
+    "width": 1280,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "rules-table pd-table pd-table--rules",
+          "columns": [
+            {
+              "align": "left",
+              "width": 208
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.671875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 768,
+          "wrapper": [
+            768,
+            768
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            720,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        1280,
+        900
+      ]
+    }
+  },
+  {
+    "page": "plans",
+    "width": 768,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--plans",
+          "columns": [
+            {
+              "align": "left",
+              "width": 574
+            },
+            {
+              "align": "left",
+              "width": 160
+            }
+          ],
+          "rowHeight": 54,
+          "width": 734,
+          "wrapper": [
+            734,
+            734
+          ]
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "page": "published",
+    "width": 768,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--steps",
+          "columns": [
+            {
+              "align": "right",
+              "width": 43.703125
+            },
+            {
+              "align": "left",
+              "width": 170.9453125
+            },
+            {
+              "align": "left",
+              "width": 57.859375
+            },
+            {
+              "align": "right",
+              "width": 106.4453125
+            },
+            {
+              "align": "right",
+              "width": 106.4453125
+            },
+            {
+              "align": "right",
+              "width": 108.625
+            },
+            {
+              "align": "right",
+              "width": 107.9765625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 702,
+          "wrapper": [
+            702,
+            702
+          ]
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "page": "start",
+    "width": 768,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table",
+          "columns": [
+            {
+              "align": "left",
+              "width": 551.3828125
+            },
+            {
+              "align": "right",
+              "width": 150.6171875
+            }
+          ],
+          "rowHeight": 54.5,
+          "width": 702,
+          "wrapper": [
+            702,
+            702
+          ]
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "page": "history",
+    "width": 768,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table history-table",
+          "columns": [
+            {
+              "align": "center",
+              "width": 80
+            },
+            {
+              "align": "left",
+              "width": 120
+            },
+            {
+              "align": "left",
+              "width": 248
+            },
+            {
+              "align": "left",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "right",
+              "width": 112
+            }
+          ],
+          "rowHeight": 54.5,
+          "width": 960,
+          "wrapper": [
+            734,
+            960
+          ]
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "page": "details",
+    "width": 768,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.484375
+            },
+            {
+              "align": "right",
+              "width": 111.8359375
+            },
+            {
+              "align": "left",
+              "width": 151.703125
+            },
+            {
+              "align": "left",
+              "width": 223.75
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            700,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "page": "live",
+    "width": 768,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.5078125
+            },
+            {
+              "align": "right",
+              "width": 111.828125
+            },
+            {
+              "align": "left",
+              "width": 151.6953125
+            },
+            {
+              "align": "left",
+              "width": 223.7421875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            700,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.4140625
+            },
+            {
+              "align": "right",
+              "width": 111.796875
+            },
+            {
+              "align": "left",
+              "width": 151.8671875
+            },
+            {
+              "align": "left",
+              "width": 223.6953125
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            700,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.578125
+            },
+            {
+              "align": "right",
+              "width": 111.8125
+            },
+            {
+              "align": "left",
+              "width": 151.6640625
+            },
+            {
+              "align": "left",
+              "width": 223.71875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            700,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--recent",
+          "columns": [
+            {
+              "align": "left",
+              "width": 200
+            },
+            {
+              "align": "right",
+              "width": 104
+            },
+            {
+              "align": "right",
+              "width": 128
+            },
+            {
+              "align": "left",
+              "width": 64
+            },
+            {
+              "align": "left",
+              "width": 152
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 224
+            }
+          ],
+          "rowHeight": 36,
+          "width": 984,
+          "wrapper": [
+            734,
+            984
+          ]
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "page": "compare",
+    "width": 768,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "rules-table pd-table pd-table--rules",
+          "columns": [
+            {
+              "align": "left",
+              "width": 208
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.671875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 768,
+          "wrapper": [
+            700,
+            768
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            700,
+            720
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            700,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        768,
+        1024
+      ]
+    }
+  },
+  {
+    "page": "plans",
+    "width": 390,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--plans",
+          "columns": [
+            {
+              "align": "left",
+              "width": 320
+            },
+            {
+              "align": "left",
+              "width": 160
+            }
+          ],
+          "rowHeight": 54,
+          "width": 480,
+          "wrapper": [
+            364,
+            480
+          ]
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "page": "published",
+    "width": 390,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--steps",
+          "columns": [
+            {
+              "align": "right",
+              "width": 41.75
+            },
+            {
+              "align": "left",
+              "width": 154.1015625
+            },
+            {
+              "align": "left",
+              "width": 55.0703125
+            },
+            {
+              "align": "right",
+              "width": 103.921875
+            },
+            {
+              "align": "right",
+              "width": 103.921875
+            },
+            {
+              "align": "right",
+              "width": 107.09375
+            },
+            {
+              "align": "right",
+              "width": 106.140625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 672,
+          "wrapper": [
+            332,
+            672
+          ]
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "page": "start",
+    "width": 390,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table",
+          "columns": [
+            {
+              "align": "left",
+              "width": 254.6640625
+            },
+            {
+              "align": "right",
+              "width": 77.3359375
+            }
+          ],
+          "rowHeight": 72.5,
+          "width": 332,
+          "wrapper": [
+            332,
+            332
+          ]
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "page": "history",
+    "width": 390,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table history-table",
+          "columns": [
+            {
+              "align": "center",
+              "width": 80
+            },
+            {
+              "align": "left",
+              "width": 120
+            },
+            {
+              "align": "left",
+              "width": 248
+            },
+            {
+              "align": "left",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "left",
+              "width": 144
+            },
+            {
+              "align": "right",
+              "width": 112
+            }
+          ],
+          "rowHeight": 54.5,
+          "width": 960,
+          "wrapper": [
+            364,
+            960
+          ]
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "page": "details",
+    "width": 390,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.484375
+            },
+            {
+              "align": "right",
+              "width": 111.8359375
+            },
+            {
+              "align": "left",
+              "width": 151.703125
+            },
+            {
+              "align": "left",
+              "width": 223.75
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            330,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "page": "live",
+    "width": 390,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.5078125
+            },
+            {
+              "align": "right",
+              "width": 111.828125
+            },
+            {
+              "align": "left",
+              "width": 151.6953125
+            },
+            {
+              "align": "left",
+              "width": 223.7421875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            330,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.4140625
+            },
+            {
+              "align": "right",
+              "width": 111.796875
+            },
+            {
+              "align": "left",
+              "width": 151.8671875
+            },
+            {
+              "align": "left",
+              "width": 223.6953125
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            330,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.578125
+            },
+            {
+              "align": "right",
+              "width": 111.8125
+            },
+            {
+              "align": "left",
+              "width": 151.6640625
+            },
+            {
+              "align": "left",
+              "width": 223.71875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            330,
+            720
+          ]
+        },
+        {
+          "class": "pd-table pd-table--recent",
+          "columns": [
+            {
+              "align": "left",
+              "width": 200
+            },
+            {
+              "align": "right",
+              "width": 104
+            },
+            {
+              "align": "right",
+              "width": 128
+            },
+            {
+              "align": "left",
+              "width": 64
+            },
+            {
+              "align": "left",
+              "width": 152
+            },
+            {
+              "align": "right",
+              "width": 112
+            },
+            {
+              "align": "left",
+              "width": 224
+            }
+          ],
+          "rowHeight": 36,
+          "width": 984,
+          "wrapper": [
+            364,
+            984
+          ]
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  },
+  {
+    "page": "compare",
+    "width": 390,
+    "value": {
+      "contentOverflow": 0,
+      "pageOverflow": 0,
+      "tables": [
+        {
+          "class": "rules-table pd-table pd-table--rules",
+          "columns": [
+            {
+              "align": "left",
+              "width": 208
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.6640625
+            },
+            {
+              "align": "left",
+              "width": 186.671875
+            }
+          ],
+          "rowHeight": 36,
+          "width": 768,
+          "wrapper": [
+            330,
+            768
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            330,
+            720
+          ]
+        },
+        {
+          "class": "measurement-table pd-table pd-table--measurements",
+          "columns": [
+            {
+              "align": "right",
+              "width": 105.2265625
+            },
+            {
+              "align": "right",
+              "width": 127.3671875
+            },
+            {
+              "align": "right",
+              "width": 111.78125
+            },
+            {
+              "align": "left",
+              "width": 151.9609375
+            },
+            {
+              "align": "left",
+              "width": 223.6640625
+            }
+          ],
+          "rowHeight": 36,
+          "width": 720,
+          "wrapper": [
+            330,
+            720
+          ]
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    }
+  }
+]

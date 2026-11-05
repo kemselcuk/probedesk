@@ -45,7 +45,7 @@
 }
 
 .run-meta-line {
-  margin: 0.125rem 0 0;
+  margin: var(--pd-space-1) 0 0;
   color: var(--pd-text-secondary);
   font-size: var(--pd-font-meta-size);
   line-height: var(--pd-font-meta-line);
@@ -119,7 +119,7 @@
 }
 
 .run-metadata dd {
-  margin: 0.125rem 0 0;
+  margin: var(--pd-space-1) 0 0;
   color: var(--pd-text);
   font-size: var(--pd-font-body-size);
   line-height: var(--pd-font-body-line);
@@ -206,7 +206,7 @@
 }
 
 .step-subtitle {
-  margin: 0.125rem 0 0;
+  margin: var(--pd-space-1) 0 0;
   color: var(--pd-text-secondary);
   font-size: var(--pd-font-meta-size);
   line-height: var(--pd-font-meta-line);
@@ -267,7 +267,7 @@
 
 .chart-step-list {
   display: grid;
-  gap: var(--pd-space-4);
+  gap: var(--pd-section-gap);
 }
 
 

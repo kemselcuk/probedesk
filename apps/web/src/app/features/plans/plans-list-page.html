@@ -71,9 +71,13 @@
             formControlName="profileId"
             [disabled]="facade.profilesStatus() === 'loading' || facade.profiles().length === 0"
           >
-            <mat-option class="pd-select-option" value="" disabled>Select a device profile</mat-option>
+            <mat-option class="pd-select-option" value="" disabled
+              >Select a device profile</mat-option
+            >
             @for (profile of facade.profiles(); track profile.id) {
-              <mat-option class="pd-select-option" [value]="profile.id">{{ profileLabel(profile) }}</mat-option>
+              <mat-option class="pd-select-option" [value]="profile.id">{{
+                profileLabel(profile)
+              }}</mat-option>
             }
           </mat-select>
           <mat-error id="create-plan-profile-error">
@@ -138,14 +142,22 @@
     } @else {
       <mat-card class="list-panel" appearance="outlined">
         <div class="table-scroll">
-          <table class="pd-table">
+          <table class="pd-table pd-table--plans">
+            <colgroup>
+              <col class="pd-col-name" />
+              <col class="pd-col-version" />
+              @if (isPlanner()) {
+                <col class="pd-col-draft" />
+                <col class="pd-col-action" />
+              }
+            </colgroup>
             <caption class="visually-hidden">
               Test plans with their latest published version and open draft status
             </caption>
             <thead>
               <tr>
                 <th scope="col">Plan</th>
-                <th scope="col" class="pd-cell-end">Published version</th>
+                <th scope="col">Published version</th>
                 @if (isPlanner()) {
                   <th scope="col">Draft</th>
                   <th scope="col" class="pd-cell-action">Actions</th>
@@ -161,7 +173,7 @@
                       <span class="cell-detail">{{ profile.name }}</span>
                     }
                   </td>
-                  <td class="pd-cell-end">
+                  <td>
                     @if (plan.latestPublishedVersion; as version) {
                       <a
                         class="version-link"

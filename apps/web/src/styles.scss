@@ -1,6 +1,7 @@
 @use './styles/tokens';
 @use './styles/material-theme';
 @use './styles/primitives';
+@use './styles/data-tables';
 
 @include material-theme.theme;
 

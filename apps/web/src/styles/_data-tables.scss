@@ -1,0 +1,125 @@
+// Semantic table variants. Data panels use measured content widths; lists may
+// give the descriptive column the remaining space. Never align by column order.
+.pd-table-wrap--content {
+  width: max-content;
+  max-width: 100%;
+}
+
+.pd-table--measurements {
+  width: 45rem; // 720px: compact groups, not 20% of an arbitrarily wide page.
+  font-variant-numeric: tabular-nums;
+}
+.pd-table--measurements .pd-col-sample {
+  width: 6.5rem;
+}
+.pd-table--measurements .pd-col-value {
+  width: 8rem;
+}
+.pd-table--measurements .pd-col-elapsed {
+  width: 7rem;
+}
+.pd-table--measurements .pd-col-tolerance {
+  width: 9.5rem;
+}
+.pd-table--measurements .pd-col-recorded {
+  width: 14rem;
+}
+
+.pd-table--recent {
+  width: 61.5rem;
+  font-variant-numeric: tabular-nums;
+}
+.pd-table--recent .pd-col-step {
+  width: 12.5rem;
+}
+.pd-table--recent .pd-col-sample {
+  width: 6.5rem;
+}
+.pd-table--recent .pd-col-value {
+  width: 8rem;
+}
+.pd-table--recent .pd-col-unit {
+  width: 4rem;
+}
+.pd-table--recent .pd-col-tolerance {
+  width: 9.5rem;
+}
+.pd-table--recent .pd-col-elapsed {
+  width: 7rem;
+}
+.pd-table--recent .pd-col-recorded {
+  width: 14rem;
+}
+
+.pd-table--measurements th,
+.pd-table--measurements td,
+.pd-table--recent th,
+.pd-table--recent td {
+  white-space: nowrap;
+}
+
+.pd-table--rules {
+  width: 48rem;
+}
+.pd-table--rules th[scope='row'] {
+  width: 13rem;
+  font-weight: 500;
+}
+.pd-table--rules th:not([scope='row']),
+.pd-table--rules td {
+  min-width: 10rem;
+}
+.pd-table--rules td {
+  overflow-wrap: anywhere;
+}
+.pd-table--rules code,
+.pd-table--rules .mono {
+  white-space: normal;
+}
+
+.pd-table--steps {
+  width: 48rem;
+}
+.pd-table--steps .pd-col-index {
+  width: 3rem;
+}
+.pd-table--steps .pd-col-name {
+  width: 13rem;
+}
+.pd-table--steps .pd-col-unit {
+  width: 4rem;
+}
+.pd-table--steps .pd-col-number {
+  width: 7rem;
+}
+.pd-table--steps .pd-col-count {
+  width: 7rem;
+}
+.pd-table--steps .pd-col-interval {
+  width: 7rem;
+}
+.pd-table--steps .pd-numeric {
+  white-space: nowrap;
+}
+
+// A list has meaningful flexible text, unlike telemetry's bounded columns.
+.pd-table--plans {
+  table-layout: fixed;
+}
+.pd-table--plans .pd-col-name {
+  width: auto;
+}
+.pd-table--plans .pd-col-version {
+  width: 10rem;
+}
+.pd-table--plans .pd-col-draft {
+  width: 10rem;
+}
+.pd-table--plans .pd-col-action {
+  width: 8rem;
+}
+.pd-table--plans tbody td {
+  height: var(--pd-table-row-two-line-height);
+}
+
+.pd-table--rules.rules-table--one-sided { width: 26rem; }

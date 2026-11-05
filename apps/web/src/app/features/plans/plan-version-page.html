@@ -91,8 +91,17 @@
         @if (version.steps.length === 0) {
           <p class="empty-note">This published version has no steps.</p>
         } @else {
-          <div class="table-scroll">
-            <table class="pd-table">
+          <div class="table-scroll pd-table-wrap--content">
+            <table class="pd-table pd-table--steps">
+              <colgroup>
+                <col class="pd-col-index" />
+                <col class="pd-col-name" />
+                <col class="pd-col-unit" />
+                <col class="pd-col-number" />
+                <col class="pd-col-number" />
+                <col class="pd-col-count" />
+                <col class="pd-col-interval" />
+              </colgroup>
               <caption class="visually-hidden">
                 Ordered measurement steps of published version
                 {{
@@ -101,23 +110,23 @@
               </caption>
               <thead>
                 <tr>
-                  <th scope="col">#</th>
+                  <th scope="col" class="pd-numeric">#</th>
                   <th scope="col">Step name</th>
                   <th scope="col">Unit</th>
-                  <th scope="col">Minimum</th>
-                  <th scope="col">Maximum</th>
-                  <th scope="col">Sample count</th>
+                  <th scope="col" class="pd-numeric">Minimum</th>
+                  <th scope="col" class="pd-numeric">Maximum</th>
+                  <th scope="col" class="pd-numeric">Sample count</th>
                   <th scope="col" class="pd-cell-end">Interval (ms)</th>
                 </tr>
               </thead>
               <tbody>
                 @for (step of version.steps; track step.logicalStepId; let index = $index) {
                   <tr>
-                    <td>{{ index + 1 }}</td>
+                    <td class="pd-numeric">{{ index + 1 }}</td>
                     <td class="step-name">{{ step.name }}</td>
                     <td>{{ step.unit }}</td>
-                    <td class="pd-tabular">{{ step.minimum }}</td>
-                    <td class="pd-tabular">{{ step.maximum }}</td>
+                    <td class="pd-numeric">{{ step.minimum }}</td>
+                    <td class="pd-numeric">{{ step.maximum }}</td>
                     <td class="pd-numeric">{{ step.sampleCount | number }}</td>
                     <td class="pd-numeric">{{ step.intervalMs | number }}</td>
                   </tr>

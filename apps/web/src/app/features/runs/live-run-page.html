@@ -1,11 +1,7 @@
 <app-page-header title="Live Run" [subtitle]="headerSubtitle()">
   <a mat-stroked-button routerLink="/runs">Back to Run History</a>
   @if (runId().length > 0) {
-    <a
-      mat-stroked-button
-      id="live-run-details-link"
-      [routerLink]="['/runs', runId()]"
-    >
+    <a mat-stroked-button id="live-run-details-link" [routerLink]="['/runs', runId()]">
       View run details
     </a>
   }
@@ -56,9 +52,7 @@
               <button mat-stroked-button type="button" (click)="retry()">
                 Reconnect live updates
               </button>
-              <button mat-stroked-button type="button" (click)="reload()">
-                Reload snapshot
-              </button>
+              <button mat-stroked-button type="button" (click)="reload()">Reload snapshot</button>
             </div>
           </section>
         }
@@ -78,9 +72,7 @@
               </p>
             }
             <div class="error-actions">
-              <button mat-stroked-button type="button" (click)="reload()">
-                Reload snapshot
-              </button>
+              <button mat-stroked-button type="button" (click)="reload()">Reload snapshot</button>
               @if (failure.status === 401) {
                 <a mat-stroked-button routerLink="/login">Sign in again</a>
               }
@@ -108,7 +100,9 @@
                   <span class="status-label">{{ status.label }}</span>
                 </span>
               }
-              <span [class]="'connection-badge pd-badge ' + connectionBadgeClass(connection().tone)">
+              <span
+                [class]="'connection-badge pd-badge ' + connectionBadgeClass(connection().tone)"
+              >
                 Connection: {{ connection().label }}
               </span>
             </div>
@@ -160,7 +154,9 @@
             </p>
           }
 
-          @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
+          @if (
+            run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR'
+          ) {
             <p class="reason-code">
               @if (run.reasonCode) {
                 Reason code: <code class="pd-code">{{ run.reasonCode }}</code>
@@ -175,7 +171,11 @@
           }
 
           @if (terminalSummary(); as summary) {
-            <section class="terminal-summary pd-notice" role="status" aria-labelledby="terminal-summary-heading">
+            <section
+              class="terminal-summary pd-notice"
+              role="status"
+              aria-labelledby="terminal-summary-heading"
+            >
               <h3 id="terminal-summary-heading">Run finished</h3>
               <p>{{ summary }}</p>
               <p class="terminal-stream-note">
@@ -191,9 +191,7 @@
               role="alert"
               aria-labelledby="live-final-steps-warning-heading"
             >
-              <h2 id="live-final-steps-warning-heading">
-                Final step detail could not be loaded
-              </h2>
+              <h2 id="live-final-steps-warning-heading">Final step detail could not be loaded</h2>
               <p>{{ live.finalStepStateError() }}</p>
               <p>
                 The terminal run status above is final. Steps that were still running or pending
@@ -201,9 +199,7 @@
                 current progress.
               </p>
               <div class="error-actions">
-                <button mat-stroked-button type="button" (click)="reload()">
-                  Reload snapshot
-                </button>
+                <button mat-stroked-button type="button" (click)="reload()">Reload snapshot</button>
               </div>
             </section>
           }
@@ -294,8 +290,8 @@
                   <div class="step-main">
                     <h3 class="step-title">Step {{ step.position }}: {{ step.name }}</h3>
                     <p class="step-subtitle">
-                      Unit {{ step.unit }} · {{ step.recordedCount }} of {{ step.sampleCount }}
-                      samples · interval {{ step.intervalMs | number }} ms
+                      Unit {{ step.unit }} · {{ step.recordedCount }} of
+                      {{ step.sampleCount }} samples · interval {{ step.intervalMs | number }} ms
                     </p>
 
                     @if (stepStateUnavailable(step)) {
@@ -338,14 +334,24 @@
                   <div class="step-side">
                     <div class="step-badges">
                       @if (stepStateUnavailable(step)) {
-                        <span class="step-status pd-badge pd-badge--danger" data-status="UNAVAILABLE">Unavailable</span>
+                        <span
+                          class="step-status pd-badge pd-badge--danger"
+                          data-status="UNAVAILABLE"
+                          >Unavailable</span
+                        >
                       } @else {
-                        <span [class]="'step-status pd-badge ' + stepStatusBadgeClass(step.status)" [attr.data-status]="step.status">
+                        <span
+                          [class]="'step-status pd-badge ' + stepStatusBadgeClass(step.status)"
+                          [attr.data-status]="step.status"
+                        >
                           {{ stepStatus(step.status) }}
                         </span>
                       }
                       @if (stepOutcome(step.outcome); as outcome) {
-                        <span [class]="'step-outcome pd-badge ' + stepOutcomeBadgeClass(outcome)" [attr.data-outcome]="step.outcome">
+                        <span
+                          [class]="'step-outcome pd-badge ' + stepOutcomeBadgeClass(outcome)"
+                          [attr.data-outcome]="step.outcome"
+                        >
                           {{ outcome }}
                         </span>
                       }
@@ -427,9 +433,13 @@
                   />
 
                   <details class="pd-disclosure step-measurements">
-                    <summary>Recorded measurements ({{ step.measurements.length }} samples)</summary>
+                    <summary>
+                      Recorded measurements ({{ step.measurements.length }} samples)
+                    </summary>
                     <div class="pd-disclosure-body">
-                      <section [attr.aria-labelledby]="'step-measurements-heading-' + step.runStepId">
+                      <section
+                        [attr.aria-labelledby]="'step-measurements-heading-' + step.runStepId"
+                      >
                         <h4
                           [id]="'step-measurements-heading-' + step.runStepId"
                           class="visually-hidden"
@@ -440,7 +450,7 @@
                           <p class="empty-note">No samples were recorded for this step.</p>
                         } @else {
                           <div
-                            class="pd-table-wrap"
+                            class="pd-table-wrap pd-table-wrap--content"
                             [id]="tableId(step.runStepId)"
                             role="region"
                             tabindex="0"
@@ -454,25 +464,41 @@
                               '). Scroll horizontally to reach every column.'
                             "
                           >
-                            <table class="pd-table">
+                            <table class="pd-table pd-table--measurements">
+                              <colgroup>
+                                <col class="pd-col-sample" />
+                                <col class="pd-col-value" />
+                                <col class="pd-col-elapsed" />
+                                <col class="pd-col-tolerance" />
+                                <col class="pd-col-recorded" />
+                              </colgroup>
                               <caption class="visually-hidden">
                                 Recorded measurements for step
-                                {{ step.position }}:
-                                {{ step.name }}
-                                ({{ step.unit }}). The table contains every sample in the chart.
+                                {{
+                                  step.position
+                                }}:
+                                {{
+                                  step.name
+                                }}
+                                ({{
+                                  step.unit
+                                }}). The table contains every sample in the chart.
                               </caption>
                               <thead>
                                 <tr>
-                                  <th scope="col">Sample index</th>
-                                  <th scope="col">Value</th>
-                                  <th scope="col">Unit</th>
+                                  <th scope="col" class="pd-numeric">Sample index</th>
+                                  <th scope="col" class="pd-numeric">Value ({{ step.unit }})</th>
+                                  <th scope="col" class="pd-numeric">Elapsed (ms)</th>
                                   <th scope="col">Tolerance</th>
-                                  <th scope="col">Elapsed (ms)</th>
+
                                   <th scope="col">Recorded at (UTC)</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                @for (measurement of step.measurements; track measurement.sampleIndex) {
+                                @for (
+                                  measurement of step.measurements;
+                                  track measurement.sampleIndex
+                                ) {
                                   <tr
                                     [id]="rowId(step.runStepId, measurement.sampleIndex)"
                                     [class.is-selected]="
@@ -485,7 +511,9 @@
                                       measurementRowLabel(step, measurement.sampleIndex)
                                     "
                                     [attr.aria-current]="
-                                      isSampleSelected(step, measurement.sampleIndex) ? 'true' : null
+                                      isSampleSelected(step, measurement.sampleIndex)
+                                        ? 'true'
+                                        : null
                                     "
                                     (click)="selectMeasurementRow(step, measurement.sampleIndex)"
                                     (keydown.enter)="
@@ -496,20 +524,30 @@
                                       $event.preventDefault()
                                     "
                                   >
-                                    <td>{{ measurement.sampleIndex }}</td>
-                                    <td class="mono">{{ measurement.value }}</td>
-                                    <td>{{ step.unit }}</td>
+                                    <td class="pd-numeric">{{ measurement.sampleIndex }}</td>
+                                    <td class="mono pd-numeric">{{ measurement.value }}</td>
+                                    <td class="pd-numeric">{{ measurement.elapsedMs | number }}</td>
                                     <td>
                                       @if (measurement.isWithinTolerance) {
-                                        <span class="tolerance tolerance--within">Within tolerance</span>
+                                        <span class="tolerance tolerance--within"
+                                          >Within tolerance</span
+                                        >
                                       } @else {
-                                        <span class="tolerance tolerance--outside">Outside tolerance</span>
+                                        <span class="tolerance tolerance--outside"
+                                          >Outside tolerance</span
+                                        >
                                       }
                                     </td>
-                                    <td>{{ measurement.elapsedMs | number }}</td>
+
                                     <td>
-                                      <time [attr.datetime]="measurement.recordedAt">
-                                        {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
+                                      <time
+                                        [attr.datetime]="measurement.recordedAt"
+                                        [attr.title]="measurement.recordedAt"
+                                      >
+                                        {{
+                                          measurement.recordedAt
+                                            | date: 'yyyy-MM-dd HH:mm:ss.SSS' : 'UTC'
+                                        }}
                                       </time>
                                     </td>
                                   </tr>
@@ -535,12 +573,21 @@
             <p class="empty-note">No samples have been recorded for this run yet.</p>
           } @else {
             <div
-              class="pd-table-wrap"
+              class="pd-table-wrap pd-table-wrap--content"
               role="region"
               tabindex="0"
               aria-label="Recent recorded measurements across all steps. Scroll horizontally to reach every column."
             >
-              <table class="pd-table">
+              <table class="pd-table pd-table--recent">
+                <colgroup>
+                  <col class="pd-col-step" />
+                  <col class="pd-col-sample" />
+                  <col class="pd-col-value" />
+                  <col class="pd-col-unit" />
+                  <col class="pd-col-tolerance" />
+                  <col class="pd-col-elapsed" />
+                  <col class="pd-col-recorded" />
+                </colgroup>
                 <caption class="visually-hidden">
                   Recent recorded measurements across all steps, newest first. The table shows the
                   last 20 samples; every sample remains in the run record.
@@ -548,20 +595,23 @@
                 <thead>
                   <tr>
                     <th scope="col">Step</th>
-                    <th scope="col">Sample index</th>
-                    <th scope="col">Value</th>
+                    <th scope="col" class="pd-numeric">Sample index</th>
+                    <th scope="col" class="pd-numeric">Value</th>
                     <th scope="col">Unit</th>
                     <th scope="col">Tolerance</th>
-                    <th scope="col">Elapsed (ms)</th>
+                    <th scope="col" class="pd-numeric">Elapsed (ms)</th>
                     <th scope="col">Recorded at (UTC)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of live.recentMeasurements(); track row.stepPosition + ':' + row.sampleIndex) {
+                  @for (
+                    row of live.recentMeasurements();
+                    track row.stepPosition + ':' + row.sampleIndex
+                  ) {
                     <tr>
                       <td>{{ row.stepPosition }}: {{ row.stepName }}</td>
-                      <td>{{ row.sampleIndex }}</td>
-                      <td class="mono">{{ row.value }}</td>
+                      <td class="pd-numeric">{{ row.sampleIndex }}</td>
+                      <td class="mono pd-numeric">{{ row.value }}</td>
                       <td>{{ row.unit }}</td>
                       <td>
                         @if (row.isWithinTolerance) {
@@ -570,10 +620,10 @@
                           <span class="tolerance tolerance--outside">Outside tolerance</span>
                         }
                       </td>
-                      <td>{{ row.elapsedMs | number }}</td>
+                      <td class="pd-numeric">{{ row.elapsedMs | number }}</td>
                       <td>
-                        <time [attr.datetime]="row.recordedAt">
-                          {{ row.recordedAt | date: 'medium' : 'UTC' }} UTC
+                        <time [attr.datetime]="row.recordedAt" [attr.title]="row.recordedAt">
+                          {{ row.recordedAt | date: 'yyyy-MM-dd HH:mm:ss.SSS' : 'UTC' }}
                         </time>
                       </td>
                     </tr>
@@ -592,13 +642,19 @@
     }
     @case ('error') {
       @if (live.loadError()?.status === 404) {
-        <section class="not-found pd-card" role="alert" aria-labelledby="live-run-not-found-heading">
+        <section
+          class="not-found pd-card"
+          role="alert"
+          aria-labelledby="live-run-not-found-heading"
+        >
           <h2 id="live-run-not-found-heading">Run not found</h2>
           <p>
             This run does not exist or is not available to your role. No status, outcome, or
             measurements are assumed.
           </p>
-          <p class="request-id">Run ID: <code class="pd-code">{{ runId() }}</code></p>
+          <p class="request-id">
+            Run ID: <code class="pd-code">{{ runId() }}</code>
+          </p>
           @if (live.loadError()?.requestId; as requestId) {
             <p class="request-id">
               Request ID: <code class="pd-code">{{ requestId }}</code>

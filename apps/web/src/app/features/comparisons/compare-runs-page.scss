@@ -241,8 +241,8 @@
 .step-jump {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--pd-space-1);
-  margin-bottom: var(--pd-space-2);
+  gap: var(--pd-related-gap);
+  margin-bottom: var(--pd-space-3);
 }
 
 .step-jump-button {

@@ -36,7 +36,7 @@
 }
 
 .pd-section {
-  margin-bottom: var(--pd-space-5);
+  margin-bottom: var(--pd-section-gap);
 }
 
 .pd-section:last-child {
@@ -91,7 +91,7 @@
 }
 
 .pd-meta dd {
-  margin: 0.125rem 0 0;
+  margin: var(--pd-space-1) 0 0;
   color: var(--pd-text);
   font-size: var(--pd-font-body-size);
   line-height: var(--pd-font-body-line);
@@ -173,25 +173,24 @@
 
 .pd-table th,
 .pd-table td {
-  padding: 0.625rem 0.75rem;
+  padding: var(--pd-table-cell-block) var(--pd-table-cell-inline);
   border-bottom: 1px solid var(--pd-border);
   text-align: left;
   vertical-align: middle;
 }
 
-// Equal outer gutters; end columns align content to the matching edge.
+// Outer gutters share one rhythm; alignment belongs to semantic cell classes.
 .pd-table tr > :first-child {
   padding-inline-start: var(--pd-space-4);
 }
 .pd-table tr > :last-child {
   padding-inline-end: var(--pd-space-4);
-  text-align: right;
 }
 .pd-table .pd-cell-end {
   text-align: right;
 }
 .pd-table .pd-cell-action {
-  width: 1%;
+  width: 7rem;
   white-space: nowrap;
   text-align: right;
 }
@@ -446,7 +445,7 @@ mat-form-field mat-error {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--pd-space-1) var(--pd-space-2);
+  gap: var(--pd-related-gap);
   min-width: 0;
 }
 

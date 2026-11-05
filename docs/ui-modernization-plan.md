@@ -3,6 +3,7 @@
 - Tarih: 2026-11-04.
 - Yetki: Kullanıcı mevcut görünümü beğenmediğini; padding, font ve bileşen ölçeklerinin olgun bir panel referansıyla yeniden tasarlanmasını ve yeni uygulama thread'inde uygulanmasını istedi.
 - Durum: **UI-01–UI-08 uygulandı ve In Review; ayrı teknik inceleme ve kullanıcı görsel kabulü bekliyor.** Bu belge tek başına görsel kabul iddiası değildir; gerçek ölçüm ve ekran kanıtları [UI-08 kanıtındadır](evidence/ui-refresh/ui-08.md).
+- Kullanıcı revizyonu (2026-11-05): [UI-10](tasks/UI-10.md) önceki tablo yoğunluğu kararını günceller: ölçüm tabloları içerik genişliğinde, 14/22 px metin ve 36 px veri satırı; sayılar sağda, tarih/durum solda. Genel “son kolon sağda” kuralı kullanılmaz. Panel/ilişkili kontrol/alt bölüm/ana bölüm ritmi 16/8/12/24 px. Önceki tablolar için 13/20 px ve 44 px ölçüler bu revizyonla değişmiştir.
 - Başlangıç: Güncel `main`; R7 dahil son auth düzeltmelerini koru. Plan yazılırken son görülen commit `16b31e3` idi. İlk işlem `git status` ve `git log` ile güncel tabanı kaydetmektir.
 - Birincil görsel sözleşme: Bu belge; davranış sözleşmesi [frontend.md](frontend.md) ve diğer mevcut ürün belgeleridir. Yeni görsel kararlar kullanıcı talebinin yetkilendirdiği kapsamdır.
 - Sonuç hedefi: **Grafana'nın yoğun veri arayüzündeki disiplin + sade, açık renkli, modern bir ölçüm çalışma alanı.** Daha küçük ama okunabilir; daha az dekorasyon, daha güçlü hiyerarşi.

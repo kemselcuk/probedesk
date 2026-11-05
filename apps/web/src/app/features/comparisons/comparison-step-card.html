@@ -37,9 +37,7 @@
 
     @if (view().presence === 'matched') {
       @if (view().changedFields.length > 0) {
-        <p class="changed-note">
-          <strong>Changed rule fields:</strong> {{ changedLabels() }}.
-        </p>
+        <p class="changed-note"><strong>Changed rule fields:</strong> {{ changedLabels() }}.</p>
       } @else {
         <p class="unchanged-note">
           No rule field changed between the two recorded snapshots for this logical step.
@@ -93,10 +91,12 @@
         </h4>
 
         @if (view().presence === 'matched') {
-          <div class="pd-table-wrap">
-            <table class="rules-table pd-table">
+          <div class="pd-table-wrap pd-table-wrap--content">
+            <table class="rules-table pd-table pd-table--rules">
               <caption>
-                {{ ruleTableCaption() }}
+                {{
+                  ruleTableCaption()
+                }}
               </caption>
               <thead>
                 <tr>
@@ -207,10 +207,12 @@
           </div>
         } @else {
           @for (side of sides(); track side.key) {
-            <div class="pd-table-wrap">
-              <table class="rules-table pd-table rules-table--one-sided">
+            <div class="pd-table-wrap pd-table-wrap--content">
+              <table class="rules-table pd-table pd-table--rules rules-table--one-sided">
                 <caption>
-                  {{ ruleTableCaption() }}
+                  {{
+                    ruleTableCaption()
+                  }}
                 </caption>
                 <thead>
                   <tr>
@@ -266,7 +268,9 @@
     <details class="pd-disclosure measurements-section">
       <summary>
         Recorded measurements by run
-        <span class="summary-count">{{ sides().length }} table{{ sides().length === 1 ? '' : 's' }}</span>
+        <span class="summary-count"
+          >{{ sides().length }} table{{ sides().length === 1 ? '' : 's' }}</span
+        >
       </summary>
       <div class="pd-disclosure-body">
         <h4 [id]="'measurements-heading-' + view().logicalStepId" class="visually-hidden">
@@ -294,18 +298,31 @@
                   as zero.
                 </p>
               } @else {
-                <div class="pd-table-wrap">
-                  <table class="measurement-table pd-table" [id]="tableId(side)" tabindex="-1">
+                <div class="pd-table-wrap pd-table-wrap--content">
+                  <table
+                    class="measurement-table pd-table pd-table--measurements"
+                    [id]="tableId(side)"
+                    tabindex="-1"
+                  >
+                    <colgroup>
+                      <col class="pd-col-sample" />
+                      <col class="pd-col-value" />
+                      <col class="pd-col-elapsed" />
+                      <col class="pd-col-tolerance" />
+                      <col class="pd-col-recorded" />
+                    </colgroup>
                     <caption>
-                      {{ measurementCaption(side) }}
+                      {{
+                        measurementCaption(side)
+                      }}
                     </caption>
                     <thead>
                       <tr>
-                        <th scope="col">Sample index</th>
-                        <th scope="col">Elapsed (ms)</th>
-                        <th scope="col">Value ({{ side.step.unit }})</th>
-                        <th scope="col">Recorded (UTC)</th>
+                        <th scope="col" class="pd-numeric">Sample index</th>
+                        <th scope="col" class="pd-numeric">Value ({{ side.step.unit }})</th>
+                        <th scope="col" class="pd-numeric">Elapsed (ms)</th>
                         <th scope="col">Stored result</th>
+                        <th scope="col">Recorded (UTC)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -315,14 +332,10 @@
                           [class.out-of-tolerance]="!measurement.isWithinTolerance"
                           [attr.tabindex]="measurement.isWithinTolerance ? -1 : 0"
                         >
-                          <td>{{ measurement.sampleIndex }}</td>
-                          <td>{{ measurement.elapsedMs }}</td>
-                          <td class="mono">{{ measurement.value }}</td>
-                          <td>
-                            <time [attr.datetime]="measurement.recordedAt">
-                              {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
-                            </time>
-                          </td>
+                          <td class="pd-numeric">{{ measurement.sampleIndex }}</td>
+                          <td class="mono pd-numeric">{{ measurement.value }}</td>
+                          <td class="pd-numeric">{{ measurement.elapsedMs }}</td>
+
                           <td>
                             <span class="result-shape" aria-hidden="true">
                               {{ measurement.isWithinTolerance ? '●' : '◆' }}
@@ -332,6 +345,14 @@
                                 ? 'Within tolerance'
                                 : 'Outside tolerance'
                             }}
+                          </td>
+                          <td>
+                            <time
+                              [attr.datetime]="measurement.recordedAt"
+                              [attr.title]="measurement.recordedAt"
+                            >
+                              {{ measurement.recordedAt | date: 'yyyy-MM-dd HH:mm:ss.SSS' : 'UTC' }}
+                            </time>
                           </td>
                         </tr>
                       }

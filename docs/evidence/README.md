@@ -66,3 +66,5 @@ Doküman bağlantı kontrolü gibi kontroller uygulamanın çalıştığını ka
 [Gerçek başlangıç UI incelemesi](ui-refresh/baseline.md): localhost Plans/History/Details/Compare ekranları ve Grafana Play referans ölçüleri. Uygulama ve son ölçümler [UI-08 kanıtında](ui-refresh/ui-08.md); UI-01–UI-08 In Review ve kullanıcı görsel kabulü bekliyor.
 
 [UI-09 kullanıcı geri bildirimi düzeltmeleri](ui-refresh/ui-09.md): tam yüzey dropdown, takvim, tablo kenarları, rozet ve metin aralıkları; gerçek web/Playwright/8080 kanıtı.
+
+[UI-10 içerik odaklı tablolar ve panel ritmi](ui-refresh/ui-10.md): gerçek Grafana Table Panel Showcase referansı, 28 responsive ölçüm, tam hassasiyet ve 4 gerçek E2E kontrolü.

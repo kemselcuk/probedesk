@@ -75,3 +75,55 @@ test("selection edges, calendar dates and table gutters remain usable", async ({
   });
   expect(problems).toEqual([]);
 });
+
+test('measurement columns stay grouped on wide screens and scroll locally on mobile', async ({ page }) => {
+  await page.goto('/login');
+  await page.locator('#email').fill('operator@probedesk.local');
+  await page.locator('#password').fill('OperatorDemo!2026');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page).toHaveURL(/\/plans$/);
+  await page.goto('/runs');
+  const details = page.getByRole('link', { name: /^View details for/ }).first();
+  await expect(details).toBeVisible();
+  await details.click();
+  const table = page.locator('.pd-table--measurements:visible');
+  await expect(table).toHaveCount(1);
+  await expect(table.locator('tbody tr').first()).toBeVisible();
+  const widths: number[] = [];
+  for (const width of [1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    widths.push((await table.boundingBox())!.width);
+  }
+  expect(widths[1]).toBeLessThan(850);
+  expect(Math.abs(widths[1] - widths[0])).toBeLessThan(1);
+  const geometry = await table.evaluate(t => {
+    const row = t.querySelector('tbody tr')!;
+    const cells = [...row.querySelectorAll('td')];
+    const time = row.querySelector('time')!;
+    return {
+      rowHeight: row.getBoundingClientRect().height,
+      alignments: cells.map(c => getComputedStyle(c).textAlign),
+      value: cells[1].textContent!.trim(),
+      timestamp: time.textContent!.trim(),
+      storedTimestamp: time.getAttribute('datetime'),
+      fullTimestamp: time.getAttribute('title'),
+    };
+  });
+  expect(geometry.rowHeight).toBeGreaterThanOrEqual(34);
+  expect(geometry.rowHeight).toBeLessThanOrEqual(38);
+  expect(geometry.alignments).toEqual(['right', 'right', 'right', 'left', 'left']);
+  expect(geometry.value).toMatch(/^-?\d+\.\d{6}$/);
+  expect(geometry.timestamp).toBe(geometry.storedTimestamp!.replace('T', ' ').replace('Z', ''));
+  expect(geometry.fullTimestamp).toBe(geometry.storedTimestamp);
+  await table.locator('tbody tr').first().click();
+  await expect(table.locator('tbody tr').first()).toHaveAttribute('aria-current', 'true');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const wrapper = table.locator('..');
+  await wrapper.scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  expect(await wrapper.evaluate(e => e.scrollWidth > e.clientWidth)).toBe(true);
+  await wrapper.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect.poll(() => wrapper.evaluate(e => e.scrollLeft)).toBeGreaterThan(0);
+});

@@ -51,7 +51,7 @@ mat-form-field {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 0.125rem;
+  gap: var(--pd-related-gap);
   padding-top: 0.25rem;
 }
 
@@ -196,7 +196,7 @@ mat-form-field {
 }
 
 .step-preview {
-  margin: 0.125rem 0 0;
+  margin: var(--pd-space-1) 0 0;
   overflow: hidden;
   color: var(--pd-text-secondary);
   font-size: var(--pd-font-meta-size);
@@ -209,7 +209,7 @@ mat-form-field {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 0.125rem;
+  gap: var(--pd-related-gap);
 }
 
 .step-actions .mat-mdc-icon-button {

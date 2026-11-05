@@ -473,7 +473,7 @@ describe('RunDetailsPage', () => {
     expect(firstTable?.querySelector('caption')?.textContent).toContain(
       'Recorded measurements for step 1: Output voltage (V)',
     );
-    expect(firstTable?.querySelectorAll('th[scope="col"]')).toHaveLength(6);
+    expect(firstTable?.querySelectorAll('th[scope="col"]')).toHaveLength(5);
     const rows = firstTable?.querySelectorAll('tbody tr') ?? [];
     expect(rows).toHaveLength(2);
     expect(rows[0]?.textContent).toContain('4.980000');

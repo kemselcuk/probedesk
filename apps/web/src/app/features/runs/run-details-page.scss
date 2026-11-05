@@ -4,7 +4,7 @@
 
 .run-summary {
   margin-bottom: var(--pd-space-3);
-  padding: var(--pd-space-3);
+  padding: var(--pd-card-padding);
 }
 
 .role-note {
@@ -33,7 +33,7 @@
 }
 
 .run-meta-line {
-  margin: 0.125rem 0 0;
+  margin: var(--pd-space-1) 0 0;
   color: var(--pd-text-secondary);
   font-size: var(--pd-font-meta-size);
   line-height: var(--pd-font-meta-line);
@@ -62,7 +62,7 @@
 }
 
 .result-summary {
-  margin-top: var(--pd-space-2);
+  margin-top: var(--pd-space-3);
   padding-top: var(--pd-space-2);
   border-top: 1px solid var(--pd-border);
 }
@@ -118,8 +118,8 @@
 .step-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--pd-space-1);
-  margin-bottom: var(--pd-space-1);
+  gap: var(--pd-related-gap);
+  margin-bottom: var(--pd-space-3);
 }
 
 .step-tab {
@@ -176,7 +176,7 @@
 }
 
 .step-card {
-  padding: var(--pd-space-2) var(--pd-space-3);
+  padding: var(--pd-card-padding);
   border: 1px solid var(--pd-border);
   border-radius: var(--pd-radius-card);
   background: var(--pd-surface);
@@ -208,7 +208,7 @@
 }
 
 .step-subtitle {
-  margin: 0.125rem 0 0;
+  margin: var(--pd-space-1) 0 0;
   color: var(--pd-text-secondary);
   font-size: var(--pd-font-meta-size);
   line-height: var(--pd-font-meta-line);
@@ -229,11 +229,11 @@
 }
 
 .step-details {
-  margin-top: var(--pd-space-2);
+  margin-top: var(--pd-space-3);
 }
 
 .step-details .step-statistics {
-  margin-top: var(--pd-space-2);
+  margin-top: var(--pd-space-3);
   padding-top: var(--pd-space-2);
   border-top: 1px solid var(--pd-border);
 }
@@ -291,7 +291,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--pd-space-2);
-  margin-top: var(--pd-space-2);
+  margin-top: var(--pd-space-3);
 }
 
 .not-found {

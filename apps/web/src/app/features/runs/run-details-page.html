@@ -44,8 +44,8 @@
       @if (snapshot(); as run) {
         @if (!isOperator()) {
           <p class="role-note pd-notice" role="note">
-            Starting and cancelling runs are Operator actions. Your role can review this record,
-            its copied rules, and its measurements.
+            Starting and cancelling runs are Operator actions. Your role can review this record, its
+            copied rules, and its measurements.
           </p>
         } @else if (isRunning()) {
           <p class="role-note pd-notice" role="note">
@@ -143,7 +143,9 @@
             </p>
           }
 
-          @if (run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR') {
+          @if (
+            run.status === 'CANCELLED' || run.status === 'INTERRUPTED' || run.status === 'ERROR'
+          ) {
             <p class="reason-code pd-hint">
               @if (run.reasonCode) {
                 Reason code: <code class="pd-code">{{ run.reasonCode }}</code>
@@ -506,7 +508,7 @@
                     <p class="empty-note pd-muted">No samples were recorded for this step.</p>
                   } @else {
                     <div
-                      class="pd-table-wrap"
+                      class="pd-table-wrap pd-table-wrap--content"
                       [id]="tableId(step.runStepId)"
                       role="region"
                       tabindex="0"
@@ -520,20 +522,33 @@
                         '). Scroll horizontally to reach every column.'
                       "
                     >
-                      <table class="pd-table">
+                      <table class="pd-table pd-table--measurements">
+                        <colgroup>
+                          <col class="pd-col-sample" />
+                          <col class="pd-col-value" />
+                          <col class="pd-col-elapsed" />
+                          <col class="pd-col-tolerance" />
+                          <col class="pd-col-recorded" />
+                        </colgroup>
                         <caption class="visually-hidden">
                           Recorded measurements for step
-                          {{ step.position }}:
-                          {{ step.name }}
-                          ({{ step.unit }})
+                          {{
+                            step.position
+                          }}:
+                          {{
+                            step.name
+                          }}
+                          ({{
+                            step.unit
+                          }})
                         </caption>
                         <thead>
                           <tr>
-                            <th scope="col">Sample index</th>
-                            <th scope="col">Value</th>
-                            <th scope="col">Unit</th>
+                            <th scope="col" class="pd-numeric">Sample index</th>
+                            <th scope="col" class="pd-numeric">Value ({{ step.unit }})</th>
+                            <th scope="col" class="pd-numeric">Elapsed (ms)</th>
                             <th scope="col">Tolerance</th>
-                            <th scope="col">Elapsed (ms)</th>
+
                             <th scope="col">Recorded at (UTC)</th>
                           </tr>
                         </thead>
@@ -542,7 +557,9 @@
                             <tr
                               [id]="rowId(step.runStepId, measurement.sampleIndex)"
                               [class.is-selected]="isSampleSelected(step, measurement.sampleIndex)"
-                              [attr.tabindex]="measurementRowTabIndex(measurement.isWithinTolerance)"
+                              [attr.tabindex]="
+                                measurementRowTabIndex(measurement.isWithinTolerance)
+                              "
                               [attr.aria-label]="measurementRowLabel(step, measurement.sampleIndex)"
                               [attr.aria-current]="
                                 isSampleSelected(step, measurement.sampleIndex) ? 'true' : null
@@ -554,9 +571,9 @@
                                 $event.preventDefault()
                               "
                             >
-                              <td>{{ measurement.sampleIndex }}</td>
-                              <td class="mono">{{ measurement.value }}</td>
-                              <td>{{ step.unit }}</td>
+                              <td class="pd-numeric">{{ measurement.sampleIndex }}</td>
+                              <td class="mono pd-numeric">{{ measurement.value }}</td>
+                              <td class="pd-numeric">{{ measurement.elapsedMs | number }}</td>
                               <td>
                                 @if (measurement.isWithinTolerance) {
                                   <span class="tolerance tolerance--within">
@@ -568,10 +585,15 @@
                                   </span>
                                 }
                               </td>
-                              <td>{{ measurement.elapsedMs | number }}</td>
+
                               <td>
-                                <time [attr.datetime]="measurement.recordedAt">
-                                  {{ measurement.recordedAt | date: 'medium' : 'UTC' }} UTC
+                                <time
+                                  [attr.datetime]="measurement.recordedAt"
+                                  [attr.title]="measurement.recordedAt"
+                                >
+                                  {{
+                                    measurement.recordedAt | date: 'yyyy-MM-dd HH:mm:ss.SSS' : 'UTC'
+                                  }}
                                 </time>
                               </td>
                             </tr>
@@ -587,7 +609,11 @@
         </section>
 
         @if (showRunAgain()) {
-          <mat-card class="rerun-card pd-card" appearance="outlined" aria-labelledby="rerun-heading">
+          <mat-card
+            class="rerun-card pd-card"
+            appearance="outlined"
+            aria-labelledby="rerun-heading"
+          >
             <div class="rerun-heading">
               <div>
                 <h2 id="rerun-heading" class="pd-section-heading">Run again</h2>
