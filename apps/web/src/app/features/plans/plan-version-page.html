@@ -34,9 +34,12 @@
     } @else if (facade.version(); as version) {
       <section class="version-summary" aria-labelledby="version-title">
         <div class="version-heading">
-          <div class="version-badges">
-            <span class="version-badge">Version {{ version.versionNumber }}</span>
-            <span class="pd-badge pd-badge--neutral">Read-only</span>
+          <div>
+            <p class="version-state">Published version</p>
+            <div class="version-badges">
+              <span class="version-badge">Version {{ version.versionNumber }}</span>
+              <span class="pd-badge pd-badge--neutral">Read-only</span>
+            </div>
           </div>
         </div>
 

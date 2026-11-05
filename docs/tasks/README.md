@@ -141,4 +141,4 @@ Ayrıntılar: [başlangıç rehberi](../implementation-guide.md), [test/inceleme
 | [UI-05](UI-05.md) | Start Run ve Live Run görünümü | In Review |
 | [UI-06](UI-06.md) | Run History ve Run Details yoğunluğu | In Review |
 | [UI-07](UI-07.md) | Compare Runs ve ortak grafik tasarımı | In Review |
-| [UI-08](UI-08.md) | Responsive, erişilebilirlik ve bütünleşik görsel teslim | Planned |
+| [UI-08](UI-08.md) | Responsive, erişilebilirlik ve bütünleşik görsel teslim | In Review |

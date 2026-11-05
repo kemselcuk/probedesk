@@ -63,4 +63,4 @@ Doküman bağlantı kontrolü gibi kontroller uygulamanın çalıştığını ka
 
 ## UI yenileme başlangıcı
 
-[Gerçek başlangıç UI incelemesi](ui-refresh/baseline.md): localhost Plans/History/Details/Compare ekranları ve Grafana Play referans ölçüleri. Bu kayıt yeni tasarımın uygulanmış olduğunu göstermez; UI-01–UI-08 Planned.
+[Gerçek başlangıç UI incelemesi](ui-refresh/baseline.md): localhost Plans/History/Details/Compare ekranları ve Grafana Play referans ölçüleri. Uygulama ve son ölçümler [UI-08 kanıtında](ui-refresh/ui-08.md); UI-01–UI-08 In Review ve kullanıcı görsel kabulü bekliyor.

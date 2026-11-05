@@ -4,6 +4,7 @@ import {
   DestroyRef,
   ElementRef,
   EnvironmentInjector,
+  HostListener,
   Injector,
   afterNextRender,
   computed,
@@ -62,6 +63,7 @@ export class AppShell {
   private readonly unsavedChanges = inject(UnsavedChangesService);
 
   private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
+  private readonly navToggle = viewChild<ElementRef<HTMLButtonElement>>('navToggle');
   private readonly contentScroller = viewChild(MatSidenavContent);
 
   protected readonly navigationItems = NAVIGATION_ITEMS;
@@ -127,6 +129,27 @@ export class AppShell {
     if (this.compactViewport()) {
       this.mobileNavigationOpen.set(false);
     }
+  }
+
+  /**
+   * The overlay navigation is a modal surface on compact viewports. Escape
+   * closes it and returns focus to the toggle, matching the dialog pattern.
+   * Open Material dialogs keep their own Escape handling.
+   */
+  @HostListener('document:keydown.escape', ['$event'])
+  protected onDocumentEscape(event: Event): void {
+    if (!this.compactViewport() || !this.mobileNavigationOpen()) {
+      return;
+    }
+    if (document.querySelector('.cdk-overlay-container .mat-mdc-dialog-container')) {
+      return;
+    }
+
+    event.preventDefault();
+    this.mobileNavigationOpen.set(false);
+    afterNextRender(() => this.navToggle()?.nativeElement.focus(), {
+      injector: this.injector,
+    });
   }
 
   protected signOut(): void {

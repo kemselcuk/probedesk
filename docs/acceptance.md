@@ -29,12 +29,13 @@ kabulü açıktır; demo videosu kullanıcı kararıyla kapsam dışıdır; işa
 
 ## Teslim ve kanıt
 
-- [x] Backend birim ve PostgreSQL entegrasyon testleri geçti. — 2026-11-04: 16 dosya/118 test ve
-  22 dosya/197 test ([kanıt](evidence/phase-8-docs.md)).
-- [x] Angular bileşen/servis testleri geçti. — 2026-11-04: 36 dosya/370 test
-  ([kanıt](evidence/phase-8-docs.md)).
+- [x] Backend birim ve PostgreSQL entegrasyon testleri geçti. — 2026-11-05: 16 dosya/118 test ve
+  22 dosya/200 test ([kanıt](evidence/ui-refresh/ui-08.md)).
+- [x] Angular bileşen/servis testleri geçti. — 2026-11-05: 36 dosya/385 test
+  ([kanıt](evidence/ui-refresh/ui-08.md)).
 - [x] Ana Playwright senaryosu gerçek stack üzerinde geçti. — 2 senaryo, gerçek Chrome/API/PG
-  ([P7-01](evidence/phase-7-e2e.md)); CI E2E işi de geçti ([P7-06](evidence/phase-7-ci.md)).
+  ([UI-08](evidence/ui-refresh/ui-08.md); [P7-01](evidence/phase-7-e2e.md)); CI E2E işi de geçti
+  ([P7-06](evidence/phase-7-ci.md)).
 - [x] Temiz veritabanı migration/seed kontrolü geçti (T27). — Boş `probedesk_delivery_check`
   veritabanında `migrate → seed → api → web` zinciri
   ([P8-03](evidence/phase-8-clean-install.md)).

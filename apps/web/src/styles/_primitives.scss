@@ -137,6 +137,11 @@
   justify-content: flex-start;
 }
 
+.table-scroll {
+  max-width: 100%;
+  contain: paint;
+}
+
 .pd-table-wrap {
   max-width: 100%;
   overflow-x: auto;
@@ -413,6 +418,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pd-space-1) var(--pd-space-2);
+  min-width: 0;
 }
 
 .pd-version-main a {
@@ -432,6 +438,7 @@
   color: var(--pd-text-secondary);
   font-size: var(--pd-font-meta-size);
   line-height: var(--pd-font-meta-line);
+  overflow-wrap: anywhere;
 }
 
 .pd-version-meta {
@@ -478,6 +485,17 @@
 }
 
 .pd-focus-target:focus-visible {
+  outline: 2px solid var(--pd-focus-ring);
+  outline-offset: 2px;
+}
+
+// Material's structural styles set `outline: none` on its buttons. Restore a
+// token-based focus ring for keyboard users without using !important.
+body .mat-mdc-button-base:focus-visible,
+body .mat-mdc-icon-button:focus-visible,
+body .mat-mdc-tab:focus-visible,
+body .mat-mdc-option:focus-visible,
+body .mat-mdc-select-trigger:focus-visible {
   outline: 2px solid var(--pd-focus-ring);
   outline-offset: 2px;
 }

@@ -268,25 +268,62 @@ test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', a
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
   await page.goto(`/compare?leftRunId=${v1RunId}&rightRunId=${v2RunId}`);
+  await page
+    .locator('.step-jump-button', { hasText: 'Current Draw' })
+    .first()
+    .click();
+  await expect(
+    page.locator('app-comparison-step-card:not([hidden]) .step-header h3'),
+  ).toHaveText(/Current Draw/);
   await expect(page.getByText('Changed rule fields', { exact: true }).first()).toBeVisible();
+  await page
+    .locator('app-comparison-step-card:not([hidden]) .rule-section > summary')
+    .click();
   await expect(page.getByText('0.550000', { exact: false }).first()).toBeVisible();
   await expect(page.getByText('0.650000', { exact: false }).first()).toBeVisible();
   await expect(page.getByText('Failed').first()).toBeVisible();
   // P6-05: unit change => separate panels and no numeric delta.
+  await page
+    .locator('.step-jump-button', { hasText: 'Case Temperature' })
+    .first()
+    .click();
+  await expect(
+    page.locator('app-comparison-step-card:not([hidden]) .step-header h3'),
+  ).toHaveText(/Case Temperature/);
   await expect(page.getByText('Unit changed').first()).toBeVisible();
+  await page
+    .locator('app-comparison-step-card:not([hidden]) .rule-section > summary')
+    .click();
   await expect(page.getByText('Not calculated — units differ').first()).toBeVisible();
   await expect(page.getByText('°F').first()).toBeVisible();
   const unitCard = page
-    .locator('app-comparison-step-card', { hasText: 'Case Temperature' })
+    .locator('app-comparison-step-card:not([hidden])')
     .first();
   await expect(unitCard.locator('.separate-panels canvas')).toHaveCount(2);
+  await page
+    .locator('.step-jump-button', { hasText: 'Current Draw' })
+    .first()
+    .click();
+  await expect(
+    page.locator('app-comparison-step-card:not([hidden]) .step-header h3'),
+  ).toHaveText(/Current Draw/);
 
-  const leftToggle = page.locator('.series-toggle--left').first();
+  const leftToggle = page
+    .locator('app-comparison-step-card:not([hidden]) .series-toggle--left')
+    .first();
   await expect(leftToggle).toHaveAttribute('aria-pressed', 'true');
-  const rightMetaBefore = await page.locator('.series-toggle--right .series-meta').first().textContent();
+  const rightMetaBefore = await page
+    .locator('app-comparison-step-card:not([hidden]) .series-toggle--right .series-meta')
+    .first()
+    .textContent();
   await leftToggle.click();
   await expect(leftToggle).toHaveAttribute('aria-pressed', 'false');
-  expect(await page.locator('.series-toggle--right .series-meta').first().textContent()).toBe(rightMetaBefore);
+  expect(
+    await page
+      .locator('app-comparison-step-card:not([hidden]) .series-toggle--right .series-meta')
+      .first()
+      .textContent(),
+  ).toBe(rightMetaBefore);
   await leftToggle.click();
   await expect(leftToggle).toHaveAttribute('aria-pressed', 'true');
 

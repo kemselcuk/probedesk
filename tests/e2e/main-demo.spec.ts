@@ -141,7 +141,7 @@ function historyRow(page: Page, runId: string): Locator {
 
 function comparisonCount(page: Page, label: string): Locator {
   return page
-    .locator('.count-grid div')
+    .locator('.count-line div')
     .filter({ hasText: label })
     .locator('dd');
 }
@@ -447,7 +447,7 @@ test('runs the main demo flow through plans, live execution, history, compare an
   // 2. Operator: start a FORCED_FAILURE run on Current Draw.
   await login(operatorPage, 'operator', OPERATOR);
   await openPublishedVersion(operatorPage, 1);
-  await expect(operatorPage.locator('.draft-action-card')).toHaveCount(0);
+  await expect(operatorPage.locator('.draft-bar')).toHaveCount(0);
 
   const failedRunId = await startRun(
     operatorPage,
@@ -495,7 +495,7 @@ test('runs the main demo flow through plans, live execution, history, compare an
   await expect(liveTemperature.locator('.step-outcome')).toHaveText('Passed');
 
   const liveCurrentDrawChart = operatorPage
-    .locator('article.step-row')
+    .locator('article.chart-step')
     .filter({ hasText: 'Current Draw' })
     .first();
   await expect(
@@ -619,7 +619,9 @@ test('runs the main demo flow through plans, live execution, history, compare an
   await expect(historyRow(operatorPage, failedRunId)).toContainText(
     `Sample index ${FAILURE_INDEX}`,
   );
-  await expect(historyRow(operatorPage, passedRunId)).toContainText('None');
+  await expect(historyRow(operatorPage, passedRunId)).not.toContainText(
+    'First failure',
+  );
 
   await operatorPage.locator(`#compare-${failedRunId}`).check();
   await operatorPage.locator(`#compare-${passedRunId}`).check();
@@ -639,6 +641,7 @@ test('runs the main demo flow through plans, live execution, history, compare an
   await expect(rightCard).toContainText('Version 1');
   await expect(leftCard.locator('.status-label')).toHaveText('Failed');
   await expect(rightCard.locator('.status-label')).toHaveText('Passed');
+  await operatorPage.locator('.summary-notes > summary').click();
   await expect(
     operatorPage.getByText('Both runs used the same plan version'),
   ).toBeVisible();
@@ -722,7 +725,7 @@ test('runs the main demo flow through plans, live execution, history, compare an
     'Version 1',
   );
   const oldCurrentDraw = operatorPage
-    .locator('mat-card.step-card')
+    .locator('.step-card:not([hidden])')
     .filter({ hasText: 'Current Draw' })
     .first();
   await expect(oldCurrentDraw.locator('.step-rules')).toContainText(
@@ -750,6 +753,7 @@ test('runs the main demo flow through plans, live execution, history, compare an
   await expect(
     operatorPage.locator('.run-card[data-side="right"] .status-label'),
   ).toHaveText('Passed');
+  await operatorPage.locator('.summary-notes > summary').click();
   await expect(
     operatorPage.getByText('The runs used different plan versions'),
   ).toBeVisible();
@@ -777,6 +781,17 @@ test('runs the main demo flow through plans, live execution, history, compare an
       .locator('tr[data-evaluation="first-failure"] td')
       .nth(1),
   ).toHaveText('None recorded');
+
+  await operatorPage
+    .locator('.step-jump-button', { hasText: 'Current Draw' })
+    .first()
+    .click();
+  await expect(
+    operatorPage.locator('app-comparison-step-card:not([hidden]) .step-header h3'),
+  ).toHaveText(/Current Draw/);
+  await operatorPage
+    .locator('app-comparison-step-card:not([hidden]) .rule-section > summary')
+    .click();
 
   await operatorPage.screenshot({
     path: 'docs/evidence/phase-7-compare-v1-v2.png',

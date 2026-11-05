@@ -9,6 +9,7 @@
         mat-icon-button
         type="button"
         class="nav-toggle"
+        #navToggle
         [attr.aria-label]="sidenavOpened() ? 'Close navigation' : 'Open navigation'"
         [attr.aria-expanded]="sidenavOpened()"
         aria-controls="primary-navigation"

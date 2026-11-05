@@ -4,7 +4,9 @@ Birincil gereksinimler: REQ-03–06, REQ-15–22. Görev: [P0-04](tasks/P0-04.md
 
 ## Kullanıcı tarafından yetkilendirilen görsel yenileme
 
-2026-11-04 UI yenilemesi için ölçü, tipografi, renk, bileşen ve ekran düzeninin ayrıntılı hedefi [UI yenileme planıdır](ui-modernization-plan.md). UI-01–UI-08 henüz Planned; mevcut ekran davranışları aşağıdaki sözleşmede kalır. Yeni plan görsel yerleşimi ve açıklama hiyerarşisini değiştirir, backend/verdict/rol/API davranışını değiştirmez.
+2026-11-04 UI yenilemesi için ölçü, tipografi, renk, bileşen ve ekran düzeninin ayrıntılı hedefi [UI yenileme planıdır](ui-modernization-plan.md). UI-01–UI-08 uygulandı ve ayrı teknik inceleme/kullanıcı görsel kabulü için In Review durumundadır; mevcut ekran davranışları aşağıdaki sözleşmede kalır. Yeni plan görsel yerleşimi ve açıklama hiyerarşisini değiştirdi; backend/verdict/rol/API davranışı değişmedi.
+
+Uygulanan görsel sistem: `styles/_tokens.scss`, `_material-theme.scss` ve `_primitives.scss`; 52 px toolbar, 224 px sidebar, 36 px nav satırı, 24 px sayfa / 16 px kart boşluğu, 40 px form kontrolü, 36 px primary / 32 px araç düğmesi, 6–8 px radius ve 14/20 gövde tipografisi. Ölçümler ve ekran bazlı sonuçlar [UI-08 kanıtındadır](evidence/ui-refresh/ui-08.md).
 
 ## Yapı ve route'lar
 
@@ -95,4 +97,4 @@ Cancelled/Interrupted/Error için eksik örnekler ve neden açıklanır; tamamla
 
 ## Erişilebilirlik ve görünüm
 
-Masaüstü odaklı; en az 1280 ve 768 px genişlikte temel iş akışı incelenir. Login, formlar ve adım taşıma klavyeyle kullanılabilir. Dialog açılış/kapanışında odak yönetilir. Hata metinleri alanlarla ilişkilendirilir. Responsive ve tarayıcı desteği yalnızca gerçekten kontrol edilen ortamlarla belgelenir; Safari/Firefox desteği kanıtsız iddia edilmez.
+Masaüstü, 1440×900, 1280×800, 768×1024 ve 390×844 smoke gerçek Chrome ile kontrol edildi; 200% zoom 640×400 layout karşılığıyla sınandı. Login, formlar, adım taşıma, adım sekmeleri, grafik seri kontrolleri ve dialog akışları klavyeyle kullanılabilir. Dialog açılış/kapanışında ve overlay navigasyonda odak yönetilir; Escape overlay'i kapatır ve odağı toggle'a döndürür. Hata metinleri alanlarla ilişkilendirilir. Responsive ve tarayıcı desteği yalnızca gerçekten kontrol edilen ortamlarla belgelenir; Safari/Firefox ve fiziksel mobil cihaz desteği kanıtsız iddia edilmez.

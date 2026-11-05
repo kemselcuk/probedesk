@@ -2,7 +2,7 @@
 
 - Tarih: 2026-11-04.
 - Yetki: Kullanıcı mevcut görünümü beğenmediğini; padding, font ve bileşen ölçeklerinin olgun bir panel referansıyla yeniden tasarlanmasını ve yeni uygulama thread'inde uygulanmasını istedi.
-- Durum: **Plan hazır; UI-01–UI-08 Planned.** Bu belge uygulanmış veya görsel olarak kabul edilmiş bir tasarım iddiası değildir.
+- Durum: **UI-01–UI-08 uygulandı ve In Review; ayrı teknik inceleme ve kullanıcı görsel kabulü bekliyor.** Bu belge tek başına görsel kabul iddiası değildir; gerçek ölçüm ve ekran kanıtları [UI-08 kanıtındadır](evidence/ui-refresh/ui-08.md).
 - Başlangıç: Güncel `main`; R7 dahil son auth düzeltmelerini koru. Plan yazılırken son görülen commit `16b31e3` idi. İlk işlem `git status` ve `git log` ile güncel tabanı kaydetmektir.
 - Birincil görsel sözleşme: Bu belge; davranış sözleşmesi [frontend.md](frontend.md) ve diğer mevcut ürün belgeleridir. Yeni görsel kararlar kullanıcı talebinin yetkilendirdiği kapsamdır.
 - Sonuç hedefi: **Grafana'nın yoğun veri arayüzündeki disiplin + sade, açık renkli, modern bir ölçüm çalışma alanı.** Daha küçük ama okunabilir; daha az dekorasyon, daha güçlü hiyerarşi.
@@ -235,12 +235,12 @@ Somut kriterler:
 
 ## 9. Uygulayıcı için bitiş kontrolü
 
-- [ ] UI-01–UI-08 ölçütleri uygulandı, her görev için gerçek kanıt var.
-- [ ] Tasarım tüm ekranlara taşındı; eski dev pill düğme/kart/rol öğretici blokları birkaç ekranda kalmadı.
-- [ ] History ve Details bilgi yoğunluğu hedefleri gerçek browser'da ölçüldü.
-- [ ] Form, rol, kaydetme/sürüm, CSRF/idempotency/SSE ve ölçüm/grafik etkileşimleri korunuyor.
-- [ ] Aktif run kullanıcı ekranından başlıyor, canlı izleniyor, failed örnek seçiliyor, normal run ve v1/v2 compare çalışıyor.
-- [ ] Yeni görünüm desktop/tablet ve keyboard ile tutarlı; okunurluk küçük font karşılığında feda edilmedi.
-- [ ] Mevcut user DB/volume korunuyor; video yok; ücretli servis yok.
-- [ ] Task kartları, indeks, roadmap ve frontend görsel sözleşmesi son gerçek durumu gösteriyor.
-- [ ] İşlev testleri ve görsel inceleme ayrı kayıtlı; kullanıcı nihai görünüm kabulü bekliyor.
+- [x] UI-01–UI-08 ölçütleri uygulandı, her görev için gerçek kanıt var.
+- [x] Tasarım tüm ekranlara taşındı; eski dev pill düğme/kart/rol öğretici blokları birkaç ekranda kalmadı.
+- [x] History ve Details bilgi yoğunluğu hedefleri gerçek browser'da ölçüldü.
+- [x] Form, rol, kaydetme/sürüm, CSRF/idempotency/SSE ve ölçüm/grafik etkileşimleri korunuyor.
+- [x] Aktif run kullanıcı ekranından başlıyor, canlı izleniyor, failed örnek seçiliyor, normal run ve v1/v2 compare çalışıyor.
+- [x] Yeni görünüm desktop/tablet ve keyboard ile tutarlı; okunurluk küçük font karşılığında feda edilmedi.
+- [x] Mevcut user DB/volume korunuyor; video yok; ücretli servis yok.
+- [x] Task kartları, indeks, roadmap ve frontend görsel sözleşmesi son gerçek durumu gösteriyor.
+- [x] İşlev testleri ve görsel inceleme ayrı kayıtlı; kullanıcı nihai görünüm kabulü bekliyor.

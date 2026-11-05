@@ -11,9 +11,9 @@ REQ-23–27.
 | Katman | Araç yaklaşımı | Doğrulanacak davranış | Durum ve kanıt |
 |---|---|---|---|
 | Backend birim | Vitest; kontrollü saat/PRNG | kesin sayılar, değerlendirme, geçişler, üretim | **Uygulandı.** Son koşu: 16 dosya / 118 test ([verify](evidence/phase-8-docs.md)) |
-| Backend entegrasyon | Vitest + Supertest + gerçek PostgreSQL | transaction, FK/unique, yarış, auth, snapshot, SSE | **Uygulandı.** Son koşu: 22 dosya / 197 test ([verify](evidence/phase-8-docs.md)) |
-| Angular bileşen/servis | Vitest, TestBed, Material Harnesses | form/sıralama, HTTP hatası, RxJS reducer ve lifecycle | **Uygulandı.** Son koşu: 36 dosya / 370 test ([verify](evidence/phase-8-docs.md)) |
-| Uçtan uca | Playwright, gerçek Angular/API/PG, gerçek Chrome | ana demo, canvas, oturum, reconnect ve route davranışı | **Uygulandı.** 2 senaryo geçti ([P7-01](evidence/phase-7-e2e.md), [P7-06](evidence/phase-7-ci.md)) |
+| Backend entegrasyon | Vitest + Supertest + gerçek PostgreSQL | transaction, FK/unique, yarış, auth, snapshot, SSE | **Uygulandı.** Son koşu: 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
+| Angular bileşen/servis | Vitest, TestBed, Material Harnesses | form/sıralama, HTTP hatası, RxJS reducer ve lifecycle | **Uygulandı.** Son koşu: 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
+| Uçtan uca | Playwright, gerçek Angular/API/PG, gerçek Chrome | ana demo, canvas, oturum, reconnect ve route davranışı | **Uygulandı.** 2 senaryo geçti ([UI-08](evidence/ui-refresh/ui-08.md); önceki [P7-01](evidence/phase-7-e2e.md), [P7-06](evidence/phase-7-ci.md)) |
 | Teslim | Docker Compose temiz kurulum | migration, seed, kalıcılık, proxy/SSE ve doküman komutları | **Uygulandı.** Boş DB + `down`/`up` ([P8-03](evidence/phase-8-clean-install.md)) |
 
 Prisma mock'u, veritabanı kısıtı/yarış testinin yerine geçmez. Canvas mock'u, gerçek
@@ -88,7 +88,7 @@ oluşturup temizler; paylaşılan E2E veritabanı koruması ayrı veritabanı ad
 
 Aşağıdaki giriş noktaları kök `package.json` içinde tanımlıdır. "Doğrulandı" satırları gerçekten
 çalıştırılmış ve çıktısı kanıta bağlanmış komutlardır; kısmi/çalıştırılmamış olanlar açıkça
-işaretlidir. Son tam yerel doğrulama 2026-11-04 tarihinde bu çalışma ağacında yapıldı.
+işaretlidir. Son tam yerel doğrulama 2026-11-05 tarihinde bu çalışma ağacında yapıldı.
 
 | Komut | Durum | Kanıt / not |
 |---|---|---|
@@ -98,13 +98,13 @@ işaretlidir. Son tam yerel doğrulama 2026-11-04 tarihinde bu çalışma ağac�
 | `npm run typecheck` | Doğrulandı | API, web ve api-client temiz ([verify](evidence/phase-8-docs.md)) |
 | `npm run build` | Doğrulandı | API `nest build`; web production build başarılı ([verify](evidence/phase-8-docs.md)) |
 | `npm run test:api:unit` | Doğrulandı | 16 dosya / 118 test ([verify](evidence/phase-8-docs.md)) |
-| `npm run test:web` | Doğrulandı | 36 dosya / 370 test ([verify](evidence/phase-8-docs.md)) |
-| `npm run test:api:integration` | Doğrulandı | Gerçek `probedesk_test`; 22 dosya / 197 test ([verify](evidence/phase-8-docs.md)) |
-| `npm run test:e2e` | Doğrulandı | Gerçek Chrome/API/PG; 2 senaryo ([P7-01](evidence/phase-7-e2e.md)) |
+| `npm run test:web` | Doğrulandı | 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
+| `npm run test:api:integration` | Doğrulandı | Gerçek `probedesk_test`; 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
+| `npm run test:e2e` | Doğrulandı | Gerçek Chrome/API/PG; 2 senaryo ([UI-08](evidence/ui-refresh/ui-08.md)) |
 | `npm run openapi:check` | Doğrulandı | `OpenAPI contract is current` ([verify](evidence/phase-8-docs.md)) |
 | `npm run db:migrate` | Doğrulandı | Development DB'de kök komut ([Phase 2](evidence/phase-2-plans-api.md)); delivery migration logu ([P8-01](evidence/phase-8-compose.md)) |
 | `npm run demo:seed` | Doğrulandı | İki kez çalıştırıldı; ikinci kez 0 yeni kayıt ([P8-02](evidence/phase-8-seed.md)) |
-| `npm run verify` | Doğrulandı | Lint + typecheck + birim + web + build + OpenAPI; çıkış 0 ([verify](evidence/phase-8-docs.md)) |
+| `npm run verify` | Doğrulandı | Lint + typecheck + birim + web + build + OpenAPI; çıkış 0 ([UI-08](evidence/ui-refresh/ui-08.md)) |
 
 Toplu `verify` kullanıcı verisini resetlemez. Destructive demo reset ayrı, açık onaylı ve ortam
 korumalı bir işlemdir; normal seed/verify/delivery akışının parçası değildir ve bu doğrulama turunda
