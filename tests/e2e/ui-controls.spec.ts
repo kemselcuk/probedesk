@@ -1,7 +1,33 @@
 import { expect, test } from "@playwright/test";
+import {
+  assertE2eSerialExecution,
+  cleanupE2eData,
+  prepareE2eDatabase,
+  type E2eDatabaseBaseline,
+} from "./support/database";
+
+let baseline: E2eDatabaseBaseline | undefined;
+
+test.beforeAll(async () => {
+  baseline = await prepareE2eDatabase();
+});
+
+test.beforeEach(() => {
+  assertE2eSerialExecution(test.info().config.workers);
+});
+
+// Runs even if an assertion fails; preserve sessions present before this suite.
+test.afterAll(async () => {
+  if (!baseline) return;
+  await cleanupE2eData({
+    planIds: [],
+    sessionBaseline: baseline.sessionIds,
+    userEmails: ["operator@probedesk.local"],
+  });
+});
 
 // Real browser / API, seeded accounts. Read-only apart from the login session.
-// No plan/run fixture, deletion, or cleanup against the user's delivery DB.
+// No plan/run fixture. Guarded cleanup removes only this suite's new sessions.
 test("selection edges, calendar dates and table gutters remain usable", async ({
   page,
 }) => {
