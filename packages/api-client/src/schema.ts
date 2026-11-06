@@ -204,6 +204,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List devices with prefix search, state filter and pagination. */
+        get: operations["DevicesController_list"];
+        put?: never;
+        /** Create a device record with a canonical unique serial number. */
+        post: operations["DevicesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current device record with revision and archive state. */
+        get: operations["DevicesController_getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update mutable device fields with an optimistic revision check. The profile is fixed. */
+        patch: operations["DevicesController_update"];
+        trace?: never;
+    };
+    "/api/devices/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a device without deleting its history. Archiving an archived row is a no-op after the revision check. */
+        post: operations["DevicesController_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived device to active use. Restoring an active row is a no-op after the revision check. */
+        post: operations["DevicesController_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/plans": {
         parameters: {
             query?: never;
@@ -318,6 +388,23 @@ export interface paths {
         get: operations["PlanVersionsController_getById"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/plan-versions/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a published plan version into a new independent plan, or replay an idempotent retry. */
+        post: operations["PlanVersionsController_copy"];
         delete?: never;
         options?: never;
         head?: never;
@@ -763,6 +850,60 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        DeviceDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            deviceProfileId: string;
+            name: string;
+            serialNumber: string;
+            /** @description Trimmed description, or null when it is empty. */
+            description: string | null;
+            /**
+             * Format: date-time
+             * @description Archive time, or null while the device is active.
+             */
+            archivedAt: string | null;
+            /** @description Optimistic concurrency revision. Updates, archive and restore require the current value. */
+            editRevision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DeviceListResponseDto: {
+            items: components["schemas"]["DeviceDto"][];
+            page: number;
+            limit: number;
+            total: number;
+            /** @description Number of pages for this filter and limit, zero when empty. */
+            totalPages: number;
+        };
+        CreateDeviceDto: {
+            /**
+             * Format: uuid
+             * @description Id returned by GET /api/device-profiles.
+             */
+            deviceProfileId: string;
+            name: string;
+            /** @example PSU-DEMO-0001 */
+            serialNumber: string;
+            /** @description Optional description. It is trimmed; empty or whitespace-only input is stored as null. */
+            description?: string | null;
+        };
+        UpdateDeviceDto: {
+            /** @description Current editRevision. A mismatch is rejected with DEVICE_CONFLICT and no writes. */
+            expectedRevision: number;
+            name?: string;
+            /** @example PSU-DEMO-0001 */
+            serialNumber?: string;
+            /** @description New description. It is trimmed; null, empty or whitespace-only input clears it. */
+            description?: string | null;
+        };
+        DeviceRevisionDto: {
+            /** @description Current editRevision. A stale value is always rejected with DEVICE_CONFLICT. */
+            expectedRevision: number;
+        };
         CreatePlanDto: {
             /** @example Power rail verification */
             name: string;
@@ -936,6 +1077,29 @@ export interface components {
             /** @example Power rail verification */
             name: string;
             publishedBy: components["schemas"]["PublishedBySummaryDto"];
+        };
+        CopyPlanDto: {
+            /** @example Power rail verification (copy) */
+            name: string;
+        };
+        CopyPlanResponseDto: {
+            /**
+             * Format: uuid
+             * @description New independent plan created by the copy.
+             */
+            planId: string;
+            /**
+             * Format: uuid
+             * @description Initial draft revision created with the copy. The id stays stable after the draft is saved or published.
+             */
+            draftRevisionId: string;
+            /**
+             * Format: uuid
+             * @description Published source revision named in the request path.
+             */
+            sourceVersionId: string;
+            /** @description True when an earlier request for the same user, Idempotency-Key and canonical request is replayed. */
+            replayed: boolean;
         };
         ComparisonVersionDifferenceDto: {
             /**
@@ -1682,6 +1846,372 @@ export interface operations {
             };
         };
     };
+    DevicesController_list: {
+        parameters: {
+            query?: {
+                /** @description Only devices of this profile. An unknown id returns an empty page. */
+                deviceProfileId?: string;
+                /** @description Page size. Defaults to 20 and must not exceed 100. */
+                limit?: number;
+                /** @description 1-based page number. */
+                page?: number;
+                /** @description Case-insensitive prefix search over name and serial number. Wildcards are literal. */
+                q?: string;
+                /** @description Active devices only, archived devices only, or all devices. */
+                state?: "active" | "archived" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page ordered by name ASC, id ASC. Archived rows are excluded unless requested. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceListResponseDto"];
+                };
+            };
+            /** @description A filter, page or limit is malformed or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeviceDto"];
+            };
+        };
+        responses: {
+            /** @description The new active device. The serial display case is preserved while uniqueness is case-insensitive inside the profile. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description A field is missing, invalid or unknown, or deviceProfileId does not reference an existing profile. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_SERIAL_CONFLICT when the canonical serial number already exists in the profile. No row was created. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current device row. Archived devices remain readable. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeviceDto"];
+            };
+        };
+        responses: {
+            /** @description The updated device. An unchanged payload returns the current row without incrementing the revision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description expectedRevision or a changed field is invalid, deviceProfileId was supplied, or another unknown field was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_CONFLICT for a stale editRevision, or DEVICE_SERIAL_CONFLICT when another device owns the canonical serial number. Nothing was changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceRevisionDto"];
+            };
+        };
+        responses: {
+            /** @description The archived device. When the target state already holds and expectedRevision matches, the revision is unchanged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description expectedRevision is missing or invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_CONFLICT for a stale editRevision, even when the device is already archived. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceRevisionDto"];
+            };
+        };
+        responses: {
+            /** @description The active device. When it was already active and expectedRevision matches, the revision is unchanged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description expectedRevision is missing or invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_CONFLICT for a stale editRevision, even when the device is already active. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
     PlansController_list: {
         parameters: {
             query?: never;
@@ -2079,6 +2609,90 @@ export interface operations {
             };
             /** @description The version does not exist or is not published. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlanVersionsController_copy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key scoped to the current user. Retrying the same request with this key returns the original target plan. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description Published source plan revision id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyPlanDto"];
+            };
+        };
+        responses: {
+            /** @description An earlier copy for the same user and Idempotency-Key was replayed. The original target plan and initial revision ids are returned even after that revision was published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CopyPlanResponseDto"];
+                };
+            };
+            /** @description A new independent plan and its initial DRAFT revision with freshly generated step identities. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CopyPlanResponseDto"];
+                };
+            };
+            /** @description The Idempotency-Key header, name or body is missing, unknown or invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The source version does not exist or is not published. Drafts are never copied. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description IDEMPOTENCY_CONFLICT when the key was already used for a different source version or name. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

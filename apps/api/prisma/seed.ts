@@ -39,6 +39,9 @@ if (config.nodeEnv === 'production') {
       `Demo device profiles ready: ${summary.profiles.total} profiles (${summary.profiles.created} created, ${summary.profiles.existing} already present).`,
     );
     console.log(
+      `Demo devices ready: ${summary.devices.total} fixtures (${summary.devices.created} created, ${summary.devices.existing} already present).`,
+    );
+    console.log(
       `Demo plan ready: ${summary.plan.name} (${summary.plan.createdPlan ? 'created' : 'existing'}), ${summary.plan.versions.length} published versions, ${summary.plan.runs.length} runs (${summary.plan.createdRuns} created, ${summary.plan.existingRuns} already present).`,
     );
 
