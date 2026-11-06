@@ -43,3 +43,6 @@ export type SaveDraftResult = components['schemas']['DraftRevisionDto'];
 
 /** POST /api/plans/:id/draft/publish request body. */
 export type PublishDraftRequest = components['schemas']['PublishDraftDto'];
+
+export type CopyPlanRequest = components['schemas']['CopyPlanDto'];
+export type CopyPlanResponse = components['schemas']['CopyPlanResponseDto'];

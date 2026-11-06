@@ -107,6 +107,18 @@ caption {
   white-space: nowrap;
 }
 
+.plan-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pd-related-gap);
+  white-space: nowrap;
+}
+
+.pd-table--plans .pd-col-action {
+  width: 11rem;
+}
+
 .muted {
   color: var(--pd-text-secondary);
 }

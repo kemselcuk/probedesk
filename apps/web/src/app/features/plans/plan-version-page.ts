@@ -17,14 +17,12 @@ import { NotificationService } from '../../shared/notifications/notification.ser
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
-import {
-  formatDuration,
-  nominalTotals,
-} from './plan-draft-form';
+import { formatDuration, nominalTotals } from './plan-draft-form';
 import { createDraftErrorGuidance } from './plan-error-guidance';
 import type { PlanErrorGuidance } from './plan-error-guidance';
 import type { PlanStep } from './plans-api.types';
 import { PlansFacade } from './plans.facade';
+import { CopyPlanButton } from './copy-plan-button';
 
 /**
  * Read-only view of one immutable published revision.
@@ -36,6 +34,7 @@ import { PlansFacade } from './plans.facade';
 @Component({
   selector: 'app-plan-version-page',
   imports: [
+    CopyPlanButton,
     DatePipe,
     DecimalPipe,
     ErrorState,
@@ -66,8 +65,7 @@ export class PlanVersionPage {
   protected readonly isOperator = computed(() => this.auth.role() === 'OPERATOR');
   protected readonly publisher = computed(
     () =>
-      this.facade.versions().find((version) => version.id === this.versionId)?.publishedBy ??
-      null,
+      this.facade.versions().find((version) => version.id === this.versionId)?.publishedBy ?? null,
   );
   /** The route's plan and the loaded version must describe the same plan. */
   protected readonly versionPlanMismatch = computed(() => {
@@ -192,9 +190,7 @@ export class PlanVersionPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.notifications.success(
-            `New draft created from version ${versionNumber}.`,
-          );
+          this.notifications.success(`New draft created from version ${versionNumber}.`);
           void this.router.navigate(['/plans', this.planId, 'edit']);
         },
         error: () => this.focusAfterRender('draft-create-error-panel'),

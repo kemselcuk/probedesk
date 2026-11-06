@@ -8,6 +8,9 @@
   } @else {
     <a mat-stroked-button routerLink="/plans">Back to plans</a>
   }
+  @if (isPlanner() && facade.versionStatus() === 'loaded' && !versionPlanMismatch()) {
+    <app-copy-plan-button [versionId]="versionId" />
+  }
   @if (isOperator() && facade.versionStatus() === 'loaded' && !versionPlanMismatch()) {
     <a
       mat-flat-button

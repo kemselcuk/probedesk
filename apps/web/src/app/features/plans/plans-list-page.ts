@@ -25,10 +25,12 @@ import { PageHeader } from '../../shared/ui/page-header/page-header';
 import { trimmedMaxLength, trimmedRequired } from './plan-draft-form';
 import type { DeviceProfile } from './plans-api.types';
 import { PlansFacade } from './plans.facade';
+import { CopyPlanButton } from './copy-plan-button';
 
 @Component({
   selector: 'app-plans-list-page',
   imports: [
+    CopyPlanButton,
     EmptyState,
     ErrorState,
     LoadingState,
