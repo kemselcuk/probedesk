@@ -16,17 +16,21 @@ Uygulanan görsel sistem: `styles/_tokens.scss`, `_material-theme.scss` ve `_pri
 
 Standalone bileşenler, feature route'ları ve Angular Material/CDK kullanılır. Typed Reactive Forms açık tercihidir; farklı form sistemiyle kendiliğinden değiştirilmez.
 
-| Route adayı | Ekran | Ana davranış |
-|---|---|---|
-| /login | Login | hazır hesaplarla giriş |
-| /plans | Test Plans | role uygun plan/sürüm listesi |
-| /plans/:planId/edit | Plan Editor | Planner için mevcut taslak |
-| /plans/:planId/versions/:versionId | Published Plan | sürümün salt okunur içeriği |
-| /runs/new?versionId=... | Start Run | Operator senaryo/seed seçimi |
-| /runs/:runId/live | Live Run | canlı ilerleme ve grafik |
-| /runs | Run History | filtreler, sayfalama, iki kayıt seçimi |
-| /runs/:runId | Run Details | kayıtlı kurallar ve ölçümler |
-| /compare?leftRunId=...&rightRunId=... | Compare Runs | iki terminal çalıştırma |
+| Route adayı                           | Ekran          | Ana davranış                                                    |
+| ------------------------------------- | -------------- | --------------------------------------------------------------- |
+| /login                                | Login          | hazır hesaplarla giriş                                          |
+| /plans                                | Test Plans     | role uygun plan/sürüm listesi                                   |
+| /plans/:planId/edit                   | Plan Editor    | Planner için mevcut taslak                                      |
+| /plans/:planId/versions/:versionId    | Published Plan | sürümün salt okunur içeriği                                     |
+| /runs/new?versionId=...               | Start Run      | Operator senaryo/seed seçimi                                    |
+| /runs/:runId/live                     | Live Run       | canlı ilerleme ve grafik                                        |
+| /runs                                 | Run History    | filtreler, sayfalama, iki kayıt seçimi                          |
+| /runs/:runId                          | Run Details    | kayıtlı kurallar ve ölçümler                                    |
+| /compare?leftRunId=...&rightRunId=... | Compare Runs   | iki terminal çalıştırma                                         |
+| /overview                             | Overview       | backend KPI/trend, URL filtreleri ve drilldown; varsayılan root |
+| /devices                              | Devices        | arama/state/sayfa; Planner dialog mutasyonları                  |
+| /devices/:deviceId                    | Device Details | güncel kayıt ve cihazın run geçmişi                             |
+| /runs/:runId/report                   | Run Report     | terminal snapshot, download ve Print/Save PDF                   |
 
 Route kimlikleri backend'de doğrulanır. Guard'lar yalnızca kullanıcı deneyimi sağlar. Deep link ve yenileme aynı ekranı açar.
 

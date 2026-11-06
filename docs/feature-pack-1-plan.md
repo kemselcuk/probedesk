@@ -46,7 +46,7 @@ Okuma sırası [uygulama rehberi](implementation-guide.md) ve [belge dizini](REA
 
 ## 3. Yetki matrisi ve kullanıcı davranışları
 
-P = Planner, O = Operator, V = Viewer. Bu matris yeni davranışların tasarım önerisidir; EX-01'de ana sözleşmelere aktarılır.
+P = Planner, O = Operator, V = Viewer. Bu matris EX-01 ile ana gereksinim sözleşmesinin rol tablosuna aktarılmıştır.
 
 | İşlem                                           | P     | O     | V     |
 | ----------------------------------------------- | ----- | ----- | ----- |
@@ -73,7 +73,7 @@ Yeni mutasyonlar aynı session/CSRF/origin korumasını ve backend rol guard'lar
 - `editRevision`: pozitif tamsayı; düzenleme ve arşiv/geri açma eski revision ile 409 döner.
 - `createdById`, `createdAt`, `updatedAt`: mevcut user ilişkisi ve UTC zamanlar.
 
-Liste aktif/arşivli/tümü filtresi, ad/seri numarası araması ve sayfalama sunar. `name ASC, id ASC` kararlı sıralama; varsayılan limit 20, en fazla 100. Arama en çok 100 karakterdir, SQL wildcard'ları literal ele alınır ve bütün sorgular parametrelidir. İlk sürümde arama ad/seri numarası prefix eşleşmesidir; indeks kullanımı gerçek sorgu planıyla kontrol edilir. Arama için ayrı extension/arama servisi eklenmez.
+Liste varsayılan `state=active` olmak üzere aktif/arşivli/tümü filtresi, ad/seri numarası araması ve sayfalama sunar. `name ASC, id ASC` kararlı sıralama; varsayılan limit 20, en fazla 100. Arama en çok 100 karakterdir, SQL wildcard'ları literal ele alınır ve bütün sorgular parametrelidir. İlk sürümde arama ad/seri numarası prefix eşleşmesidir; indeks kullanımı gerçek sorgu planıyla kontrol edilir. Arama için ayrı extension/arama servisi eklenmez.
 
 ### 4.2 TestRun ekleri
 
@@ -81,6 +81,8 @@ Liste aktif/arşivli/tümü filtresi, ad/seri numarası araması ve sayfalama su
 - `deviceSnapshot`: nullable JSON; `{id, name, serialNumber, deviceProfileId}`. Yeni run başladığında cihazın o andaki bilgileri kopyalanır.
 - `batchNumber`: nullable metin, trim sonrası 1–100 karakter; ASCII harf/rakam ve `._:/-`; görüntülenen değer korunur.
 - `batchNumberKey`: nullable canonical büyük harf anahtarı; filtreler büyük/küçük harfe duyarsız exact eşleşir.
+
+`batchNumber` ve `batchNumberKey` birlikte null veya birlikte dolu olmalıdır; DB check ve canonical değer servis doğrulamasıyla korunur.
 
 Cihaz seçimi ve parti bilgisi isteğe bağlıdır; parti cihaz seçmeden de yazılabilir. Bunlar ölçüm üretimini/sonucunu değiştirmez. Cihaz profili yayımlanmış planın profiliyle aynı olmak zorundadır.
 
@@ -120,6 +122,8 @@ Yollar `/api` altındadır. Aşağıdakiler henüz uygulanmamış sözleşme ön
 | GET    | `/runs/:id/report`                  | P/O/V | 200; terminal run için tipli rapor verisi                                                |
 | GET    | `/runs/:id/export?format=csv\|json` | P/O/V | 200; terminal run için attachment                                                        |
 
+Arşiv/restore işleminde önce expectedRevision kontrol edilir; güncel revision ile hedef durum zaten varsa 200 ve değişmemiş revision döner, aksi halde revision artırılır. Bilinmeyen bir cihaz UUID’si tek-kaynak GET/mutasyonda 404, liste/analytics filtrelerinde boş sonuç üretir.
+
 Ortak hatalara ek olarak `DEVICE_SERIAL_CONFLICT` (409), `DEVICE_CONFLICT` (409), `DEVICE_ARCHIVED` (409), `DEVICE_PROFILE_MISMATCH` (422) tanımlanır. Bilinmeyen UUID 404, bozuk girdi 400, yetkisiz rol 403 olur. Kopyalama mevcut `IDEMPOTENCY_CONFLICT` ve report/export mevcut `RUN_NOT_TERMINAL` kodunu kullanır. Hata gövdesinde güvenli `requestId` ve İngilizce mesaj korunur. Yeni kodlar ortak enum/OpenAPI kapsamına lead tarafından eklenir.
 
 ### 5.1 Start Run'ın kritik uyumluluk kuralları
@@ -133,7 +137,7 @@ Ortak hatalara ek olarak `DEVICE_SERIAL_CONFLICT` (409), `DEVICE_CONFLICT` (409)
 
 ### 5.2 Plan kopyalama
 
-İstek: `{name}` ve zorunlu `Idempotency-Key`. Kaynak yalnızca URL'deki **yayımlanmış** sürümdür; kaydedilmemiş editor içeriği sessizce kopyalanmaz.
+İstek: `{name}` ve zorunlu `Idempotency-Key`. `name` trim sonrası 1–100 karakterdir. Bulunamayan veya yayımlanmamış kaynak sürüm 404 olur. Kaynak yalnızca URL'deki **yayımlanmış** sürümdür; kaydedilmemiş editor içeriği sessizce kopyalanmaz.
 
 Tek transaction yeni TestPlan, ilk DRAFT revision, yeni StepIdentity/PlanStep kayıtları ve PlanCopyRequest oluşturur. Sıra, ad, birim, toleranslar, sampleCount ve intervalMs aynen korunur; bütün plan/revision/logicalStepId kimlikleri yenilenir. Draft `versionNumber=null`, `baseVersionId=null`, `editRevision=1` olur. Kaynak planın geçmişi/run'ları kopyalanmaz; kaynak değişmez.
 
@@ -166,7 +170,7 @@ UI null oran/süreyi `—` ve açıklamayla gösterir; boş veri %0 başarılı 
 
 Günlük trend UTC günlerine gruplanır; ilk/son gün yalnız seçilen zaman dilimini kapsar. Eksik günlerin sayıları 0, başarı oranı null olur. Her gün status sayıları ve completed passed/failed ayrımı içerir; sayılar seçilen summary ile toplanabilir.
 
-En sık başarısız adımlar en çok 10 satırdır. Yalnız COMPLETED run'ların COMPLETED adımları kullanılır. Gruplama `planId + planVersionId + logicalStepId + unit`; farklı sürüm/birim/toleranslar tek performans grubunda karıştırılmaz. Satırda snapshot plan/adım adı, sürüm, birim, completedStepRuns, failedStepRuns ve backend failureRatePercent olur. Sıra failedStepRuns DESC, completedStepRuns DESC ve kalıcı kimliklerle deterministiktir.
+En sık başarısız adımlar en çok 10 satırdır. Yalnız COMPLETED run'ların COMPLETED adımları kullanılır. Gruplama `planId + planVersionId + logicalStepId + unit`; farklı sürüm/birim/toleranslar tek performans grubunda karıştırılmaz. Satırda `planId`, `planVersionId`, `logicalStepId`, snapshot plan/adım adı, sürüm numarası, birim, completedStepRuns, failedStepRuns ve backend failureRatePercent olur. `failureRatePercent`, `100 × failedStepRuns / completedStepRuns` için 2 hane half-up decimal string’dir; payda sıfırsa null. Kimliklerle kurulan history drilldown API/UI testinde doğrulanır. Sıra failedStepRuns DESC, completedStepRuns DESC ve kalıcı kimliklerle deterministiktir.
 
 Kart/gün tıklaması aynı filtrelerle `/runs` ekranına gider. Belirli adım için bu pakette history'nin desteklemediği adım filtresi varmış gibi davranılmaz: satır ilgili plan/sürümün Failed run listesine gider ve bağlantı bunu açıkça söyler. Gün bağlantısı mevcut aralıkla UTC gününün kesişimini taşır.
 
@@ -183,7 +187,7 @@ Rapor/export ilk sürümde sadece terminal run içindir. RUNNING için 409 ve UI
 - UTF-8 BOM, virgül ayraç, CRLF ve RFC 4180 quoting. Excel uyumu için seçilen BOM byte testine bağlanır.
 - Her **kaydedilmiş ölçüm** bir satırdır. Kolonlar: runId, planName, versionNumber, deviceName, serialNumber, batchNumber, scenario, runStatus, runOutcome, stepPosition, stepName, unit, minimum, maximum, sampleIndex, value, elapsedMs, recordedAt, isWithinTolerance.
 - Sıra stepPosition ASC, sampleIndex ASC. Değer/tolerans 6 hane decimal metin, zaman tam UTC ISO/milisaniye; frontend biçimi CSV'ye taşınmaz.
-- Null metadata boş hücredir; ölçüm yoksa header-only CSV oluşur. Kaydedilmemiş örnek için uydurma satır yoktur; kısmi adımların ayrıntılı özeti JSON/raporda yer alır.
+- `isWithinTolerance` CSV’de küçük harf `true`/`false` olarak yazılır. Null metadata boş hücredir; ölçüm yoksa header-only CSV oluşur. Kaydedilmemiş örnek için uydurma satır yoktur; kısmi adımların ayrıntılı özeti JSON/raporda yer alır.
 - Kullanıcı metni olan hücrelerde formül enjeksiyonu önlenir; `=`, `+`, `-`, `@` ve baştaki kontrol karakterleri ayrıca ele alınır. Resmi numeric kolonlardaki negatif ölçüm/tolerans metni değiştirilmez. Virgül, tırnak, satır sonu ve Türkçe/Unicode metin byte düzeyinde test edilir.
 
 ### JSON ve HTTP

@@ -3,7 +3,7 @@
 Bu belge paketi, onaylanan ürün yaklaşımını, uygulama sözleşmelerini ve gerçek doğrulama
 kanıtlarını repository içinde saklar. Uygulama artık yalnızca bir iskelet değildir: plan/sürüm
 yönetimi, deterministik simülasyon, canlı SSE akışı, geçmiş/grafikler, run karşılaştırması ve
-yerel Docker Compose teslimi çalışır durumdadır. Son güncelleme: **2026-11-04**.
+yerel Docker Compose teslimi çalışır durumdadır. Son güncelleme: **2026-11-06**.
 
 ## Okuma sırası
 
@@ -20,22 +20,22 @@ yerel Docker Compose teslimi çalışır durumdadır. Son güncelleme: **2026-11
 
 ## Dosya sorumlulukları
 
-| Belge | Birincil kaynak olduğu konu |
-|---|---|
-| [requirements.md](requirements.md) | Onaylanan ürün kapsamı, roller, gereksinim kimlikleri |
-| [measurement-rules.md](measurement-rules.md) | Sayılar, tolerans, sonuç ve durum geçişleri |
-| [simulation.md](simulation.md) | Senaryolar, seed, üretim kuralları, örnek profil |
-| [architecture.md](architecture.md) | Bileşen sınırları, teknoloji, güvenlik, maliyet |
-| [data-model.md](data-model.md) | Tablolar, ilişkiler, snapshot, kısıtlar ve transaction sınırları |
-| [api.md](api.md) | HTTP uçları, izinler, hatalar, idempotency ve SSE |
-| [frontend.md](frontend.md) | Ekranlar, formlar, RxJS durumu, grafik etkileşimleri |
-| [roadmap.md](roadmap.md) | Aşamalar, sıra ve aşama çıkış kontrolleri |
-| [tasks/](tasks/README.md) | Tek görevin kapsamı, bağımlılığı ve kabulü |
-| [testing.md](testing.md) | Test matrisi, doğrulanan komutlar, CI ve kanıt kuralları |
-| [demo.md](demo.md) | Hazır veriler ve doğrulanan demo akışı |
-| [acceptance.md](acceptance.md) | Nihai ürün kabul listesi |
-| [decisions/](decisions/README.md) | Teknik karar kayıtları |
-| [evidence/](evidence/README.md) | Gerçek doğrulama kanıtlarının dizini ve kayıt biçimi |
+| Belge                                        | Birincil kaynak olduğu konu                                      |
+| -------------------------------------------- | ---------------------------------------------------------------- |
+| [requirements.md](requirements.md)           | Onaylanan ürün kapsamı, roller, gereksinim kimlikleri            |
+| [measurement-rules.md](measurement-rules.md) | Sayılar, tolerans, sonuç ve durum geçişleri                      |
+| [simulation.md](simulation.md)               | Senaryolar, seed, üretim kuralları, örnek profil                 |
+| [architecture.md](architecture.md)           | Bileşen sınırları, teknoloji, güvenlik, maliyet                  |
+| [data-model.md](data-model.md)               | Tablolar, ilişkiler, snapshot, kısıtlar ve transaction sınırları |
+| [api.md](api.md)                             | HTTP uçları, izinler, hatalar, idempotency ve SSE                |
+| [frontend.md](frontend.md)                   | Ekranlar, formlar, RxJS durumu, grafik etkileşimleri             |
+| [roadmap.md](roadmap.md)                     | Aşamalar, sıra ve aşama çıkış kontrolleri                        |
+| [tasks/](tasks/README.md)                    | Tek görevin kapsamı, bağımlılığı ve kabulü                       |
+| [testing.md](testing.md)                     | Test matrisi, doğrulanan komutlar, CI ve kanıt kuralları         |
+| [demo.md](demo.md)                           | Hazır veriler ve doğrulanan demo akışı                           |
+| [acceptance.md](acceptance.md)               | Nihai ürün kabul listesi                                         |
+| [decisions/](decisions/README.md)            | Teknik karar kayıtları                                           |
+| [evidence/](evidence/README.md)              | Gerçek doğrulama kanıtlarının dizini ve kayıt biçimi             |
 
 Bir sözleşme değiştiğinde bu tablodaki birincil belge önce güncellenir; ilgili görevler, testler ve
 teknik kararlar birlikte uyarlanır. Çelişkiler sessizce yorumlanarak uygulamaya geçirilmez.

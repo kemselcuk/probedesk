@@ -12,19 +12,21 @@ Görevler: [P0-03](tasks/P0-03.md), [P2-01](tasks/P2-01.md), [P3-03](tasks/P3-03
 
 ## Modeller
 
-| Model | Temel alanlar | İlişkiler / kısıtlar |
-|---|---|---|
-| User | id, email, passwordHash, role, createdAt | email unique; tek rol |
-| Session | id, tokenHash, userId, csrfTokenHash (nullable), expiresAt, revokedAt | tokenHash unique; kullanıcıya bağlı |
-| DeviceProfile | id, code, name, description | tek seed profil; code unique |
-| TestPlan | id, deviceProfileId, createdById, createdAt | kalıcı plan kimliği |
-| PlanRevision | id, planId, state, name, versionNumber, editRevision, baseVersionId, publishedById, publishedAt | DRAFT/PUBLISHED; sürüm unique; tek açık taslak |
-| StepIdentity | id, planId, createdAt | logicalStepId'nin plan sahipliği; silinse de geçmiş kimlik korunur |
-| PlanStep | id, revisionId, logicalStepId, position, name, unit, minimum, maximum, sampleCount, intervalMs | revision+position unique; revision+logicalStepId unique |
-| TestRun | id, planId, planRevisionId, planNameSnapshot, versionNumberSnapshot, profileSnapshot, status, outcome, requestedById, scenario, seed, errorProbability, failureStepId, simulatorVersion, evaluationVersion, idempotencyKey, requestHash, eventSequence, expectedSampleCount, recordedSampleCount, startedAt, finishedAt, cancelledById, reasonCode | kullanıcı+idempotencyKey unique; tek RUNNING |
-| RunStep | id, runId, logicalStepId, position, name, unit, minimum, maximum, sampleCount, intervalMs, status, outcome, recordedCount, outOfToleranceCount, firstFailureSampleIndex, startedAt, finishedAt, statistics | run+position ve run+logicalStepId unique |
-| Measurement | id, runId, runStepId, sampleIndex, value, isWithinTolerance, recordedAt, elapsedMs | runStep+sampleIndex unique |
-| RunEvent | runId, sequence, type, schemaVersion, occurredAt, payload | run+sequence unique ve artan |
+| Model           | Temel alanlar                                                                                                                                                                                                                                                                                                                                                                                                 | İlişkiler / kısıtlar                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| User            | id, email, passwordHash, role, createdAt                                                                                                                                                                                                                                                                                                                                                                      | email unique; tek rol                                              |
+| Session         | id, tokenHash, userId, csrfTokenHash (nullable), expiresAt, revokedAt                                                                                                                                                                                                                                                                                                                                         | tokenHash unique; kullanıcıya bağlı                                |
+| DeviceProfile   | id, code, name, description                                                                                                                                                                                                                                                                                                                                                                                   | tek seed profil; code unique                                       |
+| TestPlan        | id, deviceProfileId, createdById, createdAt                                                                                                                                                                                                                                                                                                                                                                   | kalıcı plan kimliği                                                |
+| PlanRevision    | id, planId, state, name, versionNumber, editRevision, baseVersionId, publishedById, publishedAt                                                                                                                                                                                                                                                                                                               | DRAFT/PUBLISHED; sürüm unique; tek açık taslak                     |
+| StepIdentity    | id, planId, createdAt                                                                                                                                                                                                                                                                                                                                                                                         | logicalStepId'nin plan sahipliği; silinse de geçmiş kimlik korunur |
+| PlanStep        | id, revisionId, logicalStepId, position, name, unit, minimum, maximum, sampleCount, intervalMs                                                                                                                                                                                                                                                                                                                | revision+position unique; revision+logicalStepId unique            |
+| TestRun         | id, planId, planRevisionId, planNameSnapshot, versionNumberSnapshot, profileSnapshot, deviceId?, deviceSnapshot?, batchNumber?, batchNumberKey?, status, outcome, requestedById, scenario, seed, errorProbability, failureStepId, simulatorVersion, evaluationVersion, idempotencyKey, requestHash, eventSequence, expectedSampleCount, recordedSampleCount, startedAt, finishedAt, cancelledById, reasonCode | kullanıcı+idempotencyKey unique; tek RUNNING                       |
+| RunStep         | id, runId, logicalStepId, position, name, unit, minimum, maximum, sampleCount, intervalMs, status, outcome, recordedCount, outOfToleranceCount, firstFailureSampleIndex, startedAt, finishedAt, statistics                                                                                                                                                                                                    | run+position ve run+logicalStepId unique                           |
+| Measurement     | id, runId, runStepId, sampleIndex, value, isWithinTolerance, recordedAt, elapsedMs                                                                                                                                                                                                                                                                                                                            | runStep+sampleIndex unique                                         |
+| RunEvent        | runId, sequence, type, schemaVersion, occurredAt, payload                                                                                                                                                                                                                                                                                                                                                     | run+sequence unique ve artan                                       |
+| Device          | id, deviceProfileId, name, serialNumber, serialNumberKey, description, archivedAt, editRevision, createdById, createdAt, updatedAt                                                                                                                                                                                                                                                                            | profile+serialNumberKey unique; FK Restrict; revision optimistic   |
+| PlanCopyRequest | id, requestedById, idempotencyKey, requestHash, sourceVersionId, targetPlanId, createdAt                                                                                                                                                                                                                                                                                                                      | user+key unique; kaynak/target FK Restrict; kopya transaction'ı    |
 
 `csrfTokenHash` yalnızca CSRF öncesi kalıtılan oturumları ifade edebilmek için nullable'dır; login her zaman bir değer yazar ve `GET /auth/me` değeri olmayan canlı oturuma yeni okunabilir token üretir. Değer yokken kimlikli mutasyonlar 403 ile reddedilir.
 
@@ -54,15 +56,15 @@ Bu index terminal durum commit edildiğinde yeni çalışmaya alan açar. İkinc
 
 ## Transaction sinirlari
 
-| İşlem | Atomik içerik |
-|---|---|
-| Taslak kaydı | expectedRevision kontrolü, adım değişiklikleri, editRevision artışı |
-| Publish | doğrulama, sürüm atama, immutable içerik, yayınlayan ve zaman |
-| Başlatma | idempotency kontrolü, snapshot kayıtları, RUNNING, ilk olay |
-| Örnek kaydı | RUNNING kontrolü, ölçüm, sayaç/ihlal bilgisi, RunEvent |
-| Adım bitişi | yeterli örnek kontrolü, adım sonucu, sonraki adım veya run sonucu, olaylar |
-| İptal | terminal kontrolü, aktif/pending adımların kapanışı, run durumu, olay |
-| Recovery | yarım run/adımların kapanışı ve Interrupted olayı |
+| İşlem        | Atomik içerik                                                              |
+| ------------ | -------------------------------------------------------------------------- |
+| Taslak kaydı | expectedRevision kontrolü, adım değişiklikleri, editRevision artışı        |
+| Publish      | doğrulama, sürüm atama, immutable içerik, yayınlayan ve zaman              |
+| Başlatma     | idempotency kontrolü, snapshot kayıtları, RUNNING, ilk olay                |
+| Örnek kaydı  | RUNNING kontrolü, ölçüm, sayaç/ihlal bilgisi, RunEvent                     |
+| Adım bitişi  | yeterli örnek kontrolü, adım sonucu, sonraki adım veya run sonucu, olaylar |
+| İptal        | terminal kontrolü, aktif/pending adımların kapanışı, run durumu, olay      |
+| Recovery     | yarım run/adımların kapanışı ve Interrupted olayı                          |
 
 Ölçüm, iptal ve adım bitişi aynı TestRun satırında kilitlenir. Timer bekleme veya SSE bağlantısı boyunca transaction açık kalmaz. Kısa transaction'lar ve gerekiyorsa sınırlı serialization retry kullanılır; aktif çalışma çakışması bekletilip ikinci işe dönüştürülmez.
 

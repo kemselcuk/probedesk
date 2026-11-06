@@ -27,40 +27,45 @@ kabulü açıktır; demo videosu kullanıcı kararıyla kapsam dışıdır; işa
 - [ ] REQ-19–20: İki run, sürüm/kimlik/birim/örnekleme farkları doğru karşılaştırılıyor (T19–23).
 - [ ] REQ-21–22: Typed forms, RxJS yaşam döngüsü, klavye ve hata deneyimi doğrulandı.
 
+- [ ] REQ-28: Dashboard backend KPI/trend/filtre ve doğru history drilldown (T32, T36, T39).
+- [ ] REQ-29: Terminal snapshot raporu, CSV/JSON ve Print/Save PDF (T34, T38, T39).
+- [ ] REQ-30: Cihaz/seri/parti, archive/revision, immutable eski/yeni run metadata (T29–31, T35, T39).
+- [ ] REQ-31: Published sürümden bağımsız idempotent plan kopyası (T29, T33, T37, T39).
+
 ## Teslim ve kanıt
 
 - [x] Backend birim ve PostgreSQL entegrasyon testleri geçti. — 2026-11-05: 16 dosya/118 test ve
-  22 dosya/200 test ([kanıt](evidence/ui-refresh/ui-08.md)).
+      22 dosya/200 test ([kanıt](evidence/ui-refresh/ui-08.md)).
 - [x] Angular bileşen/servis testleri geçti. — 2026-11-05: 36 dosya/385 test
-  ([kanıt](evidence/ui-refresh/ui-08.md)).
+      ([kanıt](evidence/ui-refresh/ui-08.md)).
 - [x] Ana Playwright senaryosu gerçek stack üzerinde geçti. — 2 senaryo, gerçek Chrome/API/PG
-  ([UI-08](evidence/ui-refresh/ui-08.md); [P7-01](evidence/phase-7-e2e.md)); CI E2E işi de geçti
-  ([P7-06](evidence/phase-7-ci.md)).
+      ([UI-08](evidence/ui-refresh/ui-08.md); [P7-01](evidence/phase-7-e2e.md)); CI E2E işi de geçti
+      ([P7-06](evidence/phase-7-ci.md)).
 - [x] Temiz veritabanı migration/seed kontrolü geçti (T27). — Boş `probedesk_delivery_check`
-  veritabanında `migrate → seed → api → web` zinciri
-  ([P8-03](evidence/phase-8-clean-install.md)).
+      veritabanında `migrate → seed → api → web` zinciri
+      ([P8-03](evidence/phase-8-clean-install.md)).
 - [x] Compose kapat/aç veri kalıcılığı kontrolü geçti (T28). — `down`/`up` sonrası 1 plan, 4 run,
-  3 kullanıcı ve FAILED run 90/90 korundu ([P8-03](evidence/phase-8-clean-install.md)).
+      3 kullanıcı ve FAILED run 90/90 korundu ([P8-03](evidence/phase-8-clean-install.md)).
 - [ ] Temiz checkout kurulum komutları gerçekten uygulandı. — CI temiz checkout'ta `npm ci`
-  çalıştı; README'deki geliştirme akışı tek parça temiz bir makinede yeniden denenmedi.
+      çalıştı; README'deki geliştirme akışı tek parça temiz bir makinede yeniden denenmedi.
 - [x] Demo hesapları ve örnek veriler belgeli ve kullanılabilir. — Üç hesap, iki sürüm ve dört run
-  seed/API ile doğrulandı ([P8-02](evidence/phase-8-seed.md), [demo](demo.md)).
+      seed/API ile doğrulandı ([P8-02](evidence/phase-8-seed.md), [demo](demo.md)).
 - [x] OpenAPI ile gerçek API ve üretilen istemci uyumlu. — `npm run openapi:check` güncel;
-  CI `contract` işi geçti ([verify](evidence/phase-8-docs.md), [CI](evidence/phase-7-ci.md)).
+      CI `contract` işi geçti ([verify](evidence/phase-8-docs.md), [CI](evidence/phase-7-ci.md)).
 - [x] GitHub Actions teslim commit'i üzerinde geçti. — `0d76dcf` (`v0.1.0-rc.3`) için altı işin
-  tamamı geçti ([run 41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810)).
+      tamamı geçti ([run 41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810)).
 - [x] Test/coverage/süre sayıları gerçek raporlardan alınmış. — API 118, web 370, entegrasyon
-  197, Playwright 2 test; süreler gerçek raporlardan. Coverage yüzdesi iddia edilmiyor.
+      197, Playwright 2 test; süreler gerçek raporlardan. Coverage yüzdesi iddia edilmiyor.
 - [x] README çalışan ekran görüntüsü ve gerçek kanıt bağlantıları içeriyor. — Dört gerçek ekran
-  görüntüsü ve kanıt bağlantıları doğrulandı; demo videosu kullanıcı kararıyla kapsam dışıdır.
+      görüntüsü ve kanıt bağlantıları doğrulandı; demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [ ] Kısa video dosyası açılıyor; ana demo sonuçlarını gösteriyor. — Kullanıcı kararıyla kapsam dışı (video yok).
 - [x] Belgeler, CI ve görseller aynı teslim sürümüyle ilişkilendirilmiş. — `v0.1.0-rc.3` →
-  `0d76dcf`; demo videosu kullanıcı kararıyla kapsam dışıdır.
+      `0d76dcf`; demo videosu kullanıcı kararıyla kapsam dışıdır.
 - [x] Ek altyapı maliyeti hedefi korunmuş; onaysız ücretli hizmet yok. — Yerel Compose ve ücretsiz
-  standart GitHub runner kullanılıyor; ücretli servis/secret eklenmedi. Hesap faturalama durumu
-  dışarıdan ayrıca denetlenmedi.
+      standart GitHub runner kullanılıyor; ücretli servis/secret eklenmedi. Hesap faturalama durumu
+      dışarıdan ayrıca denetlenmedi.
 - [x] Kritik/yüksek önem inceleme bulgusu yok; diğer açık işler belgeli. — P7 ve P8 bağımsız
-  incelemelerinde açık Critical/High yok; Medium bulgular kapatıldı ve sınırlar kayıtlı.
+      incelemelerinde açık Critical/High yok; Medium bulgular kapatıldı ve sınırlar kayıtlı.
 - [ ] Kullanıcı nihai kapsam ve ürün kabulünü verdi.
 
 ## Kabul kaydı

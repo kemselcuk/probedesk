@@ -4,17 +4,17 @@ Durum: **Uygulandı ve yerelde doğrulandı; nihai ürün kabulü yok.** Backend
 Angular TestBed, gerçek Chrome/Playwright ve Docker Compose teslim katmanları çalışır durumdadır.
 P8-05 demo videosu kullanıcı kararıyla kapsam dışıdır; P8-06 sürüm adayı hazırlanmaktadır. Bu belge kapsam sözleşmesini ve gerçekten
 çalıştırılan komutları kaydeder; çalıştırılmamış bir kontrolü geçmiş saymaz. Gereksinimler:
-REQ-23–27.
+REQ-23–31.
 
 ## Test katmanları
 
-| Katman | Araç yaklaşımı | Doğrulanacak davranış | Durum ve kanıt |
-|---|---|---|---|
-| Backend birim | Vitest; kontrollü saat/PRNG | kesin sayılar, değerlendirme, geçişler, üretim | **Uygulandı.** Son koşu: 16 dosya / 118 test ([verify](evidence/phase-8-docs.md)) |
-| Backend entegrasyon | Vitest + Supertest + gerçek PostgreSQL | transaction, FK/unique, yarış, auth, snapshot, SSE | **Uygulandı.** Son koşu: 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
-| Angular bileşen/servis | Vitest, TestBed, Material Harnesses | form/sıralama, HTTP hatası, RxJS reducer ve lifecycle | **Uygulandı.** Son koşu: 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
-| Uçtan uca | Playwright, gerçek Angular/API/PG, gerçek Chrome | ana demo, canvas, oturum, reconnect ve route davranışı | **Uygulandı.** 2 senaryo geçti ([UI-08](evidence/ui-refresh/ui-08.md); önceki [P7-01](evidence/phase-7-e2e.md), [P7-06](evidence/phase-7-ci.md)) |
-| Teslim | Docker Compose temiz kurulum | migration, seed, kalıcılık, proxy/SSE ve doküman komutları | **Uygulandı.** Boş DB + `down`/`up` ([P8-03](evidence/phase-8-clean-install.md)) |
+| Katman                 | Araç yaklaşımı                                   | Doğrulanacak davranış                                      | Durum ve kanıt                                                                                                                                   |
+| ---------------------- | ------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backend birim          | Vitest; kontrollü saat/PRNG                      | kesin sayılar, değerlendirme, geçişler, üretim             | **Uygulandı.** Son koşu: 16 dosya / 118 test ([verify](evidence/phase-8-docs.md))                                                                |
+| Backend entegrasyon    | Vitest + Supertest + gerçek PostgreSQL           | transaction, FK/unique, yarış, auth, snapshot, SSE         | **Uygulandı.** Son koşu: 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                             |
+| Angular bileşen/servis | Vitest, TestBed, Material Harnesses              | form/sıralama, HTTP hatası, RxJS reducer ve lifecycle      | **Uygulandı.** Son koşu: 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                             |
+| Uçtan uca              | Playwright, gerçek Angular/API/PG, gerçek Chrome | ana demo, canvas, oturum, reconnect ve route davranışı     | **Uygulandı.** 2 senaryo geçti ([UI-08](evidence/ui-refresh/ui-08.md); önceki [P7-01](evidence/phase-7-e2e.md), [P7-06](evidence/phase-7-ci.md)) |
+| Teslim                 | Docker Compose temiz kurulum                     | migration, seed, kalıcılık, proxy/SSE ve doküman komutları | **Uygulandı.** Boş DB + `down`/`up` ([P8-03](evidence/phase-8-clean-install.md))                                                                 |
 
 Prisma mock'u, veritabanı kısıtı/yarış testinin yerine geçmez. Canvas mock'u, gerçek
 zoom/tooltip/tıklama kanıtı değildir. Testler uygulama kodunu tekrar etmek yerine dışarıdan görülen
@@ -30,36 +30,47 @@ sınırlıdır. Coverage yüzdesi, performans benchmark'ı veya kapasite ölçü
 Aşağıdaki matris tasarım sözleşmesidir; bir satırın kapsandığını gösteren gerçek kayıt ilgili görev
 kartı ve `docs/evidence/` dosyasıdır. T27/T28 özellikle P8-03 teslim kanıtıyla eşleşir.
 
-| Kimlik | Senaryo | Beklenti | Ana görev |
-|---|---|---|---|
-| T01 | Minimuma eşit ölçüm | Geçer | P3-05 |
-| T02 | Maksimuma eşit ölçüm | Geçer | P3-05 |
-| T03 | Sınırın bir hassasiyet birimi dışı | Başarısız | P3-05 |
-| T04 | Geçersiz/sonlu olmayan veri | Girdi reddi veya yürütmede teknik hata | P1-03, P3-08 |
-| T05 | Hatalı örnekten sonra normaller | İhlal bilgisi ve FAILED kararı korunur | P3-05 |
-| T06 | İkinci adım başarısız | Üçüncü adım devam eder | P3-05 |
-| T07 | Aynı seed/ayarlar | Sabit beklenen değer dizisi | P3-01 |
-| T08 | Hata oranı 0 ve 1 | Kesin uç davranışları | P3-02 |
-| T09 | Eşzamanlı iki başlangıç | Bir kabul, bir 409 | P3-04, P7-03 |
-| T10 | Aynı başlangıcın tekrarı | Aynı run, ikinci kayıt yok | P3-04 |
-| T11 | İptal/ölçüm yarışı | Terminal durumdan sonra yazma yok | P3-07, P7-03 |
-| T12 | Beklenmedik süreç kapanışı | Veriler korunur, INTERRUPTED | P3-08, P7-03 |
-| T13 | SSE kesilip geri gelir | Kayıp/çift örnek yok | P4-06 |
-| T14 | Snapshot sırasında olay | Tutarlı cursor ve eksiksiz final | P4-06 |
-| T15 | Aynı olay tekrarlanır | İkinci kez uygulanmaz | P4-03 |
-| T16 | İzlerken oturum biter | Kontrollü kapanış/login; test devam eder | P4-05, P4-07 |
-| T17 | Sıralama ve yeniden yükleme | Form/API/DB sırası aynı | P2-05, P2-08 |
-| T18 | Eski taslak revizyonu | 409; sessiz veri ezme yok | P2-02, P2-08 |
-| T19 | Yeni sürüm yayımlama | Eski snapshot ve sonuç aynı | P6-06 |
-| T20 | Adım adı/sırası değişir | Kimlikle doğru eşleşme | P6-01, P6-06 |
-| T21 | Sil ve aynı adla yeniden ekle | Yeni adım olarak görünür | P6-05, P6-06 |
-| T22 | Birim/örnekleme farkı | Yanıltıcı eksen veya örnek çıkarma yok | P6-05 |
-| T23 | Kısmi sonuç karşılaştırması | Eksikler açık; null sonuç sıfır/Passed olmaz | P6-05 |
-| T24 | Rol dışı HTTP işlemi | Backend reddi | P1-06, P7-02 |
-| T25 | Zoom/pan/reset | Yalnızca görünüm değişir | P5-05, P5-06 |
-| T26 | Hata noktası seçimi | Doğru adım/örnek açılır | P5-05, P5-06 |
-| T27 | Boş DB kurulumu | Migration ve seed tamamlanır | P8-03 |
-| T28 | Compose yeniden başlama | Plan/geçmiş korunur | P8-03 |
+| Kimlik | Senaryo                                             | Beklenti                                                                       | Ana görev    |
+| ------ | --------------------------------------------------- | ------------------------------------------------------------------------------ | ------------ |
+| T01    | Minimuma eşit ölçüm                                 | Geçer                                                                          | P3-05        |
+| T02    | Maksimuma eşit ölçüm                                | Geçer                                                                          | P3-05        |
+| T03    | Sınırın bir hassasiyet birimi dışı                  | Başarısız                                                                      | P3-05        |
+| T04    | Geçersiz/sonlu olmayan veri                         | Girdi reddi veya yürütmede teknik hata                                         | P1-03, P3-08 |
+| T05    | Hatalı örnekten sonra normaller                     | İhlal bilgisi ve FAILED kararı korunur                                         | P3-05        |
+| T06    | İkinci adım başarısız                               | Üçüncü adım devam eder                                                         | P3-05        |
+| T07    | Aynı seed/ayarlar                                   | Sabit beklenen değer dizisi                                                    | P3-01        |
+| T08    | Hata oranı 0 ve 1                                   | Kesin uç davranışları                                                          | P3-02        |
+| T09    | Eşzamanlı iki başlangıç                             | Bir kabul, bir 409                                                             | P3-04, P7-03 |
+| T10    | Aynı başlangıcın tekrarı                            | Aynı run, ikinci kayıt yok                                                     | P3-04        |
+| T11    | İptal/ölçüm yarışı                                  | Terminal durumdan sonra yazma yok                                              | P3-07, P7-03 |
+| T12    | Beklenmedik süreç kapanışı                          | Veriler korunur, INTERRUPTED                                                   | P3-08, P7-03 |
+| T13    | SSE kesilip geri gelir                              | Kayıp/çift örnek yok                                                           | P4-06        |
+| T14    | Snapshot sırasında olay                             | Tutarlı cursor ve eksiksiz final                                               | P4-06        |
+| T15    | Aynı olay tekrarlanır                               | İkinci kez uygulanmaz                                                          | P4-03        |
+| T16    | İzlerken oturum biter                               | Kontrollü kapanış/login; test devam eder                                       | P4-05, P4-07 |
+| T17    | Sıralama ve yeniden yükleme                         | Form/API/DB sırası aynı                                                        | P2-05, P2-08 |
+| T18    | Eski taslak revizyonu                               | 409; sessiz veri ezme yok                                                      | P2-02, P2-08 |
+| T19    | Yeni sürüm yayımlama                                | Eski snapshot ve sonuç aynı                                                    | P6-06        |
+| T20    | Adım adı/sırası değişir                             | Kimlikle doğru eşleşme                                                         | P6-01, P6-06 |
+| T21    | Sil ve aynı adla yeniden ekle                       | Yeni adım olarak görünür                                                       | P6-05, P6-06 |
+| T22    | Birim/örnekleme farkı                               | Yanıltıcı eksen veya örnek çıkarma yok                                         | P6-05        |
+| T23    | Kısmi sonuç karşılaştırması                         | Eksikler açık; null sonuç sıfır/Passed olmaz                                   | P6-05        |
+| T24    | Rol dışı HTTP işlemi                                | Backend reddi                                                                  | P1-06, P7-02 |
+| T25    | Zoom/pan/reset                                      | Yalnızca görünüm değişir                                                       | P5-05, P5-06 |
+| T26    | Hata noktası seçimi                                 | Doğru adım/örnek açılır                                                        | P5-05, P5-06 |
+| T27    | Boş DB kurulumu                                     | Migration ve seed tamamlanır                                                   | P8-03        |
+| T28    | Compose yeniden başlama                             | Plan/geçmiş korunur                                                            | P8-03        |
+| T29    | Yeni tablo/metadata migration ve verili DB upgrade  | Eski snapshot/ölçüm/event/hash aynı; Restrict/unique/immutability gerçek PG    | EX-02        |
+| T30    | Device rol/CSRF/revision ve seri numarası yarışı    | Planner mutasyon; unique canonical seri; archive/restore geçmişi korur         | EX-03        |
+| T31    | Cihazlı start ve v1/v2 retry; archive/update yarışı | Atomik snapshot, doğru 409/422; eski hash ve tek RUNNING korunur               | EX-04        |
+| T32    | Analytics fixture/null/rounding/filtre/UTC/top10    | Backend aggregate ve tutarlı snapshot; versiyon/birim ayrımı                   | EX-08        |
+| T33    | Kopya yeni kimlikler ve eşzamanlı idempotency       | Tek bağımsız draft; kaynak aynı; orphan yok                                    | EX-06        |
+| T34    | CSV/JSON gerçek HTTP, byte ve veri sınırları        | BOM/CRLF/quote/formula güvenliği, negatif decimal, null/partial ve no-store    | EX-10        |
+| T35    | Devices ve run metadata UI                          | Yetki/URL/hatadan kurtarma; snapshot korunur; eski null kayıt açılır           | EX-05        |
+| T36    | Dashboard URL/refresh/chart ve drilldown            | Backend KPI aynen, kalıcı kimliklerle doğru history, lifecycle/erişilebilirlik | EX-09        |
+| T37    | Copy dialog submit/retry/navigation                 | Aynı logical request aynı key; hata girdiyi korur; doğru yeni editor           | EX-07        |
+| T38    | Report download/print ve gerçek canvas              | Terminal/partial/long/null veri; object URL cleanup ve hazır grafik            | EX-11        |
+| T39    | Paket gerçek E2E ve CI baseline                     | Planner→Operator→Viewer; Device/copy/plan/run/session kalıntısı yok            | EX-12, EX-13 |
 
 Ek sınırlar: sıfır adımlı draft, tek adımlı/tek örnekli plan, eşit min/max, negatif ölçüm, sayı
 hassasiyeti, alan/karakter sınırları, en büyük toplam örnek/süre, bozuk UUID/cursor ve yetkisiz
@@ -90,21 +101,21 @@ Aşağıdaki giriş noktaları kök `package.json` içinde tanımlıdır. "Doğr
 çalıştırılmış ve çıktısı kanıta bağlanmış komutlardır; kısmi/çalıştırılmamış olanlar açıkça
 işaretlidir. Son tam yerel doğrulama 2026-11-05 tarihinde bu çalışma ağacında yapıldı.
 
-| Komut | Durum | Kanıt / not |
-|---|---|---|
-| `npm ci` | Doğrulandı (CI temiz checkout) | GitHub Actions `0d76dcf` (`v0.1.0-rc.3`, run `41918727810`); temiz checkout'ta doğrulandı ([P7-06](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)) |
-| `npm run dev` | Script mevcut; kök komut yeniden çalıştırılmadı | P7 çalışmalarında Angular `ng serve` (:4200) ve API ayrı süreçlerde çalıştı; P8-04'te portlar başka süreçlerce kullanıldığı için kök komut tek parça çalıştırılmadı |
-| `npm run lint` | Doğrulandı | API 144, web 113, api-client 2 dosya; 0 uyarı, 0 hata ([verify](evidence/phase-8-docs.md)) |
-| `npm run typecheck` | Doğrulandı | API, web ve api-client temiz ([verify](evidence/phase-8-docs.md)) |
-| `npm run build` | Doğrulandı | API `nest build`; web production build başarılı ([verify](evidence/phase-8-docs.md)) |
-| `npm run test:api:unit` | Doğrulandı | 16 dosya / 118 test ([verify](evidence/phase-8-docs.md)) |
-| `npm run test:web` | Doğrulandı | 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
-| `npm run test:api:integration` | Doğrulandı | Gerçek `probedesk_test`; 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md)) |
-| `npm run test:e2e` | Doğrulandı | Gerçek Chrome/API/PG; 2 senaryo ([UI-08](evidence/ui-refresh/ui-08.md)) |
-| `npm run openapi:check` | Doğrulandı | `OpenAPI contract is current` ([verify](evidence/phase-8-docs.md)) |
-| `npm run db:migrate` | Doğrulandı | Development DB'de kök komut ([Phase 2](evidence/phase-2-plans-api.md)); delivery migration logu ([P8-01](evidence/phase-8-compose.md)) |
-| `npm run demo:seed` | Doğrulandı | İki kez çalıştırıldı; ikinci kez 0 yeni kayıt ([P8-02](evidence/phase-8-seed.md)) |
-| `npm run verify` | Doğrulandı | Lint + typecheck + birim + web + build + OpenAPI; çıkış 0 ([UI-08](evidence/ui-refresh/ui-08.md)) |
+| Komut                          | Durum                                           | Kanıt / not                                                                                                                                                         |
+| ------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm ci`                       | Doğrulandı (CI temiz checkout)                  | GitHub Actions `0d76dcf` (`v0.1.0-rc.3`, run `41918727810`); temiz checkout'ta doğrulandı ([P7-06](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)) |
+| `npm run dev`                  | Script mevcut; kök komut yeniden çalıştırılmadı | P7 çalışmalarında Angular `ng serve` (:4200) ve API ayrı süreçlerde çalıştı; P8-04'te portlar başka süreçlerce kullanıldığı için kök komut tek parça çalıştırılmadı |
+| `npm run lint`                 | Doğrulandı                                      | API 144, web 113, api-client 2 dosya; 0 uyarı, 0 hata ([verify](evidence/phase-8-docs.md))                                                                          |
+| `npm run typecheck`            | Doğrulandı                                      | API, web ve api-client temiz ([verify](evidence/phase-8-docs.md))                                                                                                   |
+| `npm run build`                | Doğrulandı                                      | API `nest build`; web production build başarılı ([verify](evidence/phase-8-docs.md))                                                                                |
+| `npm run test:api:unit`        | Doğrulandı                                      | 16 dosya / 118 test ([verify](evidence/phase-8-docs.md))                                                                                                            |
+| `npm run test:web`             | Doğrulandı                                      | 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                                                                         |
+| `npm run test:api:integration` | Doğrulandı                                      | Gerçek `probedesk_test`; 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                                                |
+| `npm run test:e2e`             | Doğrulandı                                      | Gerçek Chrome/API/PG; 2 senaryo ([UI-08](evidence/ui-refresh/ui-08.md))                                                                                             |
+| `npm run openapi:check`        | Doğrulandı                                      | `OpenAPI contract is current` ([verify](evidence/phase-8-docs.md))                                                                                                  |
+| `npm run db:migrate`           | Doğrulandı                                      | Development DB'de kök komut ([Phase 2](evidence/phase-2-plans-api.md)); delivery migration logu ([P8-01](evidence/phase-8-compose.md))                              |
+| `npm run demo:seed`            | Doğrulandı                                      | İki kez çalıştırıldı; ikinci kez 0 yeni kayıt ([P8-02](evidence/phase-8-seed.md))                                                                                   |
+| `npm run verify`               | Doğrulandı                                      | Lint + typecheck + birim + web + build + OpenAPI; çıkış 0 ([UI-08](evidence/ui-refresh/ui-08.md))                                                                   |
 
 Toplu `verify` kullanıcı verisini resetlemez. Destructive demo reset ayrı, açık onaylı ve ortam
 korumalı bir işlemdir; normal seed/verify/delivery akışının parçası değildir ve bu doğrulama turunda
