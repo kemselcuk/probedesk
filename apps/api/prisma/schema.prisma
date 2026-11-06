@@ -29,6 +29,8 @@ model User {
   publishedRevisions PlanRevision[]
   requestedRuns      TestRun[]      @relation("RequestedRuns")
   cancelledRuns      TestRun[]      @relation("CancelledRuns")
+  createdDevices     Device[]
+  planCopyRequests   PlanCopyRequest[]
 
   @@map("users")
 }
@@ -55,8 +57,34 @@ model DeviceProfile {
   name        String
   description String?
   plans       TestPlan[]
+  devices     Device[]
 
   @@map("device_profiles")
+}
+
+/// A durable identity record for a unit tested against the single simulator
+/// profile. Archiving replaces deletion, and the canonical serial key keeps
+/// uniqueness case-insensitive inside the profile.
+model Device {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deviceProfileId String        @db.Uuid
+  name            String
+  serialNumber    String
+  serialNumberKey String
+  description     String?
+  archivedAt      DateTime?     @db.Timestamptz(6)
+  editRevision    Int           @default(1)
+  createdById     String        @db.Uuid
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+  deviceProfile   DeviceProfile @relation(fields: [deviceProfileId], references: [id], onDelete: Restrict)
+  createdBy       User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  runs            TestRun[]
+
+  @@unique([deviceProfileId, serialNumberKey])
+  @@index([deviceProfileId])
+  @@index([createdById])
+  @@map("devices")
 }
 
 /// Immutable plan identity. Names and step rules live in revisions; the plan
@@ -71,6 +99,7 @@ model TestPlan {
   revisions       PlanRevision[]
   stepIdentities  StepIdentity[]
   runs            TestRun[]
+  copyRequests    PlanCopyRequest[]
 
   @@index([deviceProfileId])
   @@index([createdById])
@@ -103,6 +132,7 @@ model PlanRevision {
   publishedBy     User?             @relation(fields: [publishedById], references: [id], onDelete: Restrict)
   steps           PlanStep[]
   runs            TestRun[]
+  copyRequests    PlanCopyRequest[]
 
   // Composite targets used by the revision/step ownership foreign keys.
   @@unique([id, planId])
@@ -110,6 +140,27 @@ model PlanRevision {
   @@index([baseVersionId])
   @@index([publishedById])
   @@map("plan_revisions")
+}
+
+/// Idempotency and provenance record for copying a published revision into a
+/// new independent plan. The target plan/revision is created in the same
+/// transaction as this row.
+model PlanCopyRequest {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requestedById   String       @db.Uuid
+  idempotencyKey  String
+  requestHash     String
+  sourceVersionId String       @db.Uuid
+  targetPlanId    String       @db.Uuid
+  createdAt       DateTime     @default(now()) @db.Timestamptz(6)
+  requestedBy     User         @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+  sourceVersion   PlanRevision @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  targetPlan      TestPlan     @relation(fields: [targetPlanId], references: [id], onDelete: Restrict)
+
+  @@unique([requestedById, idempotencyKey])
+  @@index([sourceVersionId])
+  @@index([targetPlanId])
+  @@map("plan_copy_requests")
 }
 
 /// Permanent logical identity of a plan step. It belongs to exactly one plan and
@@ -208,6 +259,10 @@ model TestRun {
   planNameSnapshot      String
   versionNumberSnapshot Int
   profileSnapshot       Json
+  deviceId              String?     @db.Uuid
+  deviceSnapshot        Json?
+  batchNumber           String?
+  batchNumberKey        String?
   status                RunStatus   @default(RUNNING)
   outcome               RunOutcome?
   requestedById         String      @db.Uuid
@@ -231,12 +286,14 @@ model TestRun {
   planRevision PlanRevision @relation(fields: [planRevisionId], references: [id], onDelete: Restrict)
   requestedBy  User         @relation("RequestedRuns", fields: [requestedById], references: [id], onDelete: Restrict)
   cancelledBy  User?        @relation("CancelledRuns", fields: [cancelledById], references: [id], onDelete: Restrict)
+  device       Device?      @relation(fields: [deviceId], references: [id], onDelete: Restrict)
   steps        RunStep[]
   events       RunEvent[]
 
   @@unique([requestedById, idempotencyKey])
   @@index([planId, startedAt, id])
   @@index([startedAt(sort: Desc), id(sort: Desc)])
+  @@index([deviceId, startedAt(sort: Desc), id(sort: Desc)])
   @@index([status])
   @@index([planRevisionId])
   @@map("test_runs")
