@@ -141,3 +141,9 @@ Docker Desktop kişisel kullanım koşulları kapsamında ücretsiz olabilir; ku
 ## Teknik kararlar
 
 [Karar dizini](decisions/README.md), bu mimarinin kısa karar kayıtlarını içerir. Mimari değişikliği ilgili karar, veri/API sözleşmesi, test ve görevlerle birlikte güncellenir.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Devices, Analytics ve Reports modülleri eklenir; simülatör aynı tek API sürecinde kalır. Analytics kısa repeatable-read ve DB aggregate, report tutarlı terminal snapshot projection kullanır. Yeni servis/ücretli bağımlılık olmadan browser print/PDF uygulanır. Frontend yalnız lead, backend disjoint dosya sahipliğiyle istenen OpenCode modeline delege edilir.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

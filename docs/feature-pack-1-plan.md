@@ -1,12 +1,12 @@
 # Özellik paketi 1 — Analiz, raporlama ve cihaz izlenebilirliği
 
 - Tarih: 2026-11-06.
-- Durum: **Plan hazırlandı; kullanıcı incelemesi ve sonraki uygulama talimatı bekleniyor.**
+- Durum: **Uygulama başladı; kullanıcı 2026-11-06 tarihinde “başla” talimatını verdi.**
 - Seçilen paket: analiz dashboard'u, dışa aktarma/rapor, cihaz-seri numarası takibi ve plan kopyalama.
 - Branch: `feat/analytics-reporting-devices`.
 - Başlangıç commit'i: `e46b740c6ba5fd35326a95326b0427d6a5bf43db`.
-- Bu belge tasarım önerisidir. Mevcut ürün sözleşmelerinin yerine henüz geçmez; uygulama veya kabul kanıtı değildir.
-- Bu tur yalnızca plan ve git hazırlığı yapılır. Kod, migration, uygulama görevleri, subagent çalışmaları ve delivery güncellemesi sonraki talimata kadar başlatılmaz.
+- Bu belge kullanıcı tarafından uygulaması yetkilendirilen ek sözleşmedir; uygulama veya kabul kanıtı değildir. Ana sözleşmelerin paket 1 bölümleri bu belgeye bağlanır.
+- 2026-11-06 başlama talimatıyla aşağıdaki görevler uygulanabilir. Main’e merge ayrı talimattır; teknik ve görsel kabul gerçek kanıt gerektirir.
 
 ## 1. Amaç ve sınırlar
 
@@ -275,7 +275,7 @@ Test çalıştırmaları da paylaşılan kaynaktır: aynı DB'yi reset eden iki 
 
 ## 10. Görev kartları ve bağımlılıklar
 
-Aşağıdakiler **önerilen kartlardır**, tamamı Planned'dır; henüz `docs/tasks/` altında oluşturulmadılar ve mevcut toplam 72 kartın durumları değiştirilmedi. Uygulamaya başlama talimatından sonra EX-01 ilk kart olarak açılır; ana sözleşme/roadmap/görev dizini o aşamada eşgüdümlü güncellenir. Her worker aynı anda tek kart yürütür. Kullanıcının paralel çalışma talimatı doğrultusunda bağımsız kartlar farklı sahiplerde eşzamanlı olabilir.
+Kullanıcının başlama talimatıyla 13 EX kartı `docs/tasks/` altında açıldı; ilk 72 kartın durumları korunur, toplam kart sayısı 85 olur. Güncel durumun kaynağı görev kartları ve görev dizinidir. EX-01 ana sözleşme/roadmap/görev dizinini eşgüdümlü günceller. Her worker aynı anda tek kart yürütür. Kullanıcının paralel çalışma talimatı doğrultusunda bağımsız kartlar farklı sahiplerde eşzamanlı olabilir.
 
 | Kart  | İş / çıktı                                                                                          | Sorumlu                     | Önkoşul                                    |
 | ----- | --------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------ |
@@ -360,7 +360,7 @@ Bu liste yürütme sırası değildir. `ci` yalnız temiz kurulum/lock değişik
 - Commit'ler feature branch'e push edilmiştir; CI sonucu gerçekten okunup bildirilmiştir. Çalıştırılmamış kontrol/safari/physical mobile gibi sınırlar açıkça belirtilir.
 - Teknik tamamlanma kullanıcı görsel/ürün kabulü yerine geçmez.
 
-## 14. Bu planlama turunun gerçek durumu
+## 14. Önceki planlama turunun tarihsel kaydı
 
 - Repository başlangıcı temiz `main...origin/main`, HEAD `e46b740` olarak okundu.
 - `feat/analytics-reporting-devices` branch'i oluşturuldu.
@@ -370,4 +370,4 @@ Bu liste yürütme sırası değildir. `ci` yalnız temiz kurulum/lock değişik
 - `./node_modules/.bin/prettier --check docs/feature-pack-1-plan.md`: `All matched files use Prettier code style!`, exit 0. `git diff --cached --check`: çıktı yok, exit 0. Staged değişiklik yalnız bu plan belgesidir.
 - Uygulama testleri, bağımsız teknik inceleme ve ürün kabulü bu tur yapılmadı.
 
-**Bekleme noktası:** Plan kullanıcıya sunulur. Yeni uygulama talimatı gelmeden EX-01 veya diğer uygulama/delege işleri başlatılmaz.
+**2026-11-06 uygulama yetkisi:** Kullanıcı “başla” dedi. EX-01 başlatıldı; sonraki kartların güncel durumları [görev dizininde](tasks/README.md) izlenir. Önceki planlama kayıtları tarihsel kanıttır.

@@ -77,3 +77,9 @@ Ekran ayrıntıları için [frontend.md](frontend.md).
 ## Kapsam değişikliği
 
 Ürün kapsamını, rol yetkisini veya kabul davranışını değiştiren işler kullanıcı onayı gerektirir. Uygulama ayrıntıları bu sözleşme ve kabul ölçütleri içinde çözülebilir. Hedef dışı yeni ekran, ücretli servis veya çok süreçli dağıtım kendiliğinden eklenmez.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Yeni gereksinimler: REQ-28 dashboard/KPI ve history drilldown; REQ-29 terminal snapshot raporu, CSV/JSON ve browser print/PDF; REQ-30 cihaz/seri numarası/parti izlenebilirliği; REQ-31 published sürümden bağımsız idempotent plan kopyası. Planner cihaz/kopya mutasyonlarını, Operator cihazlı run başlatmayı yapar; üç rol dashboard/cihaz/geçmiş/raporu okur. Cihaz seçimi opsiyonel, eski run metadata null. Aynı profil ve tek aktif run korunur.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

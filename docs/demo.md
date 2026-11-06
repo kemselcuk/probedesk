@@ -141,3 +141,9 @@ geçmez.
   yerleşim.
 - [Yetki ve istek güvenliği](evidence/phase-7-security-race.md) — rol matrisi; Viewer/Planner
   mutasyonlarının API tarafından reddi.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Yeni demo: Planner published planı bağımsız kopyalar ve cihazı oluşturur; Operator cihaz/partiyle run başlatır; Viewer Overview→history→details→report ve CSV/JSON akışını kullanır. İki cihaz eklemeli seed edilir; eski dört demo run sonradan cihazlara bağlanmaz. Yeni akış henüz doğrulanmadı; video kapsam dışı kalır.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

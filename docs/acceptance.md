@@ -71,3 +71,9 @@ Sürüm adayı `v0.1.0-rc.3` (`0d76dcf`) paketi [phase-8-release.md](evidence/ph
 **Kullanıcı ürün kabulü, nihai kapsam ve yayın kararı henüz verilmemiştir; bu maddeler açıktır.**
 Demo videosu kullanıcı kararıyla kapsam dışıdır. Teknik doğrulama kayıtları
 [kanıt dizininde](evidence/README.md) listelenir; bunlar nihai kabul yerine geçmez.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Yeni kabul maddeleri REQ-28–31 ve EX-01–13 kartlarıdır. Dashboard doğru filtre/KPI; snapshot tabanlı güvenli rapor/export; cihaz-seri/parti geçmişi; bağımsız kopya akışı gerçek kanıtla doğrulanmalıdır. Bu paket için teknik veya kullanıcı kabulü henüz yoktur.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

@@ -144,3 +144,23 @@ Ayrıntılar: [başlangıç rehberi](../implementation-guide.md), [test/inceleme
 | [UI-08](UI-08.md) | Responsive, erişilebilirlik ve bütünleşik görsel teslim | In Review |
 | [UI-09](UI-09.md) | Seçim kontrolleri, takvim ve ortak boşluk düzeltmeleri | In Review |
 | [UI-10](UI-10.md) | İçerik odaklı tablolar ve panel boşluk ritmi | In Review |
+
+## Özellik paketi 1 — 2026-11-06
+
+Kullanıcı dört özellik paketinin uygulanmasını yetkilendirdi. [Ayrıntılı ek sözleşme](../feature-pack-1-plan.md). Önceki 72 karta 13 EX kartı eklendi; toplam **85 kart**.
+
+| Görev                                                           | Sahiplik               | Durum     |
+| --------------------------------------------------------------- | ---------------------- | --------- |
+| [EX-01 — Paket sözleşmeleri ve görev izlenebilirliği](EX-01.md) | Lead                   | In Review |
+| [EX-02 — Device ve kopyalama veri modeli](EX-02.md)             | A                      | Planned   |
+| [EX-03 — Cihaz API ve eklemeli demo seed](EX-03.md)             | A                      | Planned   |
+| [EX-04 — Run cihaz metadata ve geçmiş filtreleri](EX-04.md)     | A                      | Planned   |
+| [EX-05 — Cihaz ve run metadata frontend](EX-05.md)              | Lead                   | Planned   |
+| [EX-06 — Yayımlanmış plandan bağımsız kopya API](EX-06.md)      | C                      | Planned   |
+| [EX-07 — Plan kopyalama frontend](EX-07.md)                     | Lead                   | Planned   |
+| [EX-08 — Analytics overview backend](EX-08.md)                  | B                      | Planned   |
+| [EX-09 — Overview dashboard frontend](EX-09.md)                 | Lead                   | Planned   |
+| [EX-10 — Rapor projection ve güvenli export backend](EX-10.md)  | C                      | Planned   |
+| [EX-11 — Download ve yazdırılabilir rapor frontend](EX-11.md)   | Lead                   | Planned   |
+| [EX-12 — Paket gerçek E2E ve veritabanı izolasyonu](EX-12.md)   | D                      | Planned   |
+| [EX-13 — Bağımsız review ve teslim paketi](EX-13.md)            | Review delegate + Lead | Planned   |

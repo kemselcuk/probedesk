@@ -131,3 +131,9 @@ Terminal olayı alan frontend EventSource'u kapatır. Terminal snapshot için ye
 REST DTO'ları, enum'lar, cookie/CSRF güvenlik düzeni ve hata biçimleri OpenAPI'ye yazılır. SSE envelope/payload şemaları da açıkça belgelenir; üretici desteği yoksa tiplerin kaynağı ayrıca belirlenir. Frontend'de elle farklı bir API iş modeli tutulmaz.
 
 P1-05 oluşturulacak istemci üretimini, P7-06 güncel sözleşme kontrolünü, P8-04 gerçek OpenAPI çıktısını kapsar. Belgelenen uçların gerçek davranışıyla eşleşmesi test edilir.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Ek uçlar: GET/POST /devices, GET/PATCH /devices/:id, POST archive/restore; POST /plan-versions/:id/copy; GET /analytics/overview; GET /runs/:id/report ve /export?format=csv|json. /runs başlangıç/okuma/filtrelerine cihaz-parti-sürüm-senaryo sözleşmesi eklenir. Rol, DTO, idempotency v1/v2, decimal KPI, terminal-only export ve HTTP header kuralları ek sözleşmenin 3–7. bölümleridir.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

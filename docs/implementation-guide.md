@@ -125,3 +125,9 @@ Yerel teslim iki giriş noktası sunar:
 veriler, doğrulanmış yerel kurulum, otomatik testler ve gerçek README kanıtlarını içerir. Kısa demo
 videosu kullanıcı kararıyla kapsam dışıdır; README'de video bağlantısı yoktur. Kullanıcıya ait
 yayın/nihai kabul kararı otomatik verilmez.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Kullanıcı 2026-11-06 tarihinde özellik paketi 1 uygulamasına başlama talimatı verdi. Güncel ek sözleşme ve görevler aşağıdadır. Tek profil kuralı korunurken o profile bağlı birden fazla Device kaydı eklenir. Çalışma feature branch üzerinde; main merge yok. Yeni kartlar mevcut P/UI kabul durumlarını değiştirmez.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

@@ -186,3 +186,7 @@ Bir aşama yalnızca kartlar kapandı diye kabul edilmez; birleşen davranışla
 UI-09: kullanıcı geri bildirimi üzerine dropdown/takvim/tablo/form boşluk düzeltmeleri — **In Review**; gerçek kontroller ve 8080 teslimi [UI-09 kanıtında](evidence/ui-refresh/ui-09.md).
 
 UI-10: Grafana tablo referansına göre içerik genişliği, veri hizası ve panel boşluk ritmi — **In Review**; [gerçek ölçüm ve teslim kanıtı](evidence/ui-refresh/ui-10.md).
+
+## Özellik paketi 1 — 2026-11-06
+
+Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01 In Review; EX-02–EX-13 Planned. Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Main merge bu yetkinin parçası değil.

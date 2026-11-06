@@ -91,3 +91,9 @@ History için planId/startedAt/id, global startedAt/id (azalan) ve durum filtrel
 İlk sürümde plan/run silme ürünü yoktur. Süresi dolmuş oturumların temizliği geçmiş çalıştırmaları etkilemez. Demo seed idempotenttir; mevcut yayımlanmış sürümleri değiştirmez. Tam reset yalnızca açıkça seçilmiş demo/test ortamında mümkündür.
 
 Kaynaklar: [Prisma v7 transaction'lar](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions), [PostgreSQL partial index](https://www.postgresql.org/docs/current/indexes-partial.html).
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Device, PlanCopyRequest ve TestRun nullable deviceId/deviceSnapshot/batchNumber/batchNumberKey alanları eklenir. Canonical seri uniqueness, Restrict ilişkiler, optimistic revision ve atomik start snapshot/kilitleme gereklidir. Eski snapshot/event/hash değiştirilmez; metadata immutability kapsamına alınır. Tam alan ve migration kuralları ek sözleşmenin 4. ve 5. bölümleridir.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

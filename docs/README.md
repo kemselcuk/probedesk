@@ -63,3 +63,9 @@ mesajları ve örnek plan/adım adları İngilizcedir.
 ## UI yenileme ek planı
 
 Kullanıcının 2026-11-04 talebiyle [ayrıntılı UI yenileme planı](ui-modernization-plan.md) ve UI-01–UI-08 kartları eklendi. İlk ürün paketinden ayrı bu kampanya henüz Planned; görsel kabul değildir. [Başlangıç incelemesi ve gerçek ekranlar](evidence/ui-refresh/baseline.md) uygulayıcıya referans sağlar.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Kullanıcı 2026-11-06 tarihinde analiz/raporlama/cihaz/kopyalama paketinin uygulanmasını yetkilendirdi. Yeni 13 EX kartı mevcut 72 karta eklenir; toplam 85. Uygulama feature branchte, teknik ve görsel kabul bekler.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

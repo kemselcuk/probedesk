@@ -87,3 +87,9 @@ Frontend iptal tıklamasını gerçek iptal sonucu gibi göstermez; sunucu yanı
 Adım özetleri alınan/beklenen örnek sayısı, tolerans dışı örnek sayısı, ilk ihlal ve mevcutsa minimum/maksimum/ortalama içerir. Örnek yoksa sayısal istatistikler null'dır. Kısmi özetler açıkça işaretlenir; eksik değer sıfırla doldurulmaz.
 
 Tolerans ve sonuç kararı backend'e aittir. Frontend'in kendi tolerans kontrolü yaparak sunucu sonucunu değiştirmesi kabul edilmez.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Cihaz/parti metadata ve analitik özetler resmi ölçüm/tolerans kararını değiştirmez. Dashboard pass rate yalnız COMPLETED outcome üzerinden; iptal/kesinti/error ayrı sayılır. Kayıtlı decimal değerler CSV/JSON/raporda korunur; frontend yeniden verdict hesaplamaz.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

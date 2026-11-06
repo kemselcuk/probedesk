@@ -102,3 +102,9 @@ Cancelled/Interrupted/Error için eksik örnekler ve neden açıklanır; tamamla
 ## Erişilebilirlik ve görünüm
 
 Masaüstü, 1440×900, 1280×800, 768×1024 ve 390×844 smoke gerçek Chrome ile kontrol edildi; 200% zoom 640×400 layout karşılığıyla sınandı. Login, formlar, adım taşıma, adım sekmeleri, grafik seri kontrolleri ve dialog akışları klavyeyle kullanılabilir. Dialog açılış/kapanışında ve overlay navigasyonda odak yönetilir; Escape overlay'i kapatır ve odağı toggle'a döndürür. Hata metinleri alanlarla ilişkilendirilir. Responsive ve tarayıcı desteği yalnızca gerçekten kontrol edilen ortamlarla belgelenir; Safari/Firefox ve fiziksel mobil cihaz desteği kanıtsız iddia edilmez.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Yeni lazy ekranlar /overview, /devices, /devices/:deviceId, /runs/:runId/report; root Overview olur. Cihaz ve kopya dialogları, run metadata, URL filtreleri, download ve Print/Save PDF eklenir. Mevcut Material token/yoğunluk ve ortalı ölçüm kolonları korunur; backend KPI/verdict değiştirilmez. Ayrıntılı ekran/durum/erişilebilirlik sözleşmesi ek planın 8. bölümüdür.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.
