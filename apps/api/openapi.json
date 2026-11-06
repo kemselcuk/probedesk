@@ -1548,6 +1548,10 @@
               "IDEMPOTENCY_CONFLICT",
               "RUN_NOT_TERMINAL",
               "COMPARISON_PLAN_MISMATCH",
+              "DEVICE_SERIAL_CONFLICT",
+              "DEVICE_CONFLICT",
+              "DEVICE_ARCHIVED",
+              "DEVICE_PROFILE_MISMATCH",
               "TOO_MANY_REQUESTS",
               "INTERNAL_ERROR",
               "SERVICE_UNAVAILABLE"

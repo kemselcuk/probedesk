@@ -151,3 +151,7 @@ P1-05 oluşturulacak istemci üretimini, P7-06 güncel sözleşme kontrolünü, 
 Ek uçlar: GET/POST /devices, GET/PATCH /devices/:id, POST archive/restore; POST /plan-versions/:id/copy; GET /analytics/overview; GET /runs/:id/report ve /export?format=csv|json. /runs başlangıç/okuma/filtrelerine cihaz-parti-sürüm-senaryo sözleşmesi eklenir. Rol, DTO, idempotency v1/v2, decimal KPI, terminal-only export ve HTTP header kuralları ek sözleşmenin 3–7. bölümleridir.
 
 Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.
+
+### EX-03/EX-06 sabit DTO isimleri
+
+DeviceDto: id, deviceProfileId, name, serialNumber, description (nullable), archivedAt (nullable), editRevision, createdAt, updatedAt. DeviceListResponseDto: items, page, limit, total, totalPages. CreateDeviceDto: deviceProfileId/name/serialNumber/description?; UpdateDeviceDto: expectedRevision ve optional name/serialNumber/description; DeviceRevisionDto: expectedRevision. Profile adları mevcut device-profiles endpointinden alınabilir; device DTO gizli user/session alanı taşımaz. CopyPlanDto: name. CopyPlanResponseDto: planId, draftRevisionId, sourceVersionId, replayed. Tipler DTO implementasyonundan sonra OpenAPI’den üretilir.
