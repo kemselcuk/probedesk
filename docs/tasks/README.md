@@ -154,7 +154,7 @@ Kullanıcı özellik paketi 1’in (dört özellik) uygulanmasını yetkilendird
 | [EX-03 — Cihaz API ve eklemeli demo seed](EX-03.md)             | A                      | In Progress |
 | [EX-04 — Run cihaz metadata ve geçmiş filtreleri](EX-04.md)     | A                      | Planned     |
 | [EX-05 — Cihaz ve run metadata frontend](EX-05.md)              | Lead                   | Planned     |
-| [EX-06 — Yayımlanmış plandan bağımsız kopya API](EX-06.md)      | C                      | In Progress |
+| [EX-06 — Yayımlanmış plandan bağımsız kopya API](EX-06.md)      | C                      | In Review   |
 | [EX-07 — Plan kopyalama frontend](EX-07.md)                     | Lead                   | Planned     |
 | [EX-08 — Analytics overview backend](EX-08.md)                  | B                      | Planned     |
 | [EX-09 — Overview dashboard frontend](EX-09.md)                 | Lead                   | Planned     |
