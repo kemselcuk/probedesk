@@ -85,8 +85,8 @@ Workspace için npm workspaces ve tek lockfile kullanılacak. Derleyici/runtime 
 Kurulum, derleme ve testler bu makinede gerçekten çalıştırıldı; kesin sürümler `package-lock.json` içinde sabitlendi.
 
 | Bileşen             | Doğrulanan sürüm           | Not                                                                                                          |
-| ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------ | --- | ------------------------------------------------------ |
-| Node.js             | 22.23.2                    | Planlanan 24 LTS yerine kurulu LTS; Angular 22.2.4 `engines` aralığı `^22.22.3                               |     | ^24.15.0`ile uyumlu.`.nvmrc`ve`engines` bunu kaydeder. |
+| ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Node.js             | 22.23.2                    | Angular 22.2.4 engines: `^22.22.3` veya `^24.15.0`; `.nvmrc` ve engines ile kayıtlı.                         |
 | npm                 | 11.6.2                     | npm 10.9.8 workspace peer çözümlemesinde `edgesOut` hatası verdi; `packageManager` alanı npm 11'i sabitler.  |
 | TypeScript          | 6.0.3                      | Angular compiler-cli `>=6.0 <6.1` aralığı.                                                                   |
 | Angular             | 22.2.4 (CLI/build 22.2.5)  | Standalone, zoneless, SCSS, Vitest unit-test builder.                                                        |

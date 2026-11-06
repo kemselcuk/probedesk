@@ -96,24 +96,24 @@ Hata gövdesi: `code`, İngilizce `message`, `requestId`, gerektiğinde `fieldEr
 
 fieldErrors girdisi path, code ve message taşır; örnek path `steps.1.maximum`. Sunucu hataları kaydedilen istek revizyonuna bağlıdır; UI sıralaması değişmişse hata yanlış satıra bağlanmaz.
 
-| HTTP | Kod                      | Kullanım                                          |
-| ---- | ------------------------ | ------------------------------------------------- |
-| 400  | VALIDATION_ERROR         | Parametre/gövde/sayısal alan hatası               |
-| 401  | UNAUTHENTICATED          | Eksik, süresi dolmuş veya iptal edilmiş oturum    |
-| 403  | FORBIDDEN                | Rol veya CSRF/origin reddi                        |
-| 404  | NOT_FOUND                | Bulunamayan/erişilemeyen kaynak                   |
-| 409  | DRAFT_CONFLICT           | Eski revision, açık taslak veya Publish çakışması |
-| 409  | RUN_ALREADY_ACTIVE       | details.activeRunId ile mevcut çalışma            |
-| 409  | IDEMPOTENCY_CONFLICT     | Anahtar farklı istekle kullanılmış                |
-| 409  | RUN_NOT_TERMINAL         | Karşılaştırmada devam eden çalışma                |
-| 422  | COMPARISON_PLAN_MISMATCH | İki farklı plan                                   |
-| 429  | TOO_MANY_REQUESTS        | Login hız sınırı                                  |
-| 500  | INTERNAL_ERROR           | Güvenli genel teknik hata                         |
-| 503  | SERVICE_UNAVAILABLE      | DB/readiness veya iş kabulü hazır değil           |
-| 409  | DEVICE_SERIAL_CONFLICT   | Profilde canonical seri numarası zaten kayıtlı    |
-| 409  | DEVICE_CONFLICT          | Eski editRevision                                 |
-| 409  | DEVICE_ARCHIVED          | Yeni run için arşivlenmiş cihaz                   |
-| 422  | DEVICE_PROFILE_MISMATCH  | Cihaz ve plan profili farklı                      |
+| HTTP | Kod                      | Kullanım                                           |
+| ---- | ------------------------ | -------------------------------------------------- |
+| 400  | VALIDATION_ERROR         | Parametre/gövde/sayısal alan hatası                |
+| 401  | UNAUTHENTICATED          | Eksik, süresi dolmuş veya iptal edilmiş oturum     |
+| 403  | FORBIDDEN                | Rol veya CSRF/origin reddi                         |
+| 404  | NOT_FOUND                | Bulunamayan/erişilemeyen kaynak                    |
+| 409  | DRAFT_CONFLICT           | Eski revision, açık taslak veya Publish çakışması  |
+| 409  | RUN_ALREADY_ACTIVE       | details.activeRunId ile mevcut çalışma             |
+| 409  | IDEMPOTENCY_CONFLICT     | Anahtar farklı istekle kullanılmış                 |
+| 409  | RUN_NOT_TERMINAL         | Karşılaştırma/rapor/export için devam eden çalışma |
+| 422  | COMPARISON_PLAN_MISMATCH | İki farklı plan                                    |
+| 429  | TOO_MANY_REQUESTS        | Login hız sınırı                                   |
+| 500  | INTERNAL_ERROR           | Güvenli genel teknik hata                          |
+| 503  | SERVICE_UNAVAILABLE      | DB/readiness veya iş kabulü hazır değil            |
+| 409  | DEVICE_SERIAL_CONFLICT   | Profilde canonical seri numarası zaten kayıtlı     |
+| 409  | DEVICE_CONFLICT          | Eski editRevision                                  |
+| 409  | DEVICE_ARCHIVED          | Yeni run için arşivlenmiş cihaz                    |
+| 422  | DEVICE_PROFILE_MISMATCH  | Cihaz ve plan profili farklı                       |
 
 Stack trace, SQL, cookie, parola veya hassas token yanıtta yer almaz. Asenkron yürütme hatası çalıştırmada ERROR ve reasonCode ile görünür; başlamış HTTP isteğine sonradan hata yanıtı gönderiliyormuş gibi tasarlanmaz.
 

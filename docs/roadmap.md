@@ -22,7 +22,7 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 | 7 | Bütünleşik kalite ve CI | 6 | Accepted |
 | 8 | Yerel teslim ve kanıt | 6 | In Review |
 
-Toplam 62 görev. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
+İlk ürün paketi 62 görevdir; 10 UI ve 13 EX ek kartıyla güncel toplam **85 görev**. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
 
 ## Aşama 0 — Ürün ve teknik sözleşmeler
 
@@ -170,7 +170,7 @@ Demo/inceleme: Temiz checkout kurulumu açılır; hazır veri ve ana demo uygula
 ## Doğrulama ve teslim
 
 - [Gereksinim eşlemesi](requirements.md) her REQ için görev/kontrol gösterir.
-- [Test matrisi](testing.md) T01–T28'i ve komut/CI sözleşmesini tanımlar.
+- [Test matrisi](testing.md) T01–T39'u ve komut/CI sözleşmesini tanımlar.
 - [Demo](demo.md) üç run dahil gerçek v1/v2 kanıt akışını verir.
 - [Nihai kabul](acceptance.md) ürünün kapanış şartıdır.
 - [Kanıt dizini](evidence/README.md) gerçek çıktılar gelene kadar boş tutulur.
@@ -189,4 +189,4 @@ UI-10: Grafana tablo referansına göre içerik genişliği, veri hizası ve pan
 
 ## Özellik paketi 1 — 2026-11-06
 
-Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01 In Review; EX-02–EX-13 Planned. Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Main merge bu yetkinin parçası değil.
+Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01 Accepted; EX-02 In Progress; EX-03–EX-13 Planned. Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Main merge bu yetkinin parçası değil.

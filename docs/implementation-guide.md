@@ -63,7 +63,7 @@ Açık işler:
 ## Başlangıç noktası
 
 Yeni bir oturumda önce yukarıdaki durum tablosunu ve ilgili görev kartını oku; tamamlanmış işi
-yeniden üretme. P1-01 tarihsel ilk uygulama göreviydi; mevcut sıradaki iş P8-06 ve açık
+yeniden üretme. P1-01 tarihsel ilk uygulama göreviydi; mevcut uygulama işi özellik paketi 1 (EX kartları), ayrıca P8-06 kullanıcı kabulü ve açık
 inceleme kayıtlarıdır. Yeni bir ürün davranışı gerekiyorsa roadmap sırası, görev bağımlılıkları ve
 kabul ölçütleri izlenir; tek seferde bütün proje yeniden üretilmez.
 
