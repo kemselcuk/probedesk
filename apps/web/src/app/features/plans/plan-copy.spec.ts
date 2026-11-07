@@ -90,6 +90,27 @@ describe('PlanCopyFacade', () => {
     expect(facade.pending()).toBe(false);
   });
 
+  it('rejects a source response for another version without posting a copy', () => {
+    const facade = TestBed.inject(PlanCopyFacade),
+      http = TestBed.inject(HttpTestingController);
+    facade.loadSource(VERSION);
+    http.expectOne(`/api/plan-versions/${VERSION}`).flush({ ...SOURCE, id: NEW_PLAN });
+    expect(facade.source()).toBeNull();
+    expect(facade.sourceError()?.code).toBe('MALFORMED_API_RESPONSE');
+    facade.submit('Copy');
+    http.expectNone(COPY_URL);
+  });
+
+  it('rejects a success response pointing back to the source plan', () => {
+    const { facade, http } = load();
+    facade.submit('Copy');
+    const request = http.expectOne(COPY_URL);
+    expect(request.request.method).toBe('POST');
+    request.flush({ ...RESPONSE, planId: PLAN });
+    expect(facade.result()).toBeNull();
+    expect(facade.error()?.code).toBe('MALFORMED_API_RESPONSE');
+  });
+
   it('allows source reload after a failed request and never copies an unavailable source', () => {
     const facade = TestBed.inject(PlanCopyFacade),
       http = TestBed.inject(HttpTestingController);
@@ -200,5 +221,47 @@ describe('CopyPlanButton and dialog', () => {
       TestBed.inject(HttpTestingController).expectNone(COPY_URL);
       expect(dialog.querySelector('mat-error')).not.toBeNull();
     }
+  });
+
+  it('does not split a surrogate pair when suggesting a long name', async () => {
+    await open(`${'x'.repeat(92)}😀${'x'.repeat(6)}`);
+    expect((document.querySelector('#copy-plan-name') as HTMLInputElement).value).toBe(
+      `${'x'.repeat(92)} (copy)`,
+    );
+  });
+
+  it('closes a destroyed host overlay and recovers its completed action without another POST', async () => {
+    const first = await open();
+    const dialog = document.querySelector('mat-dialog-container') as HTMLElement;
+    (dialog.querySelector('form') as HTMLFormElement).dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+    const http = TestBed.inject(HttpTestingController);
+    const pending = http.expectOne(COPY_URL);
+    first.destroy();
+    expect(pending.cancelled).toBe(false);
+    await vi.waitFor(() => expect(TestBed.inject(MatDialog).openDialogs.length).toBe(0));
+    pending.flush(RESPONSE);
+    expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
+    const reopened = await open();
+    await reopened.whenStable();
+    http.expectNone(COPY_URL);
+    await vi.waitFor(() =>
+      expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/plans', NEW_PLAN, 'edit']),
+    );
+  });
+
+  it('cancels an idle dialog without creating a plan', async () => {
+    const fixture = await open();
+    const dialog = document.querySelector('mat-dialog-container') as HTMLElement;
+    (
+      Array.from(dialog.querySelectorAll('button')).find(
+        (button) => button.textContent?.trim() === 'Cancel',
+      ) as HTMLButtonElement
+    ).click();
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(TestBed.inject(MatDialog).openDialogs.length).toBe(0));
+    TestBed.inject(HttpTestingController).expectNone(COPY_URL);
+    expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
   });
 });

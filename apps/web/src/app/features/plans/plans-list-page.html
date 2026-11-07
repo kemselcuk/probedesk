@@ -200,7 +200,13 @@
                           {{ plan.draft ? 'Edit draft' : 'Open editor' }}
                         </a>
                         @if (plan.latestPublishedVersion; as version) {
-                          <app-copy-plan-button [versionId]="version.id" [compact]="true" />
+                          <app-copy-plan-button
+                            [versionId]="version.id"
+                            [compact]="true"
+                            [sourceLabel]="
+                              plan.name + ', published version ' + version.versionNumber
+                            "
+                          />
                         }
                       </div>
                     </td>

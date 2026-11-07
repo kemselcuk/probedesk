@@ -143,6 +143,13 @@ describe('PlansListPage', () => {
 
     expect(root.querySelector('table')).not.toBeNull();
     expect(root.querySelectorAll('tbody tr')).toHaveLength(2);
+    expect(root.querySelectorAll('app-copy-plan-button')).toHaveLength(1);
+    expect(
+      root
+        .querySelector(`a[href="/plans/${PLAN_ID}/edit"]`)
+        ?.closest('tr')
+        ?.querySelector('app-copy-plan-button'),
+    ).toBeNull();
     expect(root.querySelector('table caption')?.textContent).toContain(
       'Test plans with their latest published version',
     );
@@ -167,32 +174,36 @@ describe('PlansListPage', () => {
     expect(newPlan?.disabled).toBe(false);
   });
 
-  it('hides draft information and editor affordances from non-Planners', async () => {
-    const harness = await open('VIEWER');
-    const root = rootOf(harness);
-    const http = TestBed.inject(HttpTestingController);
+  it.each(['VIEWER', 'OPERATOR'] as const)(
+    'hides draft information and editor affordances from %s',
+    async (role) => {
+      const harness = await open(role);
+      const root = rootOf(harness);
+      const http = TestBed.inject(HttpTestingController);
 
-    http.expectOne('/api/plans').flush([DRAFT_PLAN, PUBLISHED_PLAN]);
-    await harness.fixture.whenStable();
-    harness.detectChanges();
+      http.expectOne('/api/plans').flush([DRAFT_PLAN, PUBLISHED_PLAN]);
+      await harness.fixture.whenStable();
+      harness.detectChanges();
 
-    expect(root.textContent).not.toContain('Draft in progress');
-    expect(root.textContent).not.toContain('Revision 4');
-    expect(root.textContent).not.toContain('No open draft');
-    expect(root.querySelectorAll('th[scope="col"]')).toHaveLength(2);
-    expect(root.querySelector(`a[href="/plans/${PLAN_ID}/edit"]`)).toBeNull();
-    expect(root.querySelector(`a[href="/plans/${NEW_PLAN_ID}/edit"]`)).toBeNull();
-    expect(
-      root.querySelector<HTMLAnchorElement>(
-        `a[href="/plans/${NEW_PLAN_ID}/versions/${VERSION_ID}"]`,
-      )?.textContent,
-    ).toContain('Version 2');
+      expect(root.querySelector('app-copy-plan-button')).toBeNull();
+      expect(root.textContent).not.toContain('Draft in progress');
+      expect(root.textContent).not.toContain('Revision 4');
+      expect(root.textContent).not.toContain('No open draft');
+      expect(root.querySelectorAll('th[scope="col"]')).toHaveLength(2);
+      expect(root.querySelector(`a[href="/plans/${PLAN_ID}/edit"]`)).toBeNull();
+      expect(root.querySelector(`a[href="/plans/${NEW_PLAN_ID}/edit"]`)).toBeNull();
+      expect(
+        root.querySelector<HTMLAnchorElement>(
+          `a[href="/plans/${NEW_PLAN_ID}/versions/${VERSION_ID}"]`,
+        )?.textContent,
+      ).toContain('Version 2');
 
-    const newPlan = Array.from(root.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('New plan'),
-    );
-    expect(newPlan).toBeUndefined();
-  });
+      const newPlan = Array.from(root.querySelectorAll('button')).find((button) =>
+        button.textContent?.includes('New plan'),
+      );
+      expect(newPlan).toBeUndefined();
+    },
+  );
 
   it('turns a malformed list response into the normal error state', async () => {
     const harness = await open('VIEWER');

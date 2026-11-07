@@ -24,7 +24,7 @@ export interface CopyPlanDialogData {
   ],
   providers: [PlanCopyFacade],
   template: `
-    <h2 mat-dialog-title>Copy as new plan</h2>
+    <h2 mat-dialog-title id="copy-plan-title">Copy as new plan</h2>
     <form [formGroup]="form" (ngSubmit)="submit()">
       <mat-dialog-content>
         @if (facade.sourceLoading()) {
@@ -41,7 +41,7 @@ export interface CopyPlanDialogData {
           <p class="source">
             <strong>{{ source.name }}</strong> · Version {{ source.versionNumber }}
           </p>
-          <p>
+          <p id="copy-plan-description">
             This creates an independent draft with the published steps. The source plan and its run
             history stay unchanged.
           </p>
@@ -140,8 +140,8 @@ export class CopyPlanDialog {
   constructor() {
     this.facade.loadSource(this.data.versionId);
     effect(() => {
-      const source = this.facade.source();
-      if (source !== null) this.form.controls.name.setValue(`${source.name.slice(0, 93)} (copy)`);
+      const name = this.facade.initialName();
+      if (name) this.form.controls.name.setValue(name);
     });
     effect(() => {
       this.ref.disableClose = this.facade.pending();

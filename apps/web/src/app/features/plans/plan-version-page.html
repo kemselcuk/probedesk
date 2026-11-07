@@ -9,7 +9,10 @@
     <a mat-stroked-button routerLink="/plans">Back to plans</a>
   }
   @if (isPlanner() && facade.versionStatus() === 'loaded' && !versionPlanMismatch()) {
-    <app-copy-plan-button [versionId]="versionId" />
+    <app-copy-plan-button
+      [versionId]="versionId"
+      [sourceLabel]="headerTitle() + ', version ' + facade.version()?.versionNumber"
+    />
   }
   @if (isOperator() && facade.versionStatus() === 'loaded' && !versionPlanMismatch()) {
     <a
