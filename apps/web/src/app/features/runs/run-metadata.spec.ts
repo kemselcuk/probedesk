@@ -14,6 +14,13 @@ describe('stored run metadata', () => {
   it('preserves the copied device and display batch', () => {
     expect(parseRunMetadata(metadata, 'test')).toEqual(metadata);
   });
+  it('accepts 100 Unicode code points and rejects 101', () => {
+    const valid = { ...metadata, deviceSnapshot: { ...device, name: '😀'.repeat(100) } };
+    expect(parseRunMetadata(valid, 'test').deviceSnapshot?.name).toBe(valid.deviceSnapshot.name);
+    expect(() =>
+      parseRunMetadata({ ...valid, deviceSnapshot: { ...device, name: '😀'.repeat(101) } }, 'test'),
+    ).toThrow();
+  });
   it('supports legacy SQL-null metadata and a device-less batch', () => {
     expect(
       parseRunMetadata({ deviceId: null, deviceSnapshot: null, batchNumber: null }, 'test'),

@@ -152,7 +152,7 @@ Kullanıcı özellik paketi 1’in (dört özellik) uygulanmasını yetkilendird
 | [EX-01 — Paket sözleşmeleri ve görev izlenebilirliği](EX-01.md) | Lead                   | Accepted  |
 | [EX-02 — Device ve kopyalama veri modeli](EX-02.md)             | A                      | Accepted  |
 | [EX-03 — Cihaz API ve eklemeli demo seed](EX-03.md)             | A                      | Accepted  |
-| [EX-04 — Run cihaz metadata ve geçmiş filtreleri](EX-04.md)     | A                      | In Review |
+| [EX-04 — Run cihaz metadata ve geçmiş filtreleri](EX-04.md)     | A                      | Accepted  |
 | [EX-05 — Cihaz ve run metadata frontend](EX-05.md)              | Lead                   | Planned   |
 | [EX-06 — Yayımlanmış plandan bağımsız kopya API](EX-06.md)      | C                      | Accepted  |
 | [EX-07 — Plan kopyalama frontend](EX-07.md)                     | Lead                   | In Review |

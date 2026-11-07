@@ -40,8 +40,8 @@ export function parseRunMetadata(record: Record<string, unknown>, endpoint: stri
     typeof device['deviceProfileId'] !== 'string' ||
     !UUID.test(device['deviceProfileId']) ||
     typeof device['name'] !== 'string' ||
-    device['name'].length < 1 ||
-    device['name'].length > 100 ||
+    Array.from(device['name']).length < 1 ||
+    Array.from(device['name']).length > 100 ||
     typeof device['serialNumber'] !== 'string' ||
     !/^[A-Za-z0-9._:/-]{1,100}$/.test(device['serialNumber'])
   )
