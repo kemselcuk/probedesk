@@ -2080,6 +2080,227 @@
         ]
       }
     },
+    "/api/runs/{id}/report": {
+      "get": {
+        "operationId": "ReportsController_getReport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Run id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One consistent projection of the terminal run, its copied step rules, stored statistics and recorded samples. schemaVersion is 1. A RUNNING run is rejected with RUN_NOT_TERMINAL; COMPLETED, CANCELLED, INTERRUPTED and ERROR are readable, including partial and empty data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The run id is not a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have a report-reading role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The run does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RUN_NOT_TERMINAL when the run is still RUNNING. The response contains a safe status detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read the versioned report projection of a terminal run from its immutable snapshot.",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/runs/{id}/export": {
+      "get": {
+        "operationId": "ReportsController_exportRun",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Run id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": true,
+            "in": "query",
+            "description": "csv produces UTF-8 BOM, comma-delimited CRLF rows with RFC 4180 quoting; json produces the same schemaVersion=1 report projection.",
+            "schema": {
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment response with Cache-Control: no-store. The filename is derived only from the canonical run UUID. CSV rows contain one line per actually recorded measurement, ordered by step position and sample index; JSON preserves decimal strings.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "UTF-8 CSV document starting with a BOM. Header-only when the run has no recorded measurements."
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The run id is not a UUID, format is missing or not csv/json, or an unknown query parameter was supplied.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have a report-reading role.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The run does not exist.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RUN_NOT_TERMINAL when the run is still RUNNING. Terminal statuses are all exportable.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Download a terminal run report as a CSV or JSON attachment built from the same immutable projection.",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/comparisons": {
       "get": {
         "operationId": "ComparisonsController_compare",
@@ -3917,6 +4138,319 @@
           "draftRevisionId",
           "sourceVersionId",
           "replayed"
+        ]
+      },
+      "RunReportStepDto": {
+        "type": "object",
+        "properties": {
+          "runStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "number",
+            "minimum": 1,
+            "description": "1-based step order inside this run."
+          },
+          "name": {
+            "type": "string",
+            "example": "Output voltage"
+          },
+          "unit": {
+            "type": "string",
+            "example": "V"
+          },
+          "minimum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "4.750000"
+          },
+          "maximum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.250000"
+          },
+          "sampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "example": 100
+          },
+          "intervalMs": {
+            "type": "number",
+            "minimum": 100,
+            "maximum": 5000,
+            "example": 250
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR",
+              "NOT_RUN"
+            ],
+            "example": "COMPLETED"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Stored step verdict. Null unless the step completed; partial steps keep their recorded samples."
+          },
+          "recordedCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 100
+          },
+          "outOfToleranceCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "firstFailureSampleIndex": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "example": null
+          },
+          "hasOutOfTolerance": {
+            "type": "boolean",
+            "example": false,
+            "description": "True exactly when outOfToleranceCount is greater than zero."
+          },
+          "statistics": {
+            "description": "Stored summary for a completed step; every numeric member is null for a partial step.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunStepStatisticsDto"
+              }
+            ]
+          },
+          "measurements": {
+            "description": "Only the samples actually recorded, ordered by ascending sampleIndex. Missing samples are never invented.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunMeasurementDto"
+            }
+          }
+        },
+        "required": [
+          "runStepId",
+          "logicalStepId",
+          "position",
+          "name",
+          "unit",
+          "minimum",
+          "maximum",
+          "sampleCount",
+          "intervalMs",
+          "status",
+          "outcome",
+          "recordedCount",
+          "outOfToleranceCount",
+          "firstFailureSampleIndex",
+          "hasOutOfTolerance",
+          "statistics",
+          "measurements"
+        ]
+      },
+      "RunReportDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ],
+            "example": 1,
+            "description": "Report projection schema version."
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC time at which this projection was generated."
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "profile": {
+            "$ref": "#/components/schemas/DeviceProfileDto"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied at start. Later device edits never change it.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "description": "Batch display value copied at start, or null when the run had no batch."
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "example": "NORMAL"
+          },
+          "seed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4294967295,
+            "example": 123456789
+          },
+          "errorProbability": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d+\\.\\d{6}$",
+            "description": "Canonical six-place probability for RANDOM, otherwise null."
+          },
+          "failureStepId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "Logical step selected for FORCED_FAILURE, otherwise null."
+          },
+          "simulatorVersion": {
+            "type": "string",
+            "example": "sim-v1"
+          },
+          "evaluationVersion": {
+            "type": "string",
+            "example": "decimal-v1"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "COMPLETED"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Overall verdict; only a COMPLETED run has one."
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Safe technical reason code for a terminal non-success."
+          },
+          "expectedSampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10000,
+            "example": 6
+          },
+          "recordedSampleCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 6
+          },
+          "requestedBy": {
+            "description": "Public requester summary. Session and password fields are never included.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunRequestedByDto"
+              }
+            ]
+          },
+          "steps": {
+            "description": "Steps ordered by ascending position.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunReportStepDto"
+            }
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "generatedAt",
+          "runId",
+          "planId",
+          "planVersionId",
+          "planName",
+          "versionNumber",
+          "profile",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
+          "scenario",
+          "seed",
+          "errorProbability",
+          "failureStepId",
+          "simulatorVersion",
+          "evaluationVersion",
+          "startedAt",
+          "finishedAt",
+          "status",
+          "outcome",
+          "reasonCode",
+          "expectedSampleCount",
+          "recordedSampleCount",
+          "requestedBy",
+          "steps"
         ]
       },
       "ComparisonVersionDifferenceDto": {

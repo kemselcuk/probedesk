@@ -52,6 +52,8 @@ describe('OpenAPI document (e2e)', () => {
       '/api/runs/{id}',
       '/api/runs/{id}/cancel',
       '/api/runs/{id}/events',
+      '/api/runs/{id}/export',
+      '/api/runs/{id}/report',
     ]);
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(

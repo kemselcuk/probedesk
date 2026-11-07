@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module.js';
 import { PlansModule } from './plans/plans.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RunsModule } from './runs/runs.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { RunsModule } from './runs/runs.module.js';
     DevicesModule,
     PlansModule,
     RunsModule,
+    ReportsModule,
     ComparisonsModule,
   ],
 })

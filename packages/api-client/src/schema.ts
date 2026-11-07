@@ -411,6 +411,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the versioned report projection of a terminal run from its immutable snapshot. */
+        get: operations["ReportsController_getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a terminal run report as a CSV or JSON attachment built from the same immutable projection. */
+        get: operations["ReportsController_exportRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/comparisons": {
         parameters: {
             query?: never;
@@ -1144,6 +1178,126 @@ export interface components {
             sourceVersionId: string;
             /** @description True when an earlier request for the same user, Idempotency-Key and canonical request is replayed. */
             replayed: boolean;
+        };
+        RunReportStepDto: {
+            /** Format: uuid */
+            runStepId: string;
+            /** Format: uuid */
+            logicalStepId: string;
+            /** @description 1-based step order inside this run. */
+            position: number;
+            /** @example Output voltage */
+            name: string;
+            /** @example V */
+            unit: string;
+            /** @example 4.750000 */
+            minimum: string;
+            /** @example 5.250000 */
+            maximum: string;
+            /** @example 100 */
+            sampleCount: number;
+            /** @example 250 */
+            intervalMs: number;
+            /**
+             * @example COMPLETED
+             * @enum {string}
+             */
+            status: "PENDING" | "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR" | "NOT_RUN";
+            /**
+             * @description Stored step verdict. Null unless the step completed; partial steps keep their recorded samples.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** @example 100 */
+            recordedCount: number;
+            /** @example 0 */
+            outOfToleranceCount: number;
+            /** @example null */
+            firstFailureSampleIndex: number | null;
+            /**
+             * @description True exactly when outOfToleranceCount is greater than zero.
+             * @example false
+             */
+            hasOutOfTolerance: boolean;
+            /** @description Stored summary for a completed step; every numeric member is null for a partial step. */
+            statistics: components["schemas"]["RunStepStatisticsDto"];
+            /** @description Only the samples actually recorded, ordered by ascending sampleIndex. Missing samples are never invented. */
+            measurements: components["schemas"]["RunMeasurementDto"][];
+        };
+        RunReportDto: {
+            /**
+             * @description Report projection schema version.
+             * @example 1
+             * @enum {number}
+             */
+            schemaVersion: 1;
+            /**
+             * Format: date-time
+             * @description UTC time at which this projection was generated.
+             */
+            generatedAt: string;
+            /** Format: uuid */
+            runId: string;
+            /** Format: uuid */
+            planId: string;
+            /** Format: uuid */
+            planVersionId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example 1 */
+            versionNumber: number;
+            profile: components["schemas"]["DeviceProfileDto"];
+            /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied at start. Later device edits never change it. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /** @description Batch display value copied at start, or null when the run had no batch. */
+            batchNumber: string | null;
+            /**
+             * @example NORMAL
+             * @enum {string}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+            /** @example 123456789 */
+            seed: number;
+            /** @description Canonical six-place probability for RANDOM, otherwise null. */
+            errorProbability: string | null;
+            /**
+             * Format: uuid
+             * @description Logical step selected for FORCED_FAILURE, otherwise null.
+             */
+            failureStepId: string | null;
+            /** @example sim-v1 */
+            simulatorVersion: string;
+            /** @example decimal-v1 */
+            evaluationVersion: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            /**
+             * @example COMPLETED
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+            /**
+             * @description Overall verdict; only a COMPLETED run has one.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** @description Safe technical reason code for a terminal non-success. */
+            reasonCode: string | null;
+            /** @example 6 */
+            expectedSampleCount: number;
+            /** @example 6 */
+            recordedSampleCount: number;
+            /** @description Public requester summary. Session and password fields are never included. */
+            requestedBy: components["schemas"]["RunRequestedByDto"];
+            /** @description Steps ordered by ascending position. */
+            steps: components["schemas"]["RunReportStepDto"][];
         };
         ComparisonVersionDifferenceDto: {
             /**
@@ -2761,6 +2915,151 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    ReportsController_getReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Run id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One consistent projection of the terminal run, its copied step rules, stored statistics and recorded samples. schemaVersion is 1. A RUNNING run is rejected with RUN_NOT_TERMINAL; COMPLETED, CANCELLED, INTERRUPTED and ERROR are readable, including partial and empty data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunReportDto"];
+                };
+            };
+            /** @description The run id is not a UUID. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user does not have a report-reading role. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The run does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description RUN_NOT_TERMINAL when the run is still RUNNING. The response contains a safe status detail. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    ReportsController_exportRun: {
+        parameters: {
+            query: {
+                /** @description csv produces UTF-8 BOM, comma-delimited CRLF rows with RFC 4180 quoting; json produces the same schemaVersion=1 report projection. */
+                format: "csv" | "json";
+            };
+            header?: never;
+            path: {
+                /** @description Run id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Attachment response with Cache-Control: no-store. The filename is derived only from the canonical run UUID. CSV rows contain one line per actually recorded measurement, ordered by step position and sample index; JSON preserves decimal strings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                    "application/json": components["schemas"]["RunReportDto"];
+                };
+            };
+            /** @description The run id is not a UUID, format is missing or not csv/json, or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ApiErrorDto"];
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ApiErrorDto"];
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user does not have a report-reading role. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ApiErrorDto"];
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The run does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ApiErrorDto"];
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description RUN_NOT_TERMINAL when the run is still RUNNING. Terminal statuses are all exportable. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["ApiErrorDto"];
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
