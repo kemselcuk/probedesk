@@ -44,6 +44,18 @@ export const routes: Routes = [
           import('./features/plans/plan-version-page').then((module) => module.PlanVersionPage),
       },
       {
+        path: 'devices',
+        title: 'Devices',
+        loadComponent: () =>
+          import('./features/devices/devices-page').then((module) => module.DevicesPage),
+      },
+      {
+        path: 'devices/:deviceId',
+        title: 'Device',
+        loadComponent: () =>
+          import('./features/devices/device-detail-page').then((module) => module.DeviceDetailPage),
+      },
+      {
         path: 'runs',
         title: 'Run History',
         loadComponent: () =>

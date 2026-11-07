@@ -3,6 +3,9 @@
   subtitle="Recorded runs across plans, with filters and comparison selection."
 />
 
+@if(currentQuery().deviceId; as deviceId) {
+  <p class="filter-warning" role="status">Showing runs recorded for this device. <a [routerLink]="['/devices',deviceId]">View current device</a></p>
+}
 <mat-card class="filters-card" appearance="outlined">
   <form
     [formGroup]="filters"
@@ -285,6 +288,8 @@
                           · Plan {{ run.planId.slice(0, 8) }}
                         }
                       </span>
+                      <span class="cell-detail">{{ run.deviceSnapshot ? run.deviceSnapshot.name + ' · ' + run.deviceSnapshot.serialNumber : 'No device recorded' }}</span>
+                      <span class="cell-detail">{{ run.batchNumber ? 'Batch ' + run.batchNumber : 'No batch recorded' }}</span>
                       @if (run.firstFailure; as failure) {
                         <span class="cell-detail failure-detail">
                           First failure: Step {{ failure.stepPosition }}: {{ failure.stepName }} ·

@@ -232,6 +232,31 @@ describe('RunHistoryPage', () => {
     expect(root.querySelector('app-run-history-page a[href="/compare"]')).toBeNull();
   });
 
+  it('preserves a device deep link while filtering and clears it explicitly', async () => {
+    const deviceId = '99999999-9999-4999-8999-999999999999';
+    const harness = await open(`/runs?deviceId=${deviceId}`);
+    respondToPlans();
+    const initial = expectHistoryRequest();
+    expect(initial.request.params.get('deviceId')).toBe(deviceId);
+    initial.flush(historyPage([historyItem({ deviceId, deviceSnapshot: { id:deviceId, name:'Recorded bench', serialNumber:'PSU-OLD', deviceProfileId:PLAN_ID }, batchNumber:'Lot-1' })]));
+    await settle(harness);
+    const root = rootOf(harness);
+    expect(root.textContent).toContain('Recorded bench · PSU-OLD');
+    expect(root.textContent).toContain('Batch Lot-1');
+    expect(root.querySelector(`a[href="/devices/${deviceId}"]`)).not.toBeNull();
+    selectValue(root, '#history-status', 'COMPLETED');
+    await settle(harness);
+    const filtered = expectHistoryRequest();
+    expect(filtered.request.params.get('deviceId')).toBe(deviceId);
+    filtered.flush(historyPage([]));
+    await settle(harness);
+    root.querySelector<HTMLButtonElement>('#clear-history-filters')?.click();
+    await settle(harness);
+    const cleared = expectHistoryRequest();
+    expect(cleared.request.params.has('deviceId')).toBe(false);
+    cleared.flush(historyPage([]));
+  });
+
   it('restores every filter and the page number from the URL and maps dates to UTC boundaries', async () => {
     const harness = await open(
       `/runs?planId=${PLAN_ID}&status=COMPLETED&outcome=FAILED&from=2026-11-01&to=2026-11-03&page=2`,

@@ -56,6 +56,7 @@ type OutcomeFilter = 'PASSED' | 'FAILED' | '';
 
 interface HistoryUrlState {
   readonly planId: string;
+  readonly deviceId: string;
   readonly status: RunStatus | '';
   readonly outcome: OutcomeFilter;
   readonly from: string;
@@ -137,6 +138,7 @@ export class RunHistoryPage {
 
   protected readonly filters = inject(NonNullableFormBuilder).group({
     planId: '',
+    deviceId: '',
     status: '' as RunStatus | '',
     outcome: '' as OutcomeFilter,
     from: new FormControl<Date | null>(null),
@@ -147,6 +149,7 @@ export class RunHistoryPage {
     const query = this.currentQuery();
     return (
       query.planId !== undefined ||
+      query.deviceId !== undefined ||
       query.status !== undefined ||
       query.outcome !== undefined ||
       query.from !== undefined ||
@@ -283,6 +286,7 @@ export class RunHistoryPage {
       relativeTo: this.route,
       queryParams: {
         planId: filters.planId.length > 0 ? filters.planId : null,
+        deviceId: filters.deviceId || null,
         status: filters.status.length > 0 ? filters.status : null,
         outcome: filters.outcome.length > 0 ? filters.outcome : null,
         from: filters.from.length > 0 ? filters.from : null,
@@ -296,6 +300,7 @@ export class RunHistoryPage {
   protected clearFilters(): void {
     this.syncForm({
       planId: '',
+    deviceId: '',
       status: '',
       outcome: '',
       from: '',
@@ -326,6 +331,7 @@ export class RunHistoryPage {
       relativeTo: this.route,
       queryParams: {
         planId: filters.planId.length > 0 ? filters.planId : null,
+        deviceId: filters.deviceId || null,
         status: filters.status.length > 0 ? filters.status : null,
         outcome: filters.outcome.length > 0 ? filters.outcome : null,
         from: filters.from.length > 0 ? filters.from : null,
@@ -509,6 +515,7 @@ export class RunHistoryPage {
     this.filters.setValue(
       {
         planId: filters.planId,
+        deviceId: filters.deviceId,
         status: filters.status,
         outcome: filters.outcome,
         from: parseCalendarDate(filters.from),
@@ -522,6 +529,7 @@ export class RunHistoryPage {
     const value = this.filters.getRawValue();
     return {
       planId: value.planId,
+      deviceId: value.deviceId,
       status: RUN_STATUSES.includes(value.status as RunStatus) ? (value.status as RunStatus) : '',
       outcome: value.outcome === 'PASSED' || value.outcome === 'FAILED' ? value.outcome : '',
       from: formatCalendarDate(value.from),
@@ -534,6 +542,9 @@ export class RunHistoryPage {
 function readUrlState(params: ParamMap): ParsedHistoryUrl {
   const invalid: InvalidUrlFilter[] = [];
   const planIdValue = params.get('planId');
+  const rawDevice = params.get('deviceId') ?? '';
+  const deviceId = UUID_PATTERN.test(rawDevice) ? rawDevice : '';
+  if(rawDevice && !deviceId) invalid.push({label:'Device',value:rawDevice});
   const statusValue = params.get('status');
   const outcomeValue = params.get('outcome');
   const fromValue = params.get('from');
@@ -581,6 +592,7 @@ function readUrlState(params: ParamMap): ParsedHistoryUrl {
   return {
     state: {
       planId,
+      deviceId,
       status,
       outcome,
       from,
@@ -624,6 +636,7 @@ function toServerQuery(filters: HistoryUrlState): RunHistoryQuery {
 
   return {
     ...(filters.planId.length > 0 ? { planId: filters.planId } : {}),
+    ...(filters.deviceId ? {deviceId:filters.deviceId} : {}),
     ...(status !== '' ? { status } : {}),
     ...(outcome !== '' ? { outcome } : {}),
     ...(filters.from.length > 0 ? { from: toUtcStart(filters.from) } : {}),

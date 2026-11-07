@@ -187,4 +187,4 @@ UI-10: Grafana tablo referansına göre içerik genişliği, veri hizası ve pan
 
 ## Özellik paketi 1 — 2026-11-06
 
-Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01/EX-02/EX-03/EX-04/EX-06 Accepted; EX-07 In Review; diğer EX kartları Planned. Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Main merge bu yetkinin parçası değil.
+Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01/EX-02/EX-03/EX-04/EX-06 Accepted; EX-05 In Progress; EX-07 In Review; diğer EX kartları Planned. Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Main merge bu yetkinin parçası değil.

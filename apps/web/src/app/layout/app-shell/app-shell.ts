@@ -16,13 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavContent, MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import {
-  NavigationEnd,
-  Router,
-  RouterLink,
-  RouterLinkActive,
-  RouterOutlet,
-} from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import { roleLabel } from '../../core/auth/auth.types';
@@ -31,11 +25,12 @@ import { UnsavedChangesService } from '../../core/navigation/unsaved-changes.ser
 interface NavigationItem {
   readonly path: string;
   readonly label: string;
-  readonly icon: 'plans' | 'history' | 'compare';
+  readonly icon: 'plans' | 'history' | 'compare' | 'devices';
 }
 
 const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { path: '/plans', label: 'Test Plans', icon: 'plans' },
+  { path: '/devices', label: 'Devices', icon: 'devices' },
   { path: '/runs', label: 'Run History', icon: 'history' },
   { path: '/compare', label: 'Compare Runs', icon: 'compare' },
 ];
@@ -71,9 +66,7 @@ export class AppShell {
   private readonly mobileNavigationOpen = signal(false);
   private readonly signOutPromptOpen = signal(false);
 
-  protected readonly navMode = computed(() =>
-    this.compactViewport() ? 'over' : 'side',
-  );
+  protected readonly navMode = computed(() => (this.compactViewport() ? 'over' : 'side'));
 
   protected readonly sidenavOpened = computed(() =>
     this.compactViewport() ? this.mobileNavigationOpen() : true,
@@ -83,12 +76,8 @@ export class AppShell {
 
   protected readonly userEmail = computed(() => this.auth.user()?.email ?? null);
 
-  protected readonly canCreatePlan = computed(
-    () => this.auth.role() === 'PLANNER',
-  );
-  protected readonly canStartRun = computed(
-    () => this.auth.role() === 'OPERATOR',
-  );
+  protected readonly canCreatePlan = computed(() => this.auth.role() === 'PLANNER');
+  protected readonly canStartRun = computed(() => this.auth.role() === 'OPERATOR');
 
   constructor() {
     this.watchViewport();
@@ -182,10 +171,7 @@ export class AppShell {
           void this.router.navigateByUrl('/login');
         },
         error: () => {
-          this.notify(
-            'error',
-            this.auth.error()?.message ?? 'Sign out failed. Please try again.',
-          );
+          this.notify('error', this.auth.error()?.message ?? 'Sign out failed. Please try again.');
         },
       });
   }
@@ -217,10 +203,7 @@ export class AppShell {
   }
 
   private watchViewport(): void {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return;
     }
 
