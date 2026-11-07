@@ -1,3 +1,4 @@
+import { AnalyticsModule } from './analytics/analytics.module.js';
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module.js';
 import { ComparisonsModule } from './comparisons/comparisons.module.js';
@@ -21,6 +22,7 @@ import { ReportsModule } from './reports/reports.module.js';
     PlansModule,
     RunsModule,
     ReportsModule,
+    AnalyticsModule,
     ComparisonsModule,
   ],
 })

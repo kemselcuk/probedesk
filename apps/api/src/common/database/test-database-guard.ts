@@ -129,3 +129,30 @@ export function requireSafeTestDatabaseReset(
 ): URL {
   return requireTestDatabaseUrl(environment);
 }
+
+/** Application test bootstraps must receive the already-mapped isolated URL. */
+export function requireIsolatedApplicationDatabase(
+  environment: TestDatabaseEnvironment,
+): URL {
+  if (
+    environment.NODE_ENV !== 'test' ||
+    !environment.DATABASE_URL ||
+    !environment.TEST_DATABASE_URL
+  ) {
+    throw new UnsafeTestDatabaseError(
+      'Refusing to boot a test application without an explicit test environment and both database URLs.',
+    );
+  }
+  const url = parseConnectionUrl(environment.DATABASE_URL, 'DATABASE_URL');
+  if (
+    databaseIdentity(url.toString()) !==
+      databaseIdentity(environment.TEST_DATABASE_URL) ||
+    normaliseDatabaseHost(url.hostname) !== 'localhost' ||
+    !/_test$/i.test(decodeURIComponent(url.pathname))
+  ) {
+    throw new UnsafeTestDatabaseError(
+      'Refusing to boot a test application unless its database matches a loopback test database.',
+    );
+  }
+  return url;
+}

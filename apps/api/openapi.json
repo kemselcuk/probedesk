@@ -2217,11 +2217,6 @@
           "400": {
             "description": "The run id is not a UUID, format is missing or not csv/json, or an unknown query parameter was supplied.",
             "content": {
-              "text/csv": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              },
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorDto"
@@ -2232,11 +2227,6 @@
           "401": {
             "description": "The session is missing, expired or revoked.",
             "content": {
-              "text/csv": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              },
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorDto"
@@ -2247,11 +2237,6 @@
           "403": {
             "description": "The user does not have a report-reading role.",
             "content": {
-              "text/csv": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              },
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorDto"
@@ -2262,11 +2247,6 @@
           "404": {
             "description": "The run does not exist.",
             "content": {
-              "text/csv": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              },
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorDto"
@@ -2277,11 +2257,6 @@
           "409": {
             "description": "RUN_NOT_TERMINAL when the run is still RUNNING. Terminal statuses are all exportable.",
             "content": {
-              "text/csv": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorDto"
-                }
-              },
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorDto"
@@ -2298,6 +2273,132 @@
         "summary": "Download a terminal run report as a CSV or JSON attachment built from the same immutable projection.",
         "tags": [
           "reports"
+        ]
+      }
+    },
+    "/api/analytics/overview": {
+      "get": {
+        "operationId": "AnalyticsController_overview",
+        "parameters": [
+          {
+            "name": "batchNumber",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "BATCH-2026-001"
+            },
+            "description": "Only runs with this batch. The comparison uses the canonical uppercase key, so display case does not matter."
+          },
+          {
+            "name": "deviceId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs started with this device. Unknown ids return an empty overview."
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-10-01T00:00:00.000Z"
+            },
+            "description": "Inclusive UTC lower bound for run.startedAt. Must include an explicit timezone."
+          },
+          {
+            "name": "planId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs of this plan. Unknown ids return an empty overview."
+          },
+          {
+            "name": "planVersionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs of this published version. When planId is also present it must belong to that plan; an unknown version returns an empty overview."
+          },
+          {
+            "name": "scenario",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NORMAL",
+                "FORCED_FAILURE",
+                "RANDOM"
+              ],
+              "example": "NORMAL"
+            },
+            "description": "Only runs with this simulator scenario."
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-10-31T00:00:00.000Z"
+            },
+            "description": "Exclusive UTC upper bound for run.startedAt. The range is [from, to) and may span at most 366 days."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary totals, every UTC day intersecting [from, to), and at most ten failing step groups. Decimal KPI values are backend-rounded strings; null means no applicable sample.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsOverviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "from/to is missing or malformed, the range is empty or wider than 366 days, a filter is invalid, or an unknown query parameter was supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read dashboard KPIs, the UTC daily trend and the top failing steps from one consistent snapshot.",
+        "tags": [
+          "analytics"
         ]
       }
     },
@@ -4451,6 +4552,304 @@
           "recordedSampleCount",
           "requestedBy",
           "steps"
+        ]
+      },
+      "AnalyticsOverviewFiltersDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Canonical UTC inclusive lower bound actually applied."
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Canonical UTC exclusive upper bound actually applied."
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Applied plan filter, or null."
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Applied published version filter, or null."
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Applied device filter, or null."
+          },
+          "batchNumber": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true,
+            "example": "BATCH-2026-001",
+            "description": "Applied canonical uppercase batch key, or null. Filtering is exact and case-insensitive on the stored key."
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "nullable": true,
+            "description": "Applied scenario filter, or null."
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "planId",
+          "planVersionId",
+          "deviceId",
+          "batchNumber",
+          "scenario"
+        ]
+      },
+      "AnalyticsOverviewSummaryDto": {
+        "type": "object",
+        "properties": {
+          "totalRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 42
+          },
+          "completedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 30
+          },
+          "passedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 25
+          },
+          "failedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 5
+          },
+          "runningRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "cancelledRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 2
+          },
+          "interruptedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "errorRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "passRatePercent": {
+            "type": "string",
+            "nullable": true,
+            "example": "83.33",
+            "description": "100 × passedRuns / completedRuns, rounded half-up to two decimal places by PostgreSQL numeric. Null when completedRuns is zero."
+          },
+          "averageDurationMs": {
+            "type": "string",
+            "nullable": true,
+            "example": "2500.000",
+            "description": "Mean finishedAt-startedAt duration of COMPLETED runs with a finish time, rounded half-up to three decimal places. Null when no sample exists."
+          }
+        },
+        "required": [
+          "totalRuns",
+          "completedRuns",
+          "passedRuns",
+          "failedRuns",
+          "runningRuns",
+          "cancelledRuns",
+          "interruptedRuns",
+          "errorRuns",
+          "passRatePercent",
+          "averageDurationMs"
+        ]
+      },
+      "AnalyticsOverviewTrendDayDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-10-01",
+            "description": "UTC calendar day (YYYY-MM-DD)."
+          },
+          "totalRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 4
+          },
+          "completedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 3
+          },
+          "passedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 2
+          },
+          "failedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "runningRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "cancelledRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "interruptedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "errorRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "passRatePercent": {
+            "type": "string",
+            "nullable": true,
+            "example": "66.67",
+            "description": "Day pass rate as a two-decimal half-up string, or null when the day has no COMPLETED run."
+          }
+        },
+        "required": [
+          "date",
+          "totalRuns",
+          "completedRuns",
+          "passedRuns",
+          "failedRuns",
+          "runningRuns",
+          "cancelledRuns",
+          "interruptedRuns",
+          "errorRuns",
+          "passRatePercent"
+        ]
+      },
+      "AnalyticsOverviewTopFailedStepDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "stepName": {
+            "type": "string",
+            "example": "Output Voltage"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 3
+          },
+          "unit": {
+            "type": "string",
+            "example": "V"
+          },
+          "completedStepRuns": {
+            "type": "number",
+            "minimum": 1,
+            "example": 10,
+            "description": "COMPLETED steps in COMPLETED runs for this plan/version/logical step/unit group."
+          },
+          "failedStepRuns": {
+            "type": "number",
+            "minimum": 1,
+            "example": 4,
+            "description": "COMPLETED steps whose recorded outcome is FAILED."
+          },
+          "failureRatePercent": {
+            "type": "string",
+            "nullable": true,
+            "example": "40.00",
+            "description": "100 × failedStepRuns / completedStepRuns, rounded half-up to two decimal places. Null only when the denominator is zero."
+          }
+        },
+        "required": [
+          "planId",
+          "planVersionId",
+          "logicalStepId",
+          "planName",
+          "stepName",
+          "versionNumber",
+          "unit",
+          "completedStepRuns",
+          "failedStepRuns",
+          "failureRatePercent"
+        ]
+      },
+      "AnalyticsOverviewDto": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Transaction snapshot timestamp. Summary, trend and top steps all come from the same repeatable-read snapshot."
+          },
+          "filters": {
+            "$ref": "#/components/schemas/AnalyticsOverviewFiltersDto"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AnalyticsOverviewSummaryDto"
+          },
+          "trend": {
+            "description": "Every UTC day intersecting the range, including zero-count days.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsOverviewTrendDayDto"
+            }
+          },
+          "topFailedSteps": {
+            "description": "At most ten failing step groups ordered by failedStepRuns DESC, completedStepRuns DESC and permanent ids.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsOverviewTopFailedStepDto"
+            }
+          }
+        },
+        "required": [
+          "asOf",
+          "filters",
+          "summary",
+          "trend",
+          "topFailedSteps"
         ]
       },
       "ComparisonVersionDifferenceDto": {

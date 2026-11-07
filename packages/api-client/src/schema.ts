@@ -445,6 +445,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/analytics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read dashboard KPIs, the UTC daily trend and the top failing steps from one consistent snapshot. */
+        get: operations["AnalyticsController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/comparisons": {
         parameters: {
             query?: never;
@@ -1298,6 +1315,144 @@ export interface components {
             requestedBy: components["schemas"]["RunRequestedByDto"];
             /** @description Steps ordered by ascending position. */
             steps: components["schemas"]["RunReportStepDto"][];
+        };
+        AnalyticsOverviewFiltersDto: {
+            /**
+             * Format: date-time
+             * @description Canonical UTC inclusive lower bound actually applied.
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description Canonical UTC exclusive upper bound actually applied.
+             */
+            to: string;
+            /**
+             * Format: uuid
+             * @description Applied plan filter, or null.
+             */
+            planId: string | null;
+            /**
+             * Format: uuid
+             * @description Applied published version filter, or null.
+             */
+            planVersionId: string | null;
+            /**
+             * Format: uuid
+             * @description Applied device filter, or null.
+             */
+            deviceId: string | null;
+            /**
+             * @description Applied canonical uppercase batch key, or null. Filtering is exact and case-insensitive on the stored key.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
+            /**
+             * @description Applied scenario filter, or null.
+             * @enum {string|null}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM" | null;
+        };
+        AnalyticsOverviewSummaryDto: {
+            /** @example 42 */
+            totalRuns: number;
+            /** @example 30 */
+            completedRuns: number;
+            /** @example 25 */
+            passedRuns: number;
+            /** @example 5 */
+            failedRuns: number;
+            /** @example 1 */
+            runningRuns: number;
+            /** @example 2 */
+            cancelledRuns: number;
+            /** @example 1 */
+            interruptedRuns: number;
+            /** @example 1 */
+            errorRuns: number;
+            /**
+             * @description 100 × passedRuns / completedRuns, rounded half-up to two decimal places by PostgreSQL numeric. Null when completedRuns is zero.
+             * @example 83.33
+             */
+            passRatePercent: string | null;
+            /**
+             * @description Mean finishedAt-startedAt duration of COMPLETED runs with a finish time, rounded half-up to three decimal places. Null when no sample exists.
+             * @example 2500.000
+             */
+            averageDurationMs: string | null;
+        };
+        AnalyticsOverviewTrendDayDto: {
+            /**
+             * Format: date
+             * @description UTC calendar day (YYYY-MM-DD).
+             * @example 2026-10-01
+             */
+            date: string;
+            /** @example 4 */
+            totalRuns: number;
+            /** @example 3 */
+            completedRuns: number;
+            /** @example 2 */
+            passedRuns: number;
+            /** @example 1 */
+            failedRuns: number;
+            /** @example 0 */
+            runningRuns: number;
+            /** @example 1 */
+            cancelledRuns: number;
+            /** @example 0 */
+            interruptedRuns: number;
+            /** @example 0 */
+            errorRuns: number;
+            /**
+             * @description Day pass rate as a two-decimal half-up string, or null when the day has no COMPLETED run.
+             * @example 66.67
+             */
+            passRatePercent: string | null;
+        };
+        AnalyticsOverviewTopFailedStepDto: {
+            /** Format: uuid */
+            planId: string;
+            /** Format: uuid */
+            planVersionId: string;
+            /** Format: uuid */
+            logicalStepId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example Output Voltage */
+            stepName: string;
+            /** @example 3 */
+            versionNumber: number;
+            /** @example V */
+            unit: string;
+            /**
+             * @description COMPLETED steps in COMPLETED runs for this plan/version/logical step/unit group.
+             * @example 10
+             */
+            completedStepRuns: number;
+            /**
+             * @description COMPLETED steps whose recorded outcome is FAILED.
+             * @example 4
+             */
+            failedStepRuns: number;
+            /**
+             * @description 100 × failedStepRuns / completedStepRuns, rounded half-up to two decimal places. Null only when the denominator is zero.
+             * @example 40.00
+             */
+            failureRatePercent: string | null;
+        };
+        AnalyticsOverviewDto: {
+            /**
+             * Format: date-time
+             * @description Transaction snapshot timestamp. Summary, trend and top steps all come from the same repeatable-read snapshot.
+             */
+            asOf: string;
+            filters: components["schemas"]["AnalyticsOverviewFiltersDto"];
+            summary: components["schemas"]["AnalyticsOverviewSummaryDto"];
+            /** @description Every UTC day intersecting the range, including zero-count days. */
+            trend: components["schemas"]["AnalyticsOverviewTrendDayDto"][];
+            /** @description At most ten failing step groups ordered by failedStepRuns DESC, completedStepRuns DESC and permanent ids. */
+            topFailedSteps: components["schemas"]["AnalyticsOverviewTopFailedStepDto"][];
         };
         ComparisonVersionDifferenceDto: {
             /**
@@ -3019,7 +3174,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/csv": components["schemas"]["ApiErrorDto"];
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
@@ -3029,7 +3183,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/csv": components["schemas"]["ApiErrorDto"];
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
@@ -3039,7 +3192,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/csv": components["schemas"]["ApiErrorDto"];
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
@@ -3049,7 +3201,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/csv": components["schemas"]["ApiErrorDto"];
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };
@@ -3059,7 +3210,59 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "text/csv": components["schemas"]["ApiErrorDto"];
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_overview: {
+        parameters: {
+            query: {
+                /** @description Only runs with this batch. The comparison uses the canonical uppercase key, so display case does not matter. */
+                batchNumber?: string;
+                /** @description Only runs started with this device. Unknown ids return an empty overview. */
+                deviceId?: string;
+                /** @description Inclusive UTC lower bound for run.startedAt. Must include an explicit timezone. */
+                from: string;
+                /** @description Only runs of this plan. Unknown ids return an empty overview. */
+                planId?: string;
+                /** @description Only runs of this published version. When planId is also present it must belong to that plan; an unknown version returns an empty overview. */
+                planVersionId?: string;
+                /** @description Only runs with this simulator scenario. */
+                scenario?: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+                /** @description Exclusive UTC upper bound for run.startedAt. The range is [from, to) and may span at most 366 days. */
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary totals, every UTC day intersecting [from, to), and at most ten failing step groups. Decimal KPI values are backend-rounded strings; null means no applicable sample. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsOverviewDto"];
+                };
+            };
+            /** @description from/to is missing or malformed, the range is empty or wider than 366 days, a filter is invalid, or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "application/json": components["schemas"]["ApiErrorDto"];
                 };
             };

@@ -82,7 +82,6 @@ model Device {
   runs            TestRun[]
 
   @@unique([deviceProfileId, serialNumberKey])
-  @@index([deviceProfileId])
   @@index([createdById])
   @@map("devices")
 }
@@ -294,6 +293,7 @@ model TestRun {
   @@index([planId, startedAt, id])
   @@index([startedAt(sort: Desc), id(sort: Desc)])
   @@index([deviceId, startedAt(sort: Desc), id(sort: Desc)])
+  @@index([batchNumberKey, startedAt(sort: Desc), id(sort: Desc)])
   @@index([status])
   @@index([planRevisionId])
   @@map("test_runs")

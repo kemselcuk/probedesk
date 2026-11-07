@@ -28,6 +28,7 @@ describe('OpenAPI document (e2e)', () => {
     const document = createOpenApiDocument(app);
 
     expect(Object.keys(document.paths).sort()).toEqual([
+      '/api/analytics/overview',
       '/api/auth/login',
       '/api/auth/logout',
       '/api/auth/me',
@@ -55,6 +56,15 @@ describe('OpenAPI document (e2e)', () => {
       '/api/runs/{id}/export',
       '/api/runs/{id}/report',
     ]);
+
+    for (const status of ['400', '401', '403', '404', '409']) {
+      expect(
+        document.paths['/api/runs/{id}/export']?.get?.responses[status],
+      ).toMatchObject({ content: { 'application/json': expect.anything() } });
+      expect(
+        document.paths['/api/runs/{id}/export']?.get?.responses[status],
+      ).not.toHaveProperty('content.text/csv');
+    }
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
       '200',

@@ -18,7 +18,6 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiProduces,
   ApiQuery,
   ApiSecurity,
   ApiTags,
@@ -102,7 +101,6 @@ export class ReportsController {
   @Get(':id/export')
   @Roles(Role.PLANNER, Role.OPERATOR, Role.VIEWER)
   @ApiSecurity('session')
-  @ApiProduces('text/csv', 'application/json')
   @ApiOperation({
     summary:
       'Download a terminal run report as a CSV or JSON attachment built from the same immutable projection.',
