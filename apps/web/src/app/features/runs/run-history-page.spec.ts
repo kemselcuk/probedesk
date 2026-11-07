@@ -235,10 +235,36 @@ describe('RunHistoryPage', () => {
   it('preserves a device deep link while filtering and clears it explicitly', async () => {
     const deviceId = '99999999-9999-4999-8999-999999999999';
     const harness = await open(`/runs?deviceId=${deviceId}`);
+    httpClient()
+      .expectOne(`/api/devices/${deviceId}`)
+      .flush({
+        id: deviceId,
+        name: 'Current device',
+        serialNumber: 'PSU-NEW',
+        deviceProfileId: PLAN_ID,
+        description: null,
+        archivedAt: null,
+        editRevision: 1,
+        createdAt: '2026-11-07T10:00:00.000Z',
+        updatedAt: '2026-11-07T10:00:00.000Z',
+      });
     respondToPlans();
     const initial = expectHistoryRequest();
     expect(initial.request.params.get('deviceId')).toBe(deviceId);
-    initial.flush(historyPage([historyItem({ deviceId, deviceSnapshot: { id:deviceId, name:'Recorded bench', serialNumber:'PSU-OLD', deviceProfileId:PLAN_ID }, batchNumber:'Lot-1' })]));
+    initial.flush(
+      historyPage([
+        historyItem({
+          deviceId,
+          deviceSnapshot: {
+            id: deviceId,
+            name: 'Recorded bench',
+            serialNumber: 'PSU-OLD',
+            deviceProfileId: PLAN_ID,
+          },
+          batchNumber: 'Lot-1',
+        }),
+      ]),
+    );
     await settle(harness);
     const root = rootOf(harness);
     expect(root.textContent).toContain('Recorded bench · PSU-OLD');
@@ -255,6 +281,40 @@ describe('RunHistoryPage', () => {
     const cleared = expectHistoryRequest();
     expect(cleared.request.params.has('deviceId')).toBe(false);
     cleared.flush(historyPage([]));
+  });
+
+  it('preserves version, batch, scenario and exact UTC drilldown bounds on a status change', async () => {
+    const harness = await open(
+      `/runs?planId=${PLAN_ID}&planVersionId=${VERSION_ID}&batchNumber=Lot-1&scenario=RANDOM&from=2026-11-01T12:34:00.000Z&to=2026-11-03T15:45:00.000Z`,
+    );
+    respondToPlans();
+    const initial = expectHistoryRequest();
+    expect(initial.request.params.get('from')).toBe('2026-11-01T12:34:00.000Z');
+    expect(initial.request.params.get('planVersionId')).toBe(VERSION_ID);
+    expect(initial.request.params.get('scenario')).toBe('RANDOM');
+    expect(initial.request.params.get('batchNumber')).toBe('Lot-1');
+    initial.flush(historyPage([]));
+    await settle(harness);
+    selectValue(rootOf(harness), '#history-status', 'COMPLETED');
+    await settle(harness);
+    const next = expectHistoryRequest();
+    expect(next.request.params.get('from')).toBe('2026-11-01T12:34:00.000Z');
+    expect(next.request.params.get('to')).toBe('2026-11-03T15:45:00.000Z');
+    expect(next.request.params.get('planVersionId')).toBe(VERSION_ID);
+    next.flush(historyPage([]));
+  });
+
+  it('clears the dependent version when a different plan is selected', async () => {
+    const harness = await openLoaded(
+      historyPage([]),
+      `/runs?planId=${PLAN_ID}&planVersionId=${VERSION_ID}`,
+    );
+    selectValue(rootOf(harness), '#history-plan', OTHER_PLAN_ID);
+    await settle(harness);
+    const next = expectHistoryRequest();
+    expect(next.request.params.get('planId')).toBe(OTHER_PLAN_ID);
+    expect(next.request.params.has('planVersionId')).toBe(false);
+    next.flush(historyPage([]));
   });
 
   it('restores every filter and the page number from the URL and maps dates to UTC boundaries', async () => {

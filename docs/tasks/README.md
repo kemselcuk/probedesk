@@ -147,18 +147,18 @@ Ayrıntılar: [başlangıç rehberi](../implementation-guide.md), [test/inceleme
 
 Kullanıcı özellik paketi 1’in (dört özellik) uygulanmasını yetkilendirdi. [Ayrıntılı ek sözleşme](../feature-pack-1-plan.md). Önceki 72 karta 13 EX kartı eklendi; toplam **85 kart**.
 
-| Görev                                                           | Sahiplik               | Durum       |
-| --------------------------------------------------------------- | ---------------------- | ----------- |
-| [EX-01 — Paket sözleşmeleri ve görev izlenebilirliği](EX-01.md) | Lead                   | Accepted    |
-| [EX-02 — Device ve kopyalama veri modeli](EX-02.md)             | A                      | Accepted    |
-| [EX-03 — Cihaz API ve eklemeli demo seed](EX-03.md)             | A                      | Accepted    |
-| [EX-04 — Run cihaz metadata ve geçmiş filtreleri](EX-04.md)     | A                      | Accepted    |
-| [EX-05 — Cihaz ve run metadata frontend](EX-05.md)              | Lead                   | In Progress |
-| [EX-06 — Yayımlanmış plandan bağımsız kopya API](EX-06.md)      | C                      | Accepted    |
-| [EX-07 — Plan kopyalama frontend](EX-07.md)                     | Lead                   | In Review   |
-| [EX-08 — Analytics overview backend](EX-08.md)                  | B                      | In Review   |
-| [EX-09 — Overview dashboard frontend](EX-09.md)                 | Lead                   | Planned     |
-| [EX-10 — Rapor projection ve güvenli export backend](EX-10.md)  | C                      | Accepted    |
-| [EX-11 — Download ve yazdırılabilir rapor frontend](EX-11.md)   | Lead                   | Planned     |
-| [EX-12 — Paket gerçek E2E ve veritabanı izolasyonu](EX-12.md)   | D                      | Planned     |
-| [EX-13 — Bağımsız review ve teslim paketi](EX-13.md)            | Review delegate + Lead | Planned     |
+| Görev                                                           | Sahiplik               | Durum     |
+| --------------------------------------------------------------- | ---------------------- | --------- |
+| [EX-01 — Paket sözleşmeleri ve görev izlenebilirliği](EX-01.md) | Lead                   | Accepted  |
+| [EX-02 — Device ve kopyalama veri modeli](EX-02.md)             | A                      | Accepted  |
+| [EX-03 — Cihaz API ve eklemeli demo seed](EX-03.md)             | A                      | Accepted  |
+| [EX-04 — Run cihaz metadata ve geçmiş filtreleri](EX-04.md)     | A                      | Accepted  |
+| [EX-05 — Cihaz ve run metadata frontend](EX-05.md)              | Lead                   | In Review |
+| [EX-06 — Yayımlanmış plandan bağımsız kopya API](EX-06.md)      | C                      | Accepted  |
+| [EX-07 — Plan kopyalama frontend](EX-07.md)                     | Lead                   | In Review |
+| [EX-08 — Analytics overview backend](EX-08.md)                  | B                      | In Review |
+| [EX-09 — Overview dashboard frontend](EX-09.md)                 | Lead                   | Planned   |
+| [EX-10 — Rapor projection ve güvenli export backend](EX-10.md)  | C                      | Accepted  |
+| [EX-11 — Download ve yazdırılabilir rapor frontend](EX-11.md)   | Lead                   | Planned   |
+| [EX-12 — Paket gerçek E2E ve veritabanı izolasyonu](EX-12.md)   | D                      | Planned   |
+| [EX-13 — Bağımsız review ve teslim paketi](EX-13.md)            | Review delegate + Lead | Planned   |

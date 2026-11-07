@@ -317,3 +317,29 @@
     min-height: 0;
   }
 }
+
+.version-field {
+  grid-column: span 4;
+}
+.scenario-field,
+.batch-field {
+  grid-column: span 3;
+}
+.device-field {
+  grid-column: 1/-1;
+  min-width: 0;
+}
+@media (max-width: 960px) {
+  .version-field,
+  .scenario-field,
+  .batch-field {
+    grid-column: span 1;
+  }
+}
+@media (max-width: 639px) {
+  .version-field,
+  .scenario-field,
+  .batch-field {
+    grid-column: 1/-1;
+  }
+}

@@ -31,15 +31,17 @@ import { DevicesFacade } from './devices.facade';
   template: `
     <div class="picker-grid">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Device (optional)</mat-label>
+        <mat-label>{{ filterMode() ? 'Device filter' : 'Device (optional)' }}</mat-label>
         <mat-select
           [value]="deviceId()"
           [disabled]="disabled()"
           (selectionChange)="deviceIdChange.emit($event.value)"
           (openedChange)="onOpen($event)"
-          aria-label="Device (optional)"
+          [aria-label]="filterMode() ? 'Device filter' : 'Device (optional)'"
         >
-          <mat-option class="pd-select-option" value="">No device</mat-option>
+          <mat-option class="pd-select-option" value="">{{
+            filterMode() ? 'All devices' : 'No device'
+          }}</mat-option>
           @if (deviceId() && !selectedInPage()) {
             <mat-option class="pd-select-option" [value]="deviceId()"
               >{{ selection.device()?.name ?? 'Selected device' }} ·
@@ -52,7 +54,11 @@ import { DevicesFacade } from './devices.facade';
             >
           }
         </mat-select>
-        <mat-hint>Only active devices of the selected plan profile.</mat-hint>
+        <mat-hint>{{
+          filterMode()
+            ? 'Active and archived devices.'
+            : 'Only active devices of the selected plan profile.'
+        }}</mat-hint>
       </mat-form-field>
       <div class="search-row">
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -105,7 +111,7 @@ import { DevicesFacade } from './devices.facade';
     @if (list.page(); as page) {
       <div class="pages">
         <span
-          >{{ page.total }} matching active devices · Page {{ page.page }} of
+          >{{ page.total }} matching devices · Page {{ page.page }} of
           {{ page.totalPages || 1 }}</span
         >
         <div>
@@ -175,7 +181,8 @@ import { DevicesFacade } from './devices.facade';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DevicePicker {
-  readonly profileId = input.required<string>();
+  readonly profileId = input('');
+  readonly filterMode = input(false);
   readonly deviceId = input('');
   readonly disabled = input(false);
   readonly deviceIdChange = output<string>();
@@ -197,7 +204,7 @@ export class DevicePicker {
     effect(() => {
       const profile = this.profileId();
       const id = this.deviceId();
-      this.selection.check(id, profile);
+      this.selection.check(id, profile, this.filterMode());
       if (this.lastProfile && this.lastProfile !== profile)
         untracked(() => {
           this.page.set(1);
@@ -215,7 +222,7 @@ export class DevicePicker {
     }
   }
   protected recheck(): void {
-    this.selection.check(this.deviceId(), this.profileId());
+    this.selection.check(this.deviceId(), this.profileId(), this.filterMode());
   }
   protected find(): void {
     if (this.disabled()) return;
@@ -230,8 +237,8 @@ export class DevicePicker {
   protected load(): void {
     this.lastProfile = this.profileId();
     this.list.load({
-      state: 'active',
-      deviceProfileId: this.profileId(),
+      state: this.filterMode() ? 'all' : 'active',
+      ...(this.profileId() ? { deviceProfileId: this.profileId() } : {}),
       q: this.q(),
       page: this.page(),
       limit: 20,

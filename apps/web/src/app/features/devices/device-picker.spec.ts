@@ -25,12 +25,14 @@ const DEVICE: Device = {
   imports: [DevicePicker],
   template: `<app-device-picker
     [profileId]="profile()"
+    [filterMode]="filterMode()"
     [deviceId]="id()"
     (deviceIdChange)="id.set($event)"
     (validChange)="valid.set($event)"
   />`,
 })
 class Host {
+  readonly filterMode = signal(false);
   readonly profile = signal(PROFILE);
   readonly id = signal('');
   readonly valid = signal(true);
@@ -43,10 +45,17 @@ describe('DevicePicker', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     }),
   );
-  afterEach(() => { try { TestBed.inject(HttpTestingController).verify(); } finally { TestBed.resetTestingModule(); } });
-  function setup(id = '') {
+  afterEach(() => {
+    try {
+      TestBed.inject(HttpTestingController).verify();
+    } finally {
+      TestBed.resetTestingModule();
+    }
+  });
+  function setup(id = '', filterMode = false) {
     const fixture = TestBed.createComponent(Host);
     fixture.componentInstance.id.set(id);
+    fixture.componentInstance.filterMode.set(filterMode);
     fixture.detectChanges();
     return fixture;
   }
@@ -87,6 +96,14 @@ describe('DevicePicker', () => {
     expect(fixture.componentInstance.valid()).toBe(false);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('archived');
     fixture.componentInstance.id.set('');
+    fixture.detectChanges();
+    expect(fixture.componentInstance.valid()).toBe(true);
+  });
+  it('allows an archived device as a history filter', () => {
+    const fixture = setup(ID, true);
+    http()
+      .expectOne(`/api/devices/${ID}`)
+      .flush({ ...DEVICE, archivedAt: DEVICE.createdAt });
     fixture.detectChanges();
     expect(fixture.componentInstance.valid()).toBe(true);
   });
