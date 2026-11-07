@@ -20,6 +20,7 @@ import { RUN_SCHEDULER, type RunScheduler } from './run-scheduler.js';
 import {
   buildRunSnapshot,
   RunSnapshotValidationError,
+  type RunSnapshotContext,
   type RunSnapshotRows,
   type RunSnapshotSource,
 } from './run-snapshot.js';
@@ -31,6 +32,7 @@ import {
 } from './run-start.js';
 import { StartRunDto } from './dto/start-run.dto.js';
 import { RunStartResponseDto } from './dto/run-start-response.dto.js';
+import type { RunDeviceSnapshot } from './run-metadata.js';
 
 export interface RunStartResult {
   /** True when an existing run was returned for an idempotent retry. */
@@ -86,6 +88,8 @@ export class RunsService {
       seed: dto.seed,
       failureStepId: dto.failureStepId,
       errorProbability: dto.errorProbability,
+      deviceId: dto.deviceId,
+      batchNumber: dto.batchNumber,
     });
     const requestHash = hashRunStartRequest(request);
 
@@ -104,20 +108,17 @@ export class RunsService {
 
     const source = await this.loadPublishedSource(request.planVersionId);
     const startedAt = this.scheduler.now();
-    const snapshot = buildSnapshot(
-      source,
-      request,
-      requestedById,
-      idempotencyKey,
-      requestHash,
-      startedAt,
-    );
 
     let uniqueFailure: unknown = null;
 
     for (let attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt += 1) {
       try {
-        const created = await this.createRun(snapshot, startedAt);
+        const created = await this.createRun(source, request, {
+          requestedById,
+          idempotencyKey,
+          requestHash,
+          startedAt,
+        });
 
         // The snapshot is committed; execution must not be awaited here. A
         // failed/terminated HTTP connection cannot stop the scheduled run.
@@ -157,14 +158,31 @@ export class RunsService {
   }
 
   private async createRun(
-    snapshot: RunSnapshotRows,
-    startedAt: Date,
+    source: RunSnapshotSource,
+    request: NormalizedRunStart,
+    context: RunSnapshotContext,
   ): Promise<{ id: string; status: RunStatus; outcome: RunOutcome | null }> {
     return this.prisma.$transaction(
       async (tx) => {
+        // The device row is locked FOR SHARE for the whole run insert. Device
+        // update/archive use FOR UPDATE on the same row, so the two operations
+        // serialize and the snapshot cannot be captured from a stale row.
+        const requestDeviceId = request.deviceId ?? null;
+        const device =
+          requestDeviceId === null
+            ? null
+            : await lockRunDevice(tx, requestDeviceId, source.profile.id);
+        const snapshot = buildSnapshot(source, request, context);
+
         const run = await tx.testRun.create({
           data: {
             ...snapshot.run,
+            deviceId: device?.id ?? null,
+            // A nullable JSON column must receive SQL NULL, not JSON null, for
+            // a device-less run; the database metadata check depends on it.
+            deviceSnapshot: device ?? Prisma.DbNull,
+            batchNumber: request.batchNumber ?? null,
+            batchNumberKey: request.batchNumberKey ?? null,
             // The run row and its first event commit together.
             eventSequence: START_EVENT_SEQUENCE,
             steps: { create: snapshot.steps },
@@ -178,7 +196,7 @@ export class RunsService {
             sequence: START_EVENT_SEQUENCE,
             type: RunEventType.RUN_STARTED,
             schemaVersion: RUN_EVENT_SCHEMA_VERSION,
-            occurredAt: startedAt,
+            occurredAt: context.startedAt,
             payload: {
               status: RunStatus.RUNNING,
               planId: snapshot.run.planId,
@@ -287,10 +305,7 @@ function replayExisting(
 function buildSnapshot(
   source: RunSnapshotSource,
   request: NormalizedRunStart,
-  requestedById: string,
-  idempotencyKey: string,
-  requestHash: string,
-  startedAt: Date,
+  context: RunSnapshotContext,
 ): RunSnapshotRows {
   try {
     return buildRunSnapshot(
@@ -303,7 +318,7 @@ function buildSnapshot(
         simulatorVersion: SIMULATOR_VERSION,
         evaluationVersion: RUN_EVALUATION_VERSION,
       },
-      { requestedById, idempotencyKey, requestHash, startedAt },
+      context,
     );
   } catch (error) {
     if (error instanceof RunSnapshotValidationError) {
@@ -318,6 +333,65 @@ function buildSnapshot(
 
     throw error;
   }
+}
+
+interface LockedRunDeviceRow {
+  id: string;
+  name: string;
+  serialNumber: string;
+  deviceProfileId: string;
+  archivedAt: Date | null;
+}
+
+/**
+ * Locks the device row FOR SHARE inside the run-create transaction and applies
+ * the metadata preconditions against the locked version. It shares the lock
+ * protocol with DevicesService, which uses FOR UPDATE for update/archive.
+ */
+async function lockRunDevice(
+  tx: Prisma.TransactionClient,
+  deviceId: string,
+  expectedProfileId: string,
+): Promise<RunDeviceSnapshot> {
+  const rows = await tx.$queryRaw<LockedRunDeviceRow[]>`
+    SELECT
+      "id",
+      "name",
+      "serialNumber",
+      "deviceProfileId",
+      "archivedAt"
+    FROM "devices"
+    WHERE "id" = ${deviceId}::uuid
+    FOR SHARE
+  `;
+  const device = rows[0];
+
+  if (!device) {
+    throw notFound();
+  }
+
+  if (device.archivedAt !== null) {
+    throw new ApiException(
+      HttpStatus.CONFLICT,
+      'DEVICE_ARCHIVED',
+      'The selected device is archived and cannot start a new run.',
+    );
+  }
+
+  if (device.deviceProfileId !== expectedProfileId) {
+    throw new ApiException(
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'DEVICE_PROFILE_MISMATCH',
+      'The selected device profile does not match the published plan profile.',
+    );
+  }
+
+  return {
+    id: device.id,
+    name: device.name,
+    serialNumber: device.serialNumber,
+    deviceProfileId: device.deviceProfileId,
+  };
 }
 
 function toResponse(run: {

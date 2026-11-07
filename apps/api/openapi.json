@@ -384,6 +384,27 @@
         "operationId": "RunsController_list",
         "parameters": [
           {
+            "name": "batchNumber",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "BATCH-2026-001"
+            },
+            "description": "Only runs with this batch. Matches the uppercase canonical key; display case and surrounding whitespace do not matter."
+          },
+          {
+            "name": "deviceId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs started with this device. Unknown ids return an empty page."
+          },
+          {
             "name": "from",
             "required": false,
             "in": "query",
@@ -441,6 +462,31 @@
               "format": "uuid"
             },
             "description": "Only runs of this plan."
+          },
+          {
+            "name": "planVersionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs of this published version. When planId is also supplied it must belong to that plan."
+          },
+          {
+            "name": "scenario",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NORMAL",
+                "FORCED_FAILURE",
+                "RANDOM"
+              ],
+              "example": "NORMAL"
+            },
+            "description": "Only runs using this simulator scenario."
           },
           {
             "name": "status",
@@ -2392,6 +2438,20 @@
             "type": "string",
             "description": "Required for RANDOM only: decimal failure probability between 0 and 1 with at most 6 fractional digits.",
             "example": "0.050000"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Optional active device of the same profile. Its name and serial number are copied into the run snapshot."
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Optional batch number. It is trimmed; empty input is absent. The displayed value keeps its case and filters use its uppercase canonical key."
           }
         },
         "required": [
@@ -2443,6 +2503,33 @@
           "outcome",
           "snapshotUrl",
           "eventsUrl"
+        ]
+      },
+      "RunDeviceSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Bench Power Module"
+          },
+          "serialNumber": {
+            "type": "string",
+            "example": "PSU-AbC/01"
+          },
+          "deviceProfileId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "serialNumber",
+          "deviceProfileId"
         ]
       },
       "RunFirstFailureDto": {
@@ -2527,6 +2614,29 @@
             "type": "number",
             "minimum": 1,
             "example": 1
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied at start, or null. Later device edits never change history.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Batch display value copied at start, or null."
           },
           "scenario": {
             "type": "string",
@@ -2616,6 +2726,9 @@
           "planVersionId",
           "planName",
           "versionNumber",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
           "scenario",
           "seed",
           "status",
@@ -2922,6 +3035,29 @@
           "profile": {
             "$ref": "#/components/schemas/DeviceProfileDto"
           },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied at start, or null when the run had no device. Later device edits do not change it.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Batch display value copied at start, or null. The canonical filter key is internal."
+          },
           "scenario": {
             "type": "string",
             "enum": [
@@ -3029,6 +3165,9 @@
           "planName",
           "versionNumber",
           "profile",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
           "scenario",
           "seed",
           "errorProbability",
@@ -3832,6 +3971,29 @@
           "profile": {
             "$ref": "#/components/schemas/DeviceProfileDto"
           },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied into this run at start, or null. The live device is never joined.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Batch display value copied at start, or null."
+          },
           "scenario": {
             "type": "string",
             "enum": [
@@ -3940,6 +4102,9 @@
           "planName",
           "versionNumber",
           "profile",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
           "scenario",
           "seed",
           "errorProbability",

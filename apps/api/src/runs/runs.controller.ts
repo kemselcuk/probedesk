@@ -40,7 +40,12 @@ import { SessionAuthGuard } from '../auth/session-auth.guard.js';
 import type { AuthContext } from '../auth/auth.types.js';
 import { ApiException } from '../common/errors/api.exception.js';
 import { ApiErrorDto } from '../common/openapi/api-error.dto.js';
-import { Role, RunOutcome, RunStatus } from '../prisma/generated/client.js';
+import {
+  Role,
+  RunOutcome,
+  RunScenario,
+  RunStatus,
+} from '../prisma/generated/client.js';
 import { StartRunDto } from './dto/start-run.dto.js';
 import { RunStartResponseDto } from './dto/run-start-response.dto.js';
 import { RunActiveDto, RunSnapshotDto } from './dto/run-snapshot.dto.js';
@@ -148,6 +153,37 @@ export class RunsController {
     required: false,
     schema: { type: 'string', format: 'uuid' },
     description: 'Only runs of this plan.',
+  })
+  @ApiQuery({
+    name: 'planVersionId',
+    required: false,
+    schema: { type: 'string', format: 'uuid' },
+    description:
+      'Only runs of this published version. When planId is also supplied it must belong to that plan.',
+  })
+  @ApiQuery({
+    name: 'deviceId',
+    required: false,
+    schema: { type: 'string', format: 'uuid' },
+    description:
+      'Only runs started with this device. Unknown ids return an empty page.',
+  })
+  @ApiQuery({
+    name: 'batchNumber',
+    required: false,
+    schema: { type: 'string', maxLength: 100, example: 'BATCH-2026-001' },
+    description:
+      'Only runs with this batch. Matches the uppercase canonical key; display case and surrounding whitespace do not matter.',
+  })
+  @ApiQuery({
+    name: 'scenario',
+    required: false,
+    schema: {
+      type: 'string',
+      enum: Object.values(RunScenario),
+      example: RunScenario.NORMAL,
+    },
+    description: 'Only runs using this simulator scenario.',
   })
   @ApiQuery({
     name: 'status',

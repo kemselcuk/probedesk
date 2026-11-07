@@ -1,8 +1,5 @@
 import type { RunEventEnvelope } from '../../../core/runs/run-event.types';
-import type {
-  RunSnapshot,
-  RunSnapshotStep,
-} from '../runs-api.types';
+import type { RunSnapshot, RunSnapshotStep } from '../runs-api.types';
 
 export const RUN_ID = '33333333-3333-4333-8333-333333333333';
 export const PLAN_ID = '11111111-1111-4111-8111-111111111111';
@@ -12,9 +9,7 @@ export const RUN_STEP_ID = '55555555-5555-4555-8555-555555555555';
 export const PROFILE_ID = '66666666-6666-4666-8666-666666666666';
 export const USER_ID = '77777777-7777-4777-8777-777777777777';
 
-export function runningStep(
-  overrides: Partial<RunSnapshotStep> = {},
-): RunSnapshotStep {
+export function runningStep(overrides: Partial<RunSnapshotStep> = {}): RunSnapshotStep {
   return {
     runStepId: RUN_STEP_ID,
     logicalStepId: STEP_ID,
@@ -42,14 +37,15 @@ export function runningStep(
   };
 }
 
-export function runSnapshot(
-  overrides: Partial<RunSnapshot> = {},
-): RunSnapshot {
+export function runSnapshot(overrides: Partial<RunSnapshot> = {}): RunSnapshot {
   return {
     id: RUN_ID,
     planId: PLAN_ID,
     planVersionId: VERSION_ID,
     planName: 'Power rail verification',
+    deviceId: null,
+    deviceSnapshot: null,
+    batchNumber: null,
     versionNumber: 3,
     profile: {
       id: PROFILE_ID,

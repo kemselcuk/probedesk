@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
@@ -7,13 +8,20 @@ import {
   IsUUID,
   Matches,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { DECIMAL_PATTERN } from '../../plans/plan-decimal.js';
 import { RunScenario } from '../../prisma/generated/client.js';
+import {
+  BATCH_NUMBER_MAX_LENGTH,
+  BATCH_NUMBER_PATTERN,
+} from '../run-metadata.js';
 
 const DECIMAL_MESSAGE =
   'must be a decimal string with at most 6 fractional digits';
+const BATCH_MESSAGE =
+  'batchNumber must contain only ASCII letters, digits and ._:/- after trimming';
 
 /**
  * Body of POST /runs. The status, outcome, snapshot, counters and timestamps are
@@ -71,4 +79,40 @@ export class StartRunDto {
   @IsString({ message: `errorProbability ${DECIMAL_MESSAGE}` })
   @Matches(DECIMAL_PATTERN, { message: `errorProbability ${DECIMAL_MESSAGE}` })
   errorProbability?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description:
+      'Optional active device of the same profile. Its name and serial number are copied into the run snapshot.',
+  })
+  @IsOptional()
+  @IsUUID(undefined, { message: 'deviceId must be a UUID' })
+  deviceId?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    minLength: 1,
+    maxLength: BATCH_NUMBER_MAX_LENGTH,
+    example: 'BATCH-2026-001',
+    description:
+      'Optional batch number. It is trimmed; empty input is absent. The displayed value keeps its case and filters use its uppercase canonical key.',
+  })
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  })
+  @IsOptional()
+  @IsString({ message: 'batchNumber must be a string or null' })
+  @MaxLength(BATCH_NUMBER_MAX_LENGTH, {
+    message: `batchNumber must contain at most ${BATCH_NUMBER_MAX_LENGTH} characters after trimming`,
+  })
+  @Matches(BATCH_NUMBER_PATTERN, { message: BATCH_MESSAGE })
+  batchNumber?: string | null;
 }

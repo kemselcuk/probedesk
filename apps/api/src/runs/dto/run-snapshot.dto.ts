@@ -30,6 +30,21 @@ export class RunRequestedByDto {
   role!: 'PLANNER' | 'OPERATOR' | 'VIEWER';
 }
 
+/** Device values copied at start; later edits never change this snapshot. */
+export class RunDeviceSnapshotDto {
+  @ApiProperty({ type: String, format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: String, example: 'Bench Power Module' })
+  name!: string;
+
+  @ApiProperty({ type: String, example: 'PSU-AbC/01' })
+  serialNumber!: string;
+
+  @ApiProperty({ type: String, format: 'uuid' })
+  deviceProfileId!: string;
+}
+
 /**
  * Stored summary of a completed step. Every numeric member is null while the
  * step is partial; it is never filled with a zero placeholder.
@@ -203,6 +218,33 @@ export class RunSnapshotDto {
 
   @ApiProperty({ type: () => DeviceProfileDto })
   profile!: DeviceProfileDto;
+
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description:
+      'Device linked at start, or null for legacy and device-less runs.',
+  })
+  deviceId!: string | null;
+
+  @ApiProperty({
+    type: () => RunDeviceSnapshotDto,
+    nullable: true,
+    description:
+      'Device values copied at start, or null when the run had no device. Later device edits do not change it.',
+  })
+  deviceSnapshot!: RunDeviceSnapshotDto | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    maxLength: 100,
+    example: 'BATCH-2026-001',
+    description:
+      'Batch display value copied at start, or null. The canonical filter key is internal.',
+  })
+  batchNumber!: string | null;
 
   @ApiProperty({ enum: RunScenario, example: RunScenario.NORMAL })
   scenario!: RunScenario;

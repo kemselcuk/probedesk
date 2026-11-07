@@ -21,6 +21,9 @@ const SNAPSHOT = {
   planId: PLAN_ID,
   planVersionId: VERSION_ID,
   planName: 'Power rail verification',
+  deviceId: null,
+  deviceSnapshot: null,
+  batchNumber: null,
   versionNumber: 3,
   profile: {
     id: PROFILE_ID,
@@ -325,6 +328,9 @@ describe('RunsApi', () => {
       planId: PLAN_ID,
       planVersionId: VERSION_ID,
       planName: 'Power rail verification',
+      deviceId: null,
+      deviceSnapshot: null,
+      batchNumber: null,
       versionNumber: 3,
       status: 'COMPLETED',
       outcome: 'FAILED',
@@ -352,6 +358,10 @@ describe('RunsApi', () => {
     const responsePromise = firstValueFrom(
       api.listRuns({
         planId: PLAN_ID,
+        planVersionId: VERSION_ID,
+        deviceId: USER_ID,
+        batchNumber: 'Lot-1',
+        scenario: 'FORCED_FAILURE',
         status: 'COMPLETED',
         outcome: 'FAILED',
         from: '2026-11-01T00:00:00.000Z',
@@ -364,6 +374,10 @@ describe('RunsApi', () => {
     const request = http.expectOne((candidate) => candidate.url === '/api/runs');
     expect(request.request.method).toBe('GET');
     expect(request.request.params.get('planId')).toBe(PLAN_ID);
+    expect(request.request.params.get('planVersionId')).toBe(VERSION_ID);
+    expect(request.request.params.get('deviceId')).toBe(USER_ID);
+    expect(request.request.params.get('batchNumber')).toBe('Lot-1');
+    expect(request.request.params.get('scenario')).toBe('FORCED_FAILURE');
     expect(request.request.params.get('status')).toBe('COMPLETED');
     expect(request.request.params.get('outcome')).toBe('FAILED');
     expect(request.request.params.get('from')).toBe('2026-11-01T00:00:00.000Z');

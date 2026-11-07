@@ -10,17 +10,17 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 
 ## Aşama özeti
 
-| Aşama | Konu | Görev sayısı | İlk paket durumu |
-|---|---|---|---|
-| 0 | Ürün ve teknik sözleşmeler | 5 | In Review |
-| 1 | İskelet, giriş ve ilk CI | 8 | Accepted |
-| 2 | Plan editörü ve sürümler | 8 | Accepted |
-| 3 | Simülasyon ve yürütme | 10 | Accepted |
-| 4 | Canlı durum ve bağlantı dayanıklılığı | 7 | Accepted |
-| 5 | Geçmiş ve grafikler | 6 | Accepted |
-| 6 | Karşılaştırma ve sürüm tutarlılığı | 6 | Accepted |
-| 7 | Bütünleşik kalite ve CI | 6 | Accepted |
-| 8 | Yerel teslim ve kanıt | 6 | In Review |
+| Aşama | Konu                                  | Görev sayısı | İlk paket durumu |
+| ----- | ------------------------------------- | ------------ | ---------------- |
+| 0     | Ürün ve teknik sözleşmeler            | 5            | In Review        |
+| 1     | İskelet, giriş ve ilk CI              | 8            | Accepted         |
+| 2     | Plan editörü ve sürümler              | 8            | Accepted         |
+| 3     | Simülasyon ve yürütme                 | 10           | Accepted         |
+| 4     | Canlı durum ve bağlantı dayanıklılığı | 7            | Accepted         |
+| 5     | Geçmiş ve grafikler                   | 6            | Accepted         |
+| 6     | Karşılaştırma ve sürüm tutarlılığı    | 6            | Accepted         |
+| 7     | Bütünleşik kalite ve CI               | 6            | Accepted         |
+| 8     | Yerel teslim ve kanıt                 | 6            | In Review        |
 
 İlk ürün paketi 62 görevdir; 10 UI ve 13 EX ek kartıyla güncel toplam **85 görev**. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
 
@@ -177,8 +177,6 @@ Demo/inceleme: Temiz checkout kurulumu açılır; hazır veri ve ana demo uygula
 
 Bir aşama yalnızca kartlar kapandı diye kabul edilmez; birleşen davranışların demosu ve incelemesi de başarılı olmalıdır. Test, CI veya ekran kanıtı olmadan tamamlanma iddiası eklenmez.
 
-
-
 ## UI yenileme ek kampanyası — kullanıcı talebi 2026-11-04
 
 [UI yenileme planı](ui-modernization-plan.md), ilk 62 görevden ayrı 8 kart ekler. Sıra UI-01 token/Material → UI-02 shell/login → UI-03 plans/version → UI-04 editor → UI-05 start/live → UI-06 history/details → UI-07 compare/charts → UI-08 responsive/görsel QA. **UI-01–UI-08 In Review; kullanıcı görsel kabulü bekleniyor**; bu kayıt uygulama veya görsel kabul değildir. Kart durumları [görev dizininde](tasks/README.md) tutulur. Eski ürün sözleşmesi/rol/ölçüm ve kabul geçmişi korunur; video kapsam dışıdır.
@@ -189,4 +187,4 @@ UI-10: Grafana tablo referansına göre içerik genişliği, veri hizası ve pan
 
 ## Özellik paketi 1 — 2026-11-06
 
-Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01/EX-02/EX-03/EX-06 Accepted; EX-04 In Progress; EX-07 In Review; diğer EX kartları Planned. Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Main merge bu yetkinin parçası değil.
+Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01/EX-02/EX-03/EX-06 Accepted; EX-04/EX-07 In Review; diğer EX kartları Planned. Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Main merge bu yetkinin parçası değil.

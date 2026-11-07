@@ -149,6 +149,14 @@ interface ComparisonRunSummaryBody {
     name: string;
     description: string | null;
   };
+  deviceId: string | null;
+  deviceSnapshot: {
+    id: string;
+    name: string;
+    serialNumber: string;
+    deviceProfileId: string;
+  } | null;
+  batchNumber: string | null;
   scenario: RunScenario;
   seed: number;
   errorProbability: string | null;
@@ -207,6 +215,9 @@ const COMPARISON_KEYS = [
 ] as const;
 
 const RUN_SUMMARY_KEYS = [
+  'batchNumber',
+  'deviceId',
+  'deviceSnapshot',
   'errorProbability',
   'evaluationVersion',
   'expectedSampleCount',

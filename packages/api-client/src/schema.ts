@@ -544,6 +544,16 @@ export interface components {
              * @example 0.050000
              */
             errorProbability?: string;
+            /**
+             * Format: uuid
+             * @description Optional active device of the same profile. Its name and serial number are copied into the run snapshot.
+             */
+            deviceId?: string | null;
+            /**
+             * @description Optional batch number. It is trimmed; empty input is absent. The displayed value keeps its case and filters use its uppercase canonical key.
+             * @example BATCH-2026-001
+             */
+            batchNumber?: string | null;
         };
         RunStartResponseDto: {
             /** Format: uuid */
@@ -563,6 +573,16 @@ export interface components {
             snapshotUrl: string;
             /** @example /api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events */
             eventsUrl: string;
+        };
+        RunDeviceSnapshotDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Bench Power Module */
+            name: string;
+            /** @example PSU-AbC/01 */
+            serialNumber: string;
+            /** Format: uuid */
+            deviceProfileId: string;
         };
         RunFirstFailureDto: {
             /**
@@ -605,6 +625,18 @@ export interface components {
             planName: string;
             /** @example 1 */
             versionNumber: number;
+            /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied at start, or null. Later device edits never change history. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /**
+             * @description Batch display value copied at start, or null.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
             /**
              * @example NORMAL
              * @enum {string}
@@ -770,6 +802,18 @@ export interface components {
             /** @example 1 */
             versionNumber: number;
             profile: components["schemas"]["DeviceProfileDto"];
+            /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied at start, or null when the run had no device. Later device edits do not change it. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /**
+             * @description Batch display value copied at start, or null. The canonical filter key is internal.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
             /**
              * @example NORMAL
              * @enum {string}
@@ -1124,6 +1168,18 @@ export interface components {
             /** @example 1 */
             versionNumber: number;
             profile: components["schemas"]["DeviceProfileDto"];
+            /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied into this run at start, or null. The live device is never joined. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /**
+             * @description Batch display value copied at start, or null.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
             /**
              * @example NORMAL
              * @enum {string}
@@ -1494,6 +1550,10 @@ export interface operations {
     RunsController_list: {
         parameters: {
             query?: {
+                /** @description Only runs with this batch. Matches the uppercase canonical key; display case and surrounding whitespace do not matter. */
+                batchNumber?: string;
+                /** @description Only runs started with this device. Unknown ids return an empty page. */
+                deviceId?: string;
                 /** @description Inclusive lower bound for startedAt. UTC ISO-8601 date or date-time with an explicit timezone. */
                 from?: string;
                 /** @description Page size. Defaults to 20 and must not exceed 100. */
@@ -1504,6 +1564,10 @@ export interface operations {
                 page?: number;
                 /** @description Only runs of this plan. */
                 planId?: string;
+                /** @description Only runs of this published version. When planId is also supplied it must belong to that plan. */
+                planVersionId?: string;
+                /** @description Only runs using this simulator scenario. */
+                scenario?: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
                 /** @description Only runs in this lifecycle state. */
                 status?: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
                 /** @description Exclusive upper bound for startedAt. The range is [from, to). UTC ISO-8601 date or date-time with an explicit timezone. */

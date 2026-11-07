@@ -1,3 +1,4 @@
+import { parseRunMetadata } from './run-metadata';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
@@ -127,6 +128,10 @@ function parseRunStartResponse(value: unknown, endpoint: string): RunStartRespon
 
 function buildHistoryParams(query: RunHistoryQuery): HttpParams {
   let params = new HttpParams();
+  for (const key of ['deviceId', 'batchNumber', 'planVersionId', 'scenario'] as const) {
+    const value = query[key];
+    if (value !== undefined && value.length > 0) params = params.set(key, value);
+  }
 
   if (query.planId !== undefined && query.planId.length > 0) {
     params = params.set('planId', query.planId);
@@ -178,6 +183,7 @@ function parseRunHistoryItem(
     planId: requireUuid(record, 'planId', endpoint, label),
     planVersionId: requireUuid(record, 'planVersionId', endpoint, label),
     planName: requireString(record, 'planName', endpoint, label),
+    ...parseRunMetadata(record, endpoint),
     versionNumber: requireInteger(record, 'versionNumber', endpoint, label, 1),
     status: parseStatus(record['status'], endpoint),
     outcome: parseOutcome(record['outcome'], endpoint),
@@ -250,6 +256,7 @@ function parseRunSnapshot(value: unknown, endpoint: string): RunSnapshot {
     planId: requireUuid(record, 'planId', endpoint, 'run'),
     planVersionId: requireUuid(record, 'planVersionId', endpoint, 'run'),
     planName: requireString(record, 'planName', endpoint, 'run'),
+    ...parseRunMetadata(record, endpoint),
     versionNumber: requireInteger(record, 'versionNumber', endpoint, 'run', 1),
     profile: parseProfile(record['profile'], endpoint, 'run.profile'),
     scenario: requireEnum(record['scenario'], RUN_SCENARIOS, endpoint, 'run.scenario'),

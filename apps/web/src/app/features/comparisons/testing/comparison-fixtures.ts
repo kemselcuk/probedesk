@@ -18,14 +18,15 @@ export const REMOVED_STEP_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 export const PROFILE_ID = 'abababab-abab-4bab-8bab-abababababab';
 export const USER_ID = 'acacacac-acac-4cac-8cac-acacacacacac';
 
-export function comparisonRun(
-  overrides: Partial<ComparisonRunSummary> = {},
-): ComparisonRunSummary {
+export function comparisonRun(overrides: Partial<ComparisonRunSummary> = {}): ComparisonRunSummary {
   return {
     id: LEFT_RUN_ID,
     planId: COMPARE_PLAN_ID,
     planVersionId: LEFT_VERSION_ID,
     planName: 'Power rail verification',
+    deviceId: null,
+    deviceSnapshot: null,
+    batchNumber: null,
     versionNumber: 3,
     profile: {
       id: PROFILE_ID,
@@ -108,9 +109,7 @@ export function comparisonStep(overrides: Partial<RunSnapshotStep> = {}): RunSna
   };
 }
 
-export function comparisonResult(
-  overrides: Partial<ComparisonResult> = {},
-): ComparisonResult {
+export function comparisonResult(overrides: Partial<ComparisonResult> = {}): ComparisonResult {
   const leftRun = comparisonRun();
   const rightRun = comparisonRun({
     id: RIGHT_RUN_ID,

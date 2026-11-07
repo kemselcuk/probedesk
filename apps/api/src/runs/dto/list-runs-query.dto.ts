@@ -1,16 +1,26 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
   IsISO8601,
   IsOptional,
+  IsString,
   IsUUID,
   Matches,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
-import { RunOutcome, RunStatus } from '../../prisma/generated/client.js';
+import {
+  RunOutcome,
+  RunScenario,
+  RunStatus,
+} from '../../prisma/generated/client.js';
+import {
+  BATCH_NUMBER_MAX_LENGTH,
+  BATCH_NUMBER_PATTERN,
+} from '../run-metadata.js';
 
 export const DEFAULT_RUN_HISTORY_PAGE = 1;
 export const DEFAULT_RUN_HISTORY_LIMIT = 20;
@@ -30,6 +40,59 @@ export class ListRunsQueryDto {
   @IsOptional()
   @IsUUID(undefined, { message: 'planId must be a UUID' })
   planId?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    description:
+      'Only runs of this published version. When planId is also present it must belong to that plan.',
+  })
+  @IsOptional()
+  @IsUUID(undefined, { message: 'planVersionId must be a UUID' })
+  planVersionId?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uuid',
+    description:
+      'Only runs started with this device. Unknown ids return an empty page.',
+  })
+  @IsOptional()
+  @IsUUID(undefined, { message: 'deviceId must be a UUID' })
+  deviceId?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: BATCH_NUMBER_MAX_LENGTH,
+    example: 'BATCH-2026-001',
+    description:
+      'Only runs with this batch. Matches the uppercase canonical key, so display case does not matter. Unknown values return an empty page.',
+  })
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  })
+  @IsOptional()
+  @IsString({ message: 'batchNumber must be a string' })
+  @MaxLength(BATCH_NUMBER_MAX_LENGTH, {
+    message: `batchNumber must contain at most ${BATCH_NUMBER_MAX_LENGTH} characters`,
+  })
+  @Matches(BATCH_NUMBER_PATTERN, {
+    message:
+      'batchNumber must contain only ASCII letters, digits and ._:/- after trimming',
+  })
+  batchNumber?: string;
+
+  @ApiPropertyOptional({ enum: RunScenario, example: RunScenario.NORMAL })
+  @IsOptional()
+  @IsEnum(RunScenario, {
+    message: `scenario must be one of ${Object.values(RunScenario).join(', ')}`,
+  })
+  scenario?: RunScenario;
 
   @ApiPropertyOptional({ enum: RunStatus, example: RunStatus.COMPLETED })
   @IsOptional()
