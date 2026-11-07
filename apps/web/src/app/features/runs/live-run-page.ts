@@ -1,3 +1,4 @@
+import { RunDeviceMetadata } from './run-device-metadata';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -90,6 +91,7 @@ const CONNECTION_VIEWS: Readonly<Record<RunConnectionState, ConnectionView>> = {
 @Component({
   selector: 'app-live-run-page',
   imports: [
+    RunDeviceMetadata,
     DatePipe,
     DecimalPipe,
     EmptyState,

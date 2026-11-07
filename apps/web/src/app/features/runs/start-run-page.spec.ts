@@ -96,6 +96,27 @@ describe('StartRunPage', () => {
       versionId === null ? '/runs/new' : `/runs/new?versionId=${encodeURIComponent(versionId)}`;
     const harness = await RouterTestingHarness.create(url);
     harness.detectChanges();
+    if (versionId !== null)
+      TestBed.inject(HttpTestingController)
+        .expectOne('/api/plans')
+        .flush([
+          {
+            id: PLAN_ID,
+            name: 'Power rail verification',
+            profile: {
+              id: USER_ID,
+              code: 'DC_POWER_MODULE',
+              name: 'DC Power Module',
+              description: null,
+            },
+            draft: null,
+            latestPublishedVersion: {
+              id: VERSION_ID,
+              versionNumber: 3,
+              publishedAt: '2026-11-03T10:00:00.000Z',
+            },
+          },
+        ]);
     return harness;
   }
 
@@ -201,6 +222,52 @@ describe('StartRunPage', () => {
 
     expect(root.querySelector('.totals')?.textContent).toContain('5');
     expect(root.querySelector('.totals')?.textContent).toContain('4.0 s');
+  });
+
+  it('starts with a selected device and trimmed display batch', async () => {
+    const harness = await openWithVersion();
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+    const deviceId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'.toLowerCase();
+    const device = {
+      id: deviceId,
+      deviceProfileId: USER_ID,
+      name: 'Bench',
+      serialNumber: 'PSU-1',
+      description: null,
+      archivedAt: null,
+      editRevision: 1,
+      createdAt: '2026-11-07T10:00:00.000Z',
+      updatedAt: '2026-11-07T10:00:00.000Z',
+    };
+    materialSelect(root, 'app-device-picker mat-select').open();
+    await harness.fixture.whenStable();
+    http
+      .expectOne((request) => request.url === '/api/devices')
+      .flush({ items: [device], page: 1, limit: 20, total: 1, totalPages: 1 });
+    harness.detectChanges();
+    selectValue(root, 'app-device-picker mat-select', deviceId);
+    harness.detectChanges();
+    http.expectOne(`/api/devices/${deviceId}`).flush(device);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    typeInto(root, '#start-run-seed', '42');
+    typeInto(root, '#start-run-batch', ' Lot-1 ');
+    harness.detectChanges();
+    submit(root);
+    harness.detectChanges();
+    const request = http.expectOne('/api/runs');
+    expect(request.request.body).toEqual({
+      planVersionId: VERSION_ID,
+      scenario: 'NORMAL',
+      seed: 42,
+      deviceId,
+      batchNumber: 'Lot-1',
+    });
+    request.flush(
+      { code: 'RUN_ALREADY_ACTIVE', message: 'Busy.', requestId: 'req-busy' },
+      { status: 409, statusText: 'Conflict' },
+    );
   });
 
   it('sends only NORMAL fields and navigates with the created runId', async () => {

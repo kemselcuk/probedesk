@@ -339,3 +339,9 @@
     display: none;
   }
 }
+
+.rerun-traceability {
+  display: grid;
+  gap: var(--pd-space-3);
+  margin: var(--pd-space-4) 0;
+}

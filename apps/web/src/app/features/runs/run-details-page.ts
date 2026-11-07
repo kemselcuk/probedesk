@@ -1,3 +1,8 @@
+import { DevicePicker } from '../devices/device-picker';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { RunDeviceMetadata } from './run-device-metadata';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -69,6 +74,11 @@ interface FirstFailureView {
 @Component({
   selector: 'app-run-details-page',
   imports: [
+    DevicePicker,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    RunDeviceMetadata,
     DatePipe,
     DecimalPipe,
     EmptyState,
@@ -290,9 +300,23 @@ export class RunDetailsPage {
 
   protected readonly showRunAgain = computed(() => this.isOperator() && this.isTerminal());
 
-  protected readonly canRunAgain = computed(
-    () => this.showRunAgain() && this.snapshot() !== null && !this.runs.startPending(),
-  );
+  protected readonly rerunMetadata = inject(NonNullableFormBuilder).group({
+    deviceId: '',
+    batchNumber: ['', Validators.pattern(/^\s*[A-Za-z0-9._:/-]{1,100}\s*$|^\s*$/)],
+  });
+  protected readonly rerunDeviceValid = signal(true);
+  private readonly rerunRevision = signal(0);
+  private rerunSourceId = '';
+  protected readonly canRunAgain = computed(() => {
+    this.rerunRevision();
+    return (
+      this.showRunAgain() &&
+      this.snapshot() !== null &&
+      !this.runs.startPending() &&
+      this.rerunMetadata.valid &&
+      this.rerunDeviceValid()
+    );
+  });
 
   protected readonly isActiveRunConflict = computed(
     () => this.startFailure()?.error.code === 'RUN_ALREADY_ACTIVE',
@@ -403,6 +427,20 @@ export class RunDetailsPage {
     this.runs.clearStartError();
     this.runs.clearCancelError();
     this.loadIfPossible();
+    this.rerunMetadata.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.rerunRevision.update((value) => value + 1));
+    effect(() => {
+      const run = this.snapshot();
+      if (run && run.id !== this.rerunSourceId) {
+        this.rerunSourceId = run.id;
+        this.rerunDeviceValid.set(!run.deviceId);
+        this.rerunMetadata.reset({
+          deviceId: run.deviceId ?? '',
+          batchNumber: run.batchNumber ?? '',
+        });
+      }
+    });
 
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const nextRunId = params.get('runId') ?? '';
@@ -506,7 +544,12 @@ export class RunDetailsPage {
 
     let request: StartRunRequest;
     try {
-      request = buildRerunRequest(run);
+      const metadata = this.rerunMetadata.getRawValue();
+      request = {
+        ...buildRerunRequest(run),
+        ...(metadata.deviceId ? { deviceId: metadata.deviceId.toLowerCase() } : {}),
+        ...(metadata.batchNumber.trim() ? { batchNumber: metadata.batchNumber.trim() } : {}),
+      };
     } catch {
       this.announcement.set(
         'This snapshot does not contain the settings required for a new run. No request was sent.',
@@ -525,9 +568,7 @@ export class RunDetailsPage {
           // The new run follows the same navigation contract as Start Run:
           // live while RUNNING, details for a terminal idempotent replay.
           void this.router.navigate(
-            result.status === 'RUNNING'
-              ? ['/runs', result.runId, 'live']
-              : ['/runs', result.runId],
+            result.status === 'RUNNING' ? ['/runs', result.runId, 'live'] : ['/runs', result.runId],
           );
         },
         error: () => {

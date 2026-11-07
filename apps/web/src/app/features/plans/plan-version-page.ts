@@ -58,6 +58,7 @@ export class PlanVersionPage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
 
+  protected readonly deviceContext = signal('');
   private readonly routeState = signal(this.route.snapshot.paramMap);
   protected get planId(): string {
     return this.routeState().get('planId') ?? '';
@@ -145,6 +146,12 @@ export class PlanVersionPage {
   );
 
   constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = params.get('deviceId') ?? '';
+      this.deviceContext.set(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : '',
+      );
+    });
     this.route.paramMap
       .pipe(
         switchMap((params) => {

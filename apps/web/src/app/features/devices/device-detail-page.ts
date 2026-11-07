@@ -94,6 +94,11 @@ import { DeviceDetailFacade } from './device-detail.facade';
           }
         </dl>
         <div class="actions">
+          @if (isOperator() && !device.archivedAt) {
+            <a mat-flat-button routerLink="/plans" [queryParams]="{ deviceId: device.id }"
+              >Choose a plan for this device</a
+            >
+          }
           <a mat-stroked-button routerLink="/runs" [queryParams]="{ deviceId: device.id }"
             >View device run history</a
           >
@@ -160,6 +165,7 @@ export class DeviceDetailPage {
   protected readonly plans = inject(PlansFacade);
   private readonly auth = inject(AuthFacade);
   protected readonly isPlanner = computed(() => this.auth.role() === 'PLANNER');
+  protected readonly isOperator = computed(() => this.auth.role() === 'OPERATOR');
   private readonly route = inject(ActivatedRoute);
   private readonly dialogs = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);

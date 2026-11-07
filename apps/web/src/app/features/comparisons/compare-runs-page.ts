@@ -1,3 +1,4 @@
+import { RunDeviceMetadata } from '../runs/run-device-metadata';
 import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -71,6 +72,7 @@ interface SelectionDraft {
 @Component({
   selector: 'app-compare-runs-page',
   imports: [
+    RunDeviceMetadata,
     ComparisonStepCard,
     DatePipe,
     EmptyState,

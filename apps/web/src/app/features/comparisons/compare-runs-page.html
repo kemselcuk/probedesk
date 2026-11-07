@@ -199,6 +199,7 @@
             <app-run-status-badge [status]="card.run.status" [outcome]="card.run.outcome" />
           </header>
 
+          <app-run-device-metadata [run]="card.run" />
           <p class="run-band">
             <span
               >{{ card.run.recordedSampleCount }} of

@@ -45,12 +45,45 @@
                     Scenario, seed, and scenario-specific settings
                   </legend>
 
+                  <div [formGroup]="metadataForm" class="run-traceability">
+                    @if (selectedProfileId()) {
+                      <app-device-picker
+                        [profileId]="selectedProfileId()"
+                        [deviceId]="metadataForm.controls.deviceId.value"
+                        [disabled]="!isOperator() || runs.startPending()"
+                        (deviceIdChange)="metadataForm.controls.deviceId.setValue($event)"
+                        (validChange)="deviceValid.set($event)"
+                      />
+                    } @else {
+                      <p role="status">
+                        Device selection needs the plan profile.
+                        <button mat-button type="button" (click)="plans.loadPlans()">
+                          Load plan profiles
+                        </button>
+                      </p>
+                    }
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Batch number (optional)</mat-label>
+                      <input
+                        matInput
+                        id="start-run-batch"
+                        formControlName="batchNumber"
+                        [readonly]="runs.startPending()"
+                      />
+                      <mat-hint
+                        >Up to 100 ASCII letters, digits and ._:/-. A device is optional.</mat-hint
+                      >
+                      <mat-error>Enter a valid batch number, or leave it empty.</mat-error>
+                    </mat-form-field>
+                  </div>
                   <div class="settings-grid">
                     <mat-form-field appearance="outline" subscriptSizing="dynamic">
                       <mat-label>Scenario</mat-label>
                       <mat-select id="start-run-scenario" formControlName="scenario">
                         <mat-option class="pd-select-option" value="NORMAL">Normal</mat-option>
-                        <mat-option class="pd-select-option" value="FORCED_FAILURE"> Forced failure </mat-option>
+                        <mat-option class="pd-select-option" value="FORCED_FAILURE">
+                          Forced failure
+                        </mat-option>
                         <mat-option class="pd-select-option" value="RANDOM"> Random </mat-option>
                       </mat-select>
                       <mat-hint id="start-run-scenario-hint">
@@ -115,7 +148,9 @@
                       <mat-form-field appearance="outline" subscriptSizing="dynamic">
                         <mat-label>Failing step</mat-label>
                         <mat-select id="start-run-failure-step" formControlName="failureStepId">
-                          <mat-option class="pd-select-option" value="" disabled>Select a step</mat-option>
+                          <mat-option class="pd-select-option" value="" disabled
+                            >Select a step</mat-option
+                          >
                           @for (
                             step of version.steps;
                             track step.logicalStepId;

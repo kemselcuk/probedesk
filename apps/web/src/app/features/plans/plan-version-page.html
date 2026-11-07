@@ -19,7 +19,7 @@
       mat-flat-button
       id="start-run-link"
       [routerLink]="['/runs/new']"
-      [queryParams]="{ versionId: versionId }"
+      [queryParams]="{ versionId: versionId, deviceId: deviceContext() || null }"
     >
       Start run
     </a>

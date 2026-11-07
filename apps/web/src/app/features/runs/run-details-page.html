@@ -234,6 +234,7 @@
             </dl>
           </section>
 
+          <app-run-device-metadata [run]="run" />
           <details class="pd-disclosure run-metadata-disclosure">
             <summary>Run metadata</summary>
             <div class="pd-disclosure-body">
@@ -634,6 +635,30 @@
               </button>
             </div>
 
+            <div [formGroup]="rerunMetadata" class="rerun-traceability">
+              <app-device-picker
+                [profileId]="run.profile.id"
+                [deviceId]="rerunMetadata.controls.deviceId.value"
+                [disabled]="runs.startPending()"
+                (deviceIdChange)="rerunMetadata.controls.deviceId.setValue($event)"
+                (validChange)="rerunDeviceValid.set($event)"
+              />
+              <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                ><mat-label>Batch number (optional)</mat-label
+                ><input
+                  matInput
+                  formControlName="batchNumber"
+                  [readonly]="runs.startPending()"
+                /><mat-error
+                  >Use at most 100 ASCII letters, digits and ._:/-.</mat-error
+                ></mat-form-field
+              >
+              <p class="section-hint">
+                The recorded device above is historical. The new run copies the current values of
+                the selected active device. An archived device must be replaced or explicitly
+                cleared.
+              </p>
+            </div>
             <dl class="rerun-settings pd-meta">
               <div>
                 <dt>Plan version</dt>
