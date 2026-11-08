@@ -106,9 +106,9 @@ describe('LoginPage', () => {
     harness.detectChanges();
 
     expect(root.textContent).toContain('Enter a valid email address.');
-    expect(
-      root.querySelector('#email')?.getAttribute('aria-describedby')?.split(/\s+/),
-    ).toContain('email-error');
+    expect(root.querySelector('#email')?.getAttribute('aria-describedby')?.split(/\s+/)).toContain(
+      'email-error',
+    );
     expect(http.match('/api/auth/login')).toHaveLength(0);
   });
 
@@ -119,9 +119,7 @@ describe('LoginPage', () => {
     harness.detectChanges();
     const root = rootOf(harness);
 
-    expect(root.querySelector('.session-notice')?.textContent).toContain(
-      'Your session ended.',
-    );
+    expect(root.querySelector('.session-notice')?.textContent).toContain('Your session ended.');
     expect(root.querySelector('.session-notice')?.textContent).toContain(
       'Its address and filters were kept.',
     );
@@ -298,8 +296,13 @@ describe('LoginPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    const analytics=http.expectOne(request=>request.url==='/api/analytics/overview');
-    analytics.flush(overviewFixture({from:analytics.request.params.get('from')!,to:analytics.request.params.get('to')!},true));
+    const analytics = http.expectOne((request) => request.url === '/api/analytics/overview');
+    analytics.flush(
+      overviewFixture(
+        { from: analytics.request.params.get('from')!, to: analytics.request.params.get('to')! },
+        true,
+      ),
+    );
     expect(TestBed.inject(Router).url).toContain('/overview?');
   });
 

@@ -5,6 +5,8 @@ import {
   type TestRequest,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { DevicePicker } from '../devices/device-picker';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { firstValueFrom } from 'rxjs';
@@ -157,10 +159,14 @@ describe('OverviewPage', () => {
       expect(root.textContent).toContain('1000.125');
       expect(root.textContent).toContain('Simulated test results');
       expect(root.querySelectorAll('.kpi')).toHaveLength(4);
+      const passCard = root.querySelectorAll('.kpi')[1];
+      expect(passCard.getAttribute('aria-label')).toBeNull();
+      expect(passCard.textContent).toContain('Pass rate');
+      expect(passCard.textContent).toContain('75.00%');
       expect(root.querySelectorAll('mat-datepicker-toggle')).toHaveLength(2);
       expect(
         root
-          .querySelector('a[aria-label="View failed completed runs in this selection"]')
+          .querySelector('a[title="View failed completed runs in this selection"]')
           ?.getAttribute('href'),
       ).toContain('outcome=FAILED');
       expect(root.querySelector('.top-table a')?.getAttribute('href')).toContain(
@@ -196,6 +202,32 @@ describe('OverviewPage', () => {
     `/overview?from=${QUERY.from}&to=${QUERY.to}&scenario=NORMAL&scenario=RANDOM`,
   ])('does not query analytics for an invalid URL %s', async (url) => {
     await open(url);
+    TestBed.inject(HttpTestingController).expectNone(
+      (request) => request.url === '/api/analytics/overview',
+    );
+  });
+  it('exposes an unknown applied device filter and marks an explicit device clear as unapplied', async () => {
+    const query = { ...QUERY, deviceId: PLAN_ID };
+    const harness = await open(`/overview?from=${QUERY.from}&to=${QUERY.to}&deviceId=${PLAN_ID}`);
+    TestBed.inject(HttpTestingController)
+      .expectOne(`/api/devices/${PLAN_ID}`)
+      .flush(
+        { code: 'NOT_FOUND', message: 'Not found.', requestId: 'unknown-device' },
+        { status: 404, statusText: 'Not Found' },
+      );
+    analyticsRequest().flush(overviewFixture(query, true));
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    const root = harness.fixture.nativeElement as HTMLElement;
+    expect(root.querySelector<HTMLDetailsElement>('.device-filter')?.open).toBe(true);
+    expect(root.querySelector('summary')?.textContent).toContain(PLAN_ID);
+    expect(root.textContent).toContain('Unknown device filter');
+    const picker = harness.fixture.debugElement.query(By.directive(DevicePicker))
+      .componentInstance as DevicePicker;
+    picker.deviceIdChange.emit('');
+    harness.detectChanges();
+    expect(root.textContent).toContain('Apply filters to update the overview');
+    expect(root.querySelector('[aria-label="Applied filters"]')?.textContent).toContain(PLAN_ID);
     TestBed.inject(HttpTestingController).expectNone(
       (request) => request.url === '/api/analytics/overview',
     );

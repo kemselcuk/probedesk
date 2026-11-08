@@ -99,13 +99,21 @@
         >Exact match, ignoring letter case.</mat-hint
       ><mat-error>Use at most 100 ASCII letters, digits and ._:/-.</mat-error></mat-form-field
     >
-    <details class="device-filter pd-disclosure">
-      <summary>Filter by device (active or archived)</summary>
+    <details class="device-filter pd-disclosure" [open]="!!form.controls.deviceId.value">
+      <summary>
+        {{
+          form.controls.deviceId.value
+            ? 'Device filter: ' + form.controls.deviceId.value
+            : 'Filter by device (active or archived)'
+        }}
+      </summary>
       <div class="pd-disclosure-body">
         <app-device-picker
           [filterMode]="true"
           [deviceId]="form.controls.deviceId.value"
-          (deviceIdChange)="form.controls.deviceId.setValue($event)"
+          (deviceIdChange)="
+            form.controls.deviceId.setValue($event); form.controls.deviceId.markAsDirty()
+          "
         />
       </div>
     </details>
@@ -169,12 +177,17 @@
     >
     · {{ data.filters.from }} to {{ data.filters.to }} (exclusive)
   </p>
+  <p class="updated" aria-label="Applied filters">
+    Plan: {{ data.filters.planId ?? 'All' }} · Version: {{ data.filters.planVersionId ?? 'All' }} ·
+    Scenario: {{ data.filters.scenario ?? 'All' }} · Device: {{ data.filters.deviceId ?? 'All' }} ·
+    Batch: {{ data.filters.batchNumber ?? 'All' }}
+  </p>
   <section class="kpis" aria-label="Run summary">
     <a
       class="kpi"
       routerLink="/runs"
       [queryParams]="links(data)"
-      aria-label="View all runs in this selection"
+      title="View all runs in this selection"
       ><span>Total runs</span><strong>{{ data.summary.totalRuns }}</strong
       ><small>All recorded states</small></a
     >
@@ -182,7 +195,7 @@
       class="kpi"
       routerLink="/runs"
       [queryParams]="links(data, { status: 'COMPLETED' })"
-      aria-label="View completed runs in this selection"
+      title="View completed runs in this selection"
       ><span>Pass rate</span
       ><strong>{{
         data.summary.passRatePercent === null ? '—' : data.summary.passRatePercent + '%'
@@ -197,7 +210,7 @@
       class="kpi"
       routerLink="/runs"
       [queryParams]="links(data, { status: 'COMPLETED', outcome: 'FAILED' })"
-      aria-label="View failed completed runs in this selection"
+      title="View failed completed runs in this selection"
       ><span>Failed runs</span><strong>{{ data.summary.failedRuns }}</strong
       ><small>Completed with a failed verdict</small></a
     >
@@ -205,7 +218,7 @@
       class="kpi"
       routerLink="/runs"
       [queryParams]="links(data, { status: 'COMPLETED' })"
-      aria-label="View runs included in average duration"
+      title="View runs included in average duration"
       ><span>Average duration</span
       ><strong
         >{{ data.summary.averageDurationMs === null ? '—' : data.summary.averageDurationMs
@@ -234,7 +247,7 @@
     <h2>Daily results</h2>
     <p class="section-note">
       Recorded counts grouped by UTC day. First and last days follow the exact selected time
-      boundaries.
+      boundaries. A dash (—) means there were no completed runs that day.
     </p>
     @if (data.summary.totalRuns > 0) {
       <app-overview-trend [days]="data.trend" (daySelected)="openDay($event)" />
