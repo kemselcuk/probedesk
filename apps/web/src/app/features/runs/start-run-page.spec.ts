@@ -270,6 +270,33 @@ describe('StartRunPage', () => {
     );
   });
 
+  it('shows the server batch field error without losing its entered value', async () => {
+    const harness = await openWithVersion();
+    const root = rootOf(harness);
+    typeInto(root, '#start-run-seed', '42');
+    typeInto(root, '#start-run-batch', 'Lot-1');
+    harness.detectChanges();
+    submit(root);
+    harness.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/runs')
+      .flush(
+        {
+          code: 'VALIDATION_ERROR',
+          message: 'Check the fields.',
+          requestId: 'req-batch',
+          fieldErrors: [
+            { path: 'batchNumber', code: 'INVALID_VALUE', message: 'Review this batch number.' },
+          ],
+        },
+        { status: 400, statusText: 'Bad Request' },
+      );
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(root.textContent).toContain('Review this batch number.');
+    expect(root.querySelector<HTMLInputElement>('#start-run-batch')?.value).toBe('Lot-1');
+  });
+
   it('sends only NORMAL fields and navigates with the created runId', async () => {
     const harness = await openWithVersion();
     const root = rootOf(harness);

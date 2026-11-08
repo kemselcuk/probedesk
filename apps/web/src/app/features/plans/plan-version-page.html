@@ -6,7 +6,12 @@
   @if (isPlanner()) {
     <a mat-stroked-button [routerLink]="['/plans', planId, 'edit']">Back to plan</a>
   } @else {
-    <a mat-stroked-button routerLink="/plans">Back to plans</a>
+    <a
+      mat-stroked-button
+      routerLink="/plans"
+      [queryParams]="deviceContext() ? { deviceId: deviceContext() } : {}"
+      >Back to plans</a
+    >
   }
   @if (isPlanner() && facade.versionStatus() === 'loaded' && !versionPlanMismatch()) {
     <app-copy-plan-button
@@ -35,7 +40,12 @@
           This version does not belong to the plan in the address. It was not rendered. Check the
           plan and version links and try again.
         </p>
-        <a mat-stroked-button routerLink="/plans">Back to plans</a>
+        <a
+          mat-stroked-button
+          routerLink="/plans"
+          [queryParams]="deviceContext() ? { deviceId: deviceContext() } : {}"
+          >Back to plans</a
+        >
       </section>
     } @else if (facade.version(); as version) {
       <section class="version-summary" aria-labelledby="version-title">
@@ -231,7 +241,11 @@
               } @else if (facade.versionsStatus() === 'loaded') {
                 @if (!isLatestPublishedVersion()) {
                   @if (latestPublishedVersion(); as latest) {
-                    <a mat-stroked-button [routerLink]="['/plans', planId, 'versions', latest.id]">
+                    <a
+                      mat-stroked-button
+                      [routerLink]="['/plans', planId, 'versions', latest.id]"
+                      [queryParams]="deviceContext() ? { deviceId: deviceContext() } : {}"
+                    >
                       Open version {{ latest.versionNumber }}
                     </a>
                   } @else {
@@ -298,6 +312,7 @@
               <li class="version-history-item" [class.is-current]="first">
                 <a
                   [routerLink]="['/plans', planId, 'versions', entry.id]"
+                  [queryParams]="deviceContext() ? { deviceId: deviceContext() } : {}"
                   [attr.aria-current]="first ? 'true' : null"
                 >
                   Version {{ entry.versionNumber }}
@@ -329,7 +344,12 @@
             Request ID: <code>{{ requestId }}</code>
           </p>
         }
-        <a mat-stroked-button routerLink="/plans">Back to plans</a>
+        <a
+          mat-stroked-button
+          routerLink="/plans"
+          [queryParams]="deviceContext() ? { deviceId: deviceContext() } : {}"
+          >Back to plans</a
+        >
       </section>
     } @else {
       <app-error-state

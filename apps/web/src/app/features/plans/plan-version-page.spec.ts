@@ -207,6 +207,24 @@ describe('PlanVersionPage', () => {
     expect(rootOf(harness).textContent).toContain('Version 3');
   });
 
+  it('keeps the selected device on links to other published versions', async () => {
+    const harness = await open('VIEWER');
+    const http = TestBed.inject(HttpTestingController);
+    flushVersionAndPublisher(http, [
+      ...VERSION_LIST,
+      { ...VERSION_LIST[0], id: '88888888-8888-4888-8888-888888888888', versionNumber: 1 },
+    ]);
+    await harness.fixture.whenStable();
+    const id = '99999999-9999-4999-8999-999999999999';
+    await harness.navigateByUrl(url() + '?deviceId=' + id);
+    harness.detectChanges();
+    const links = rootOf(harness).querySelectorAll<HTMLAnchorElement>(
+      'app-plan-version-page a[href*="/versions/"]',
+    );
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) expect(link.getAttribute('href')).toContain('deviceId=' + id);
+  });
+
   it('offers an Operator a Start run link for this published version', async () => {
     const harness = await open('OPERATOR');
     const root = rootOf(harness);
