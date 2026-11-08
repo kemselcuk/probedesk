@@ -38,7 +38,7 @@
   </mat-toolbar>
 </header>
 
-<mat-sidenav-container class="shell-body">
+<mat-sidenav-container class="shell-body" (backdropClick)="closeNavigationOnNavigate()">
   <mat-sidenav
     class="shell-sidenav"
     [mode]="navMode()"
@@ -47,7 +47,7 @@
     [attr.aria-modal]="compactViewport() ? 'true' : null"
     [attr.aria-label]="compactViewport() ? 'Navigation' : null"
     [disableClose]="navMode() === 'side'"
-    (openedChange)="onSidenavOpenedChange($event)"
+    (keydown.escape)="onDocumentEscape($event)"
   >
     <div class="sidenav-inner">
       <nav id="primary-navigation" class="shell-nav" aria-label="Primary navigation">

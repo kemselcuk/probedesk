@@ -59,7 +59,9 @@ export class AppShell {
   private readonly unsavedChanges = inject(UnsavedChangesService);
 
   private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
-  private readonly navToggle = viewChild<ElementRef<HTMLButtonElement>>('navToggle');
+  private readonly navToggle = viewChild<unknown, ElementRef<HTMLButtonElement>>('navToggle', {
+    read: ElementRef,
+  });
   private readonly contentScroller = viewChild(MatSidenavContent);
 
   protected readonly navigationItems = NAVIGATION_ITEMS;
@@ -106,12 +108,6 @@ export class AppShell {
   protected toggleNavigation(): void {
     if (this.compactViewport()) {
       this.mobileNavigationOpen.update((open) => !open);
-    }
-  }
-
-  protected onSidenavOpenedChange(opened: boolean): void {
-    if (this.compactViewport()) {
-      this.mobileNavigationOpen.set(opened);
     }
   }
 
@@ -212,6 +208,7 @@ export class AppShell {
     this.compactViewport.set(query.matches);
 
     const onChange = (event: MediaQueryListEvent): void => {
+      this.mobileNavigationOpen.set(false);
       this.compactViewport.set(event.matches);
     };
 

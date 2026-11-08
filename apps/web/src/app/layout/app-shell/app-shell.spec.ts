@@ -93,6 +93,38 @@ describe('AppShell', () => {
     ).find((action) => action.textContent?.includes(label));
   }
 
+  it('returns focus to the native menu button after closing compact navigation with Escape', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(max-width: 1023px)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: () => true,
+    }));
+    try {
+      resolveSession('VIEWER');
+      const harness = await RouterTestingHarness.create('/plans');
+      flushPlans();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      const button = rootOf(harness).querySelector<HTMLButtonElement>('button.nav-toggle')!;
+      button.click();
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      expect(button.getAttribute('aria-expanded')).toBe('true');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      harness.detectChanges();
+      await harness.fixture.whenStable();
+      expect(button.getAttribute('aria-expanded')).toBe('false');
+      expect(document.activeElement).toBe(button);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('exposes a skip link, active navigation, and the main landmark', async () => {
     resolveSession('VIEWER');
     const harness = await RouterTestingHarness.create('/plans');
