@@ -5,14 +5,18 @@ import {
   PlanRevisionState,
   PrismaClient,
   Role,
+  RunStatus,
+  RunOutcome,
+  RunStepStatus,
+  RunEventType,
 } from "../../../apps/api/src/prisma/generated/client.js";
+import { seedReportRun } from "../../../apps/api/test/support/report-helpers.js";
 import { createPublishedRunFixture } from "../../../apps/api/test/support/run-helpers.js";
 import {
   createRunMetadataTestDevice,
   createRunMetadataTestProfile,
   createRunMetadataTestUser,
   deleteRunMetadataTestData,
-  seedMetadataRun,
 } from "../../../apps/api/test/support/run-metadata-helpers.js";
 import {
   cleanupE2eData,
@@ -111,16 +115,18 @@ async function removeFailureTrigger(prisma: PrismaClient): Promise<void> {
 
 async function expectCleanupFailure(
   action: () => Promise<unknown>,
+  expected: string,
 ): Promise<void> {
   try {
     await action();
-  } catch {
+  } catch (error) {
+    assert(
+      error instanceof Error && error.message.includes(expected),
+      "Cleanup failed for an unexpected reason.",
+    );
     return;
   }
-
-  throw new Error(
-    "Expected cleanup to fail while the forced trigger was active.",
-  );
+  throw new Error("Expected cleanup to reject the requested operation.");
 }
 
 async function main(): Promise<void> {
@@ -183,15 +189,46 @@ async function main(): Promise<void> {
     const fixture = await createPublishedRunFixture(prisma, user.id, profile, {
       planName: `EX-12 tracked run plan ${randomUUID().slice(0, 8)}`,
     });
-    await seedMetadataRun(prisma, {
+    const recordedRun = await seedReportRun(prisma, {
       fixture,
       requestedById: user.id,
+      status: RunStatus.COMPLETED,
+      outcome: RunOutcome.PASSED,
       startedAt: "2026-11-08T12:00:00.000Z",
+      finishedAt: "2026-11-08T12:00:02.000Z",
+      steps: fixture.steps.map((step) => ({
+        status: RunStepStatus.COMPLETED,
+        outcome: RunOutcome.PASSED,
+        measurements: Array.from(
+          { length: step.sampleCount },
+          (_, sampleIndex) => ({
+            sampleIndex,
+            value: step.minimum,
+            isWithinTolerance: true,
+            elapsedMs: sampleIndex * step.intervalMs,
+            recordedAt: new Date(
+              Date.parse("2026-11-08T12:00:00.000Z") +
+                sampleIndex * step.intervalMs,
+            ),
+          }),
+        ),
+      })),
       device: {
         id: device.id,
         name: device.name,
         serialNumber: device.serialNumber,
         deviceProfileId: profile.id,
+      },
+    });
+
+    await prisma.runEvent.create({
+      data: {
+        runId: recordedRun.id,
+        sequence: 1,
+        type: RunEventType.RUN_COMPLETED,
+        schemaVersion: 1,
+        occurredAt: new Date("2026-11-08T12:00:02.000Z"),
+        payload: { status: "COMPLETED", outcome: "PASSED" },
       },
     });
 
@@ -257,6 +294,10 @@ async function main(): Promise<void> {
       summary.remainingPlanCopyRequests === 0,
       "A tracked copy request was left behind.",
     );
+    assert(
+      summary.measurements > 0 && summary.runEvents > 0,
+      "Cleanup did not exercise measurement/event deletion.",
+    );
     assert(summary.activeRunsAfter === 0, "Cleanup left an active run behind.");
     await assertCleanupTriggersEnabled(
       triggerClient,
@@ -314,17 +355,50 @@ async function main(): Promise<void> {
       "The explicitly named device still exists.",
     );
 
-    await expectCleanupFailure(() =>
-      cleanupE2eData({
-        deviceIds: [DEMO_DEVICE_FIXTURE_ID],
-        sessionBaseline: baseline.sessionIds,
-        userEmails: [],
-      }),
+    await expectCleanupFailure(
+      () =>
+        cleanupE2eData({
+          deviceIds: [DEMO_DEVICE_FIXTURE_ID],
+          sessionBaseline: baseline.sessionIds,
+          userEmails: [],
+        }),
+      "shared demo device",
     );
     assert(
       (await prisma.device.count({ where: { id: DEMO_DEVICE_FIXTURE_ID } })) ===
         1,
       "Cleanup must refuse to delete a shared demo device fixture.",
+    );
+
+    await expectCleanupFailure(
+      () =>
+        cleanupE2eData({
+          planIds: [source.planId],
+          sessionBaseline: baseline.sessionIds,
+          userEmails: [],
+        }),
+      "shared demo plan",
+    );
+    const ambiguousName = `EX-12 ambiguous ${randomUUID()}`;
+    for (let index = 0; index < 2; index++)
+      await createRunMetadataTestDevice(prisma, {
+        deviceProfileId: profile.id,
+        createdById: user.id,
+        name: ambiguousName,
+        serialNumber: `EX12-AMB-${randomUUID()}`,
+      });
+    await expectCleanupFailure(
+      () =>
+        cleanupE2eData({
+          deviceNames: [ambiguousName],
+          sessionBaseline: baseline.sessionIds,
+          userEmails: [],
+        }),
+      "Ambiguous device cleanup name",
+    );
+    assert(
+      (await prisma.device.count({ where: { name: ambiguousName } })) === 2,
+      "Ambiguous device names must be preserved.",
     );
 
     const failureTarget = await prisma.testPlan.create({
@@ -342,12 +416,14 @@ async function main(): Promise<void> {
 
     await installFailureTrigger(prisma);
     try {
-      await expectCleanupFailure(() =>
-        cleanupE2eData({
-          planIds: [failureTarget.id],
-          sessionBaseline: baseline.sessionIds,
-          userEmails: [],
-        }),
+      await expectCleanupFailure(
+        () =>
+          cleanupE2eData({
+            planIds: [failureTarget.id],
+            sessionBaseline: baseline.sessionIds,
+            userEmails: [],
+          }),
+        "ex12 support forced cleanup failure",
       );
     } finally {
       await removeFailureTrigger(prisma);
@@ -391,11 +467,19 @@ async function main(): Promise<void> {
     );
     assert(after.planCopyRequests === 0, "Copy-provenance residue remains.");
     assert(after.activeRuns === 0, "An active run remains after cleanup.");
+    assert(
+      after.devicesDigest === baseline.devicesDigest,
+      "Device contents changed during support verification.",
+    );
+    assert(
+      after.planCopyRequestsDigest === baseline.planCopyRequestsDigest,
+      "Copy provenance contents changed during support verification.",
+    );
 
     console.log(
       `[ex12-support] tracked cleanup: devices=${summary.devices} ` +
         `copyRequests=${summary.planCopyRequests} runs=${summary.runs} ` +
-        `runSteps=${summary.runSteps}`,
+        `runSteps=${summary.runSteps} measurements=${summary.measurements} runEvents=${summary.runEvents}`,
     );
     console.log(
       "[ex12-support] unrelated device, plan and copy provenance were preserved",

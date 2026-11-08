@@ -521,6 +521,14 @@ describe('plan copy API (e2e)', () => {
         }),
       ],
     );
+    const sourceDevice = await postAs(planner, '/api/devices')
+      .send({
+        deviceProfileId: profileId,
+        name: 'Fingerprint bench',
+        serialNumber: `COPY-${randomUUID()}`,
+      })
+      .expect(201);
+    const sourceDeviceId = (sourceDevice.body as { id: string }).id;
     const runKey = `copy-source-run-${randomUUID()}`;
     const started = await postAs(operator, '/api/runs')
       .set('Idempotency-Key', runKey)
@@ -528,6 +536,8 @@ describe('plan copy API (e2e)', () => {
         planVersionId: source.published.id,
         scenario: RunScenario.NORMAL,
         seed: 424242,
+        deviceId: sourceDeviceId,
+        batchNumber: 'Copy-Source-Batch',
       })
       .expect(202);
     const runId = (started.body as { runId: string }).runId;
@@ -543,6 +553,13 @@ describe('plan copy API (e2e)', () => {
       status: RunStatus.COMPLETED,
       outcome: RunOutcome.PASSED,
       idempotencyKey: runKey,
+      deviceId: sourceDeviceId,
+      deviceSnapshot: expect.objectContaining({
+        id: sourceDeviceId,
+        name: 'Fingerprint bench',
+      }),
+      batchNumber: 'Copy-Source-Batch',
+      batchNumberKey: 'COPY-SOURCE-BATCH',
       expectedSampleCount: 1,
       recordedSampleCount: 1,
     });

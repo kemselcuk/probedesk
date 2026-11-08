@@ -175,18 +175,28 @@ describe('health endpoints (e2e)', () => {
     });
 
     afterAll(async () => {
-      if (app) {
-        await app.close();
+      const errors: unknown[] = [];
+      try {
+        if (app) await app.close();
+      } catch (error) {
+        errors.push(error);
       }
-
-      if (admin) {
-        try {
-          if (created)
-            await admin.query(`DROP DATABASE "${databaseName}" WITH (FORCE)`);
-        } finally {
-          await admin.end();
+      try {
+        if (admin && created)
+          await admin.query(`DROP DATABASE "${databaseName}" WITH (FORCE)`);
+      } catch (error) {
+        errors.push(error);
+      } finally {
+        if (admin) {
+          try {
+            await admin.end();
+          } catch (error) {
+            errors.push(error);
+          }
         }
       }
+      if (errors.length)
+        throw new AggregateError(errors, 'Readiness fixture cleanup failed.');
     });
 
     it('returns 503 because the schema has no applied migrations', async () => {

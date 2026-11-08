@@ -386,10 +386,16 @@ async function resolveDeviceIds(
   const names = options.deviceNames?.filter(Boolean) ?? [];
 
   if (names.length > 0) {
-    const named = await client.query<{ id: string }>(
-      "SELECT id FROM devices WHERE name = ANY($1)",
+    const named = await client.query<{ id: string; name: string }>(
+      "SELECT id, name FROM devices WHERE name = ANY($1)",
       [names],
     );
+    for (const name of names) {
+      if (named.rows.filter((row) => row.name === name).length > 1)
+        throw new Error(
+          "Ambiguous device cleanup name; pass explicit device IDs instead.",
+        );
+    }
     for (const row of named.rows) {
       ids.add(row.id);
     }
@@ -441,6 +447,21 @@ export async function cleanupE2eData(
     }
 
     const ids = [...planIds];
+    const protectedPlans = await client.query(
+      `SELECT p.id FROM test_plans p
+      JOIN users u ON u.id = p."createdById"
+      JOIN device_profiles d ON d.id = p."deviceProfileId"
+      WHERE p.id = ANY($1::uuid[]) AND u.email = $2 AND d.code = $3
+        AND EXISTS(SELECT 1 FROM plan_revisions r WHERE r."planId" = p.id AND r.name = $4)`,
+      [
+        ids,
+        "planner@probedesk.local",
+        "DC_POWER_MODULE",
+        "Power Supply Validation",
+      ],
+    );
+    if (protectedPlans.rowCount)
+      throw new Error("Refusing to delete a shared demo plan fixture.");
     const deviceIds = await resolveDeviceIds(client, options);
 
     let runIds: string[] = [];

@@ -458,16 +458,19 @@ function assertSameHistory(before, after, label) {
   );
 }
 
+function baselineServer(connectionString) {
+  const parsed = parseConnection(connectionString, "E2E_DATABASE_URL");
+  return parsed.identity.slice(0, parsed.identity.lastIndexOf("/"));
+}
+
 function baselineFilePath(connectionString, database) {
   if (process.env.E2E_BASELINE_FILE) {
     return process.env.E2E_BASELINE_FILE;
   }
-  const server = new URL(connectionString);
-  const safeServer =
-    `${server.hostname.toLowerCase()}_${server.port || "5432"}`.replace(
-      /[^a-z0-9_.-]/gi,
-      "_",
-    );
+  const safeServer = baselineServer(connectionString).replace(
+    /[^a-z0-9_.-]/gi,
+    "_",
+  );
   return join(
     tmpdir(),
     `probedesk-e2e-baseline-${safeServer}-${database}.json`,
@@ -476,9 +479,7 @@ function baselineFilePath(connectionString, database) {
 
 function writeBaselineFile(connectionString, database, value) {
   const path = baselineFilePath(connectionString, database);
-  const server = `${new URL(connectionString).hostname.toLowerCase()}:${
-    new URL(connectionString).port || "5432"
-  }`;
+  const server = baselineServer(connectionString);
   writeFileSync(
     path,
     `${JSON.stringify({ database, server, fixtureDigest: value.fixtureDigest }, null, 2)}\n`,
@@ -489,11 +490,9 @@ function writeBaselineFile(connectionString, database, value) {
 function assertBaselineDigest(connectionString, database, value) {
   const path = baselineFilePath(connectionString, database);
   if (!existsSync(path)) {
-    console.warn(
-      "[e2e-isolated] prepare baseline digest was not found; falling back to the " +
-        "count-only baseline check.",
+    throw new Error(
+      "Prepare baseline digest was not found. Run prepare before assert-baseline; count-only validation is not accepted.",
     );
-    return;
   }
 
   let stored;
@@ -505,9 +504,7 @@ function assertBaselineDigest(connectionString, database, value) {
     );
   }
 
-  const server = `${new URL(connectionString).hostname.toLowerCase()}:${
-    new URL(connectionString).port || "5432"
-  }`;
+  const server = baselineServer(connectionString);
   if (
     stored.database !== database ||
     stored.server !== server ||

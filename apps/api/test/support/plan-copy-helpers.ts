@@ -45,6 +45,7 @@ export async function deletePlanCopyTestData(
     },
   });
 
+  await prisma.device.deleteMany({ where: { createdById: { in: userIds } } });
   await deletePlanTestData(prisma);
 }
 
