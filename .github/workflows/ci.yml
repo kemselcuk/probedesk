@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/analytics-reporting-devices]
   pull_request:
 
 permissions:
