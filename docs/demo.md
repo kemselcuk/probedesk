@@ -20,20 +20,20 @@ kabulü değildir; kullanıcı nihai kabulü [acceptance.md](acceptance.md) içi
 
 ## Demo hesapları
 
-| Rol | E-posta | Parola |
-|---|---|---|
-| Planner | `planner@probedesk.local` | `PlannerDemo!2026` |
+| Rol      | E-posta                    | Parola              |
+| -------- | -------------------------- | ------------------- |
+| Planner  | `planner@probedesk.local`  | `PlannerDemo!2026`  |
 | Operator | `operator@probedesk.local` | `OperatorDemo!2026` |
-| Viewer | `viewer@probedesk.local` | `ViewerDemo!2026` |
+| Viewer   | `viewer@probedesk.local`   | `ViewerDemo!2026`   |
 
 ## Plan ve yayımlanmış sürümler
 
 Profil: `DC Power Module` (`DC_POWER_MODULE`). Plan: `Power Supply Validation`.
 
-| Sürüm | Durum | Adımlar | Current Draw aralığı |
-|---|---|---|---|
-| v1 | PUBLISHED | Output Voltage 4.75–5.25 V; Current Draw 0.45–0.55 A; Case Temperature 20–60 °C | `0.450000 – 0.550000 A` |
-| v2 | PUBLISHED | v1 ile aynı üç adım ve aynı `logicalStepId` değerleri | `0.450000 – 0.650000 A` |
+| Sürüm | Durum     | Adımlar                                                                         | Current Draw aralığı    |
+| ----- | --------- | ------------------------------------------------------------------------------- | ----------------------- |
+| v1    | PUBLISHED | Output Voltage 4.75–5.25 V; Current Draw 0.45–0.55 A; Case Temperature 20–60 °C | `0.450000 – 0.550000 A` |
+| v2    | PUBLISHED | v1 ile aynı üç adım ve aynı `logicalStepId` değerleri                           | `0.450000 – 0.650000 A` |
 
 Her adım 30 örnek ve 200 ms örnekleme aralığı kullanır; bir çalıştırmada 90 örnek beklenir. v2
 yalnızca Current Draw üst sınırını değiştirir; yayımlanmış v1 ve geçmiş run snapshot'ları
@@ -44,12 +44,12 @@ değişmez.
 Değerler, sayaçlar, istatistikler ve sonuçlar üretimdeki simülatör ve değerlendirici koduyla
 hesaplanır; seed veritabanına sabit `PASSED`/`FAILED` etiketi yazmaz.
 
-| Fixture | Sürüm | Senaryo / seed | Durum | Sonuç | Beklenen / kaydedilen | Son olay |
-|---|---|---|---|---|---|---|
-| Partial cancelled v1 | v1 | NORMAL / 42 | CANCELLED | — | 90 / 45 | 50 |
-| Forced failure v1 | v1 | FORCED_FAILURE / 42 | COMPLETED | FAILED | 90 / 90 | 98 |
-| Normal v1 | v1 | NORMAL / 42 | COMPLETED | PASSED | 90 / 90 | 98 |
-| Normal v2 | v2 | NORMAL / 42 | COMPLETED | PASSED | 90 / 90 | 98 |
+| Fixture              | Sürüm | Senaryo / seed      | Durum     | Sonuç  | Beklenen / kaydedilen | Son olay |
+| -------------------- | ----- | ------------------- | --------- | ------ | --------------------- | -------- |
+| Partial cancelled v1 | v1    | NORMAL / 42         | CANCELLED | —      | 90 / 45               | 50       |
+| Forced failure v1    | v1    | FORCED_FAILURE / 42 | COMPLETED | FAILED | 90 / 90               | 98       |
+| Normal v1            | v1    | NORMAL / 42         | COMPLETED | PASSED | 90 / 90               | 98       |
+| Normal v2            | v2    | NORMAL / 42         | COMPLETED | PASSED | 90 / 90               | 98       |
 
 Gerçek run kimlikleri ortama göre değişir; doğrulanan yerel kimlikler
 [phase-8-seed.md](evidence/phase-8-seed.md) içinde kayıtlıdır. Demo adımlarında kimlik yerine run
@@ -78,18 +78,18 @@ korunur. Kullanıcıya görünen adım durumları `Completed`, `Cancelled` ve `N
 Önerilen akış, delivery profili (`http://127.0.0.1:8080`) ve temiz demo veritabanı içindir. Her
 adım gerçek UI üzerinden yapılır; test/seed sonucu doğrudan yazılmaz.
 
-| Adım | Kullanıcı işlemi | Görünmesi gereken sonuç |
-|---|---|---|
-| 1 | Planner ile giriş yap; **Test Plans** ekranını aç | `Power Supply Validation` planı; yayımlanmış v1 ve v2 |
-| 2 | Plan sürüm listesinden **Version 1**'i aç | Salt okunur v1: üç adım, 30 örnek, 200 ms, toplam 90 örnek; `Current Draw` maksimumu `0.550000 A` |
-| 3 | Operator ile giriş yap; v1 sürüm sayfasından **Start run** seç | Start Run ekranı; `FORCED_FAILURE`, seed `42`, failing step `Current Draw` |
-| 4 | **Start run** ile çalıştırmayı başlat; **Live Run** ekranını izle | Önce `Running`, canlı örnekler ve `Connection: Connected`; run `FAILED` olarak tamamlanır, `90/90` örnek kaydedilir |
-| 5 | Current Draw adımındaki hatayı ve **View run details** bağlantısını incele | İlk hata `Sample index 14`; değer `0.600000 A`; adım `Completed`/`Failed`, ihlal sayısı `1`; Case Temperature `Completed`/`Passed` |
-| 6 | Run Details grafiğinde hata noktasını seç; tooltip ve ölçüm satırını kontrol et | Grafikte tolerans dışı işaret; tooltip `0.600000`; tabloda aynı satır `Outside tolerance` ve seçili |
-| 7 | **Run History** ekranında planı `Power Supply Validation` olarak filtrele; forced-failure v1 ve normal v1 run'larını seçip **Compare** et | `Version 1` vs `Version 1`; sonuçlar `Failed`/`Passed`; ihlal `1`/`0`; ilk hata `Sample index 14`/`None recorded`; 3 ortak adım, değişen kural yok |
-| 8 | Aynı ekranda v1 FAILED ile v2 PASSED run'larını karşılaştır | Farklı sürüm notu; tek değişen kural Current Draw maksimumu `0.550000 → 0.650000`; v1 run'ının kayıtlı kuralı hâlâ `0.550000` |
-| 9 | Run History'den partial cancelled v1 run'ını aç | `CANCELLED`; `90` beklenen / `45` kaydedilen örnek; adım durumları `Completed`, `Cancelled`, `Not run` |
-| 10 | Viewer ile giriş yap; Test Plans ve Run History'yi aç | Salt okunur görünüm; run başlatma/iptal düğmeleri yok; doğrudan mutasyon API tarafından reddedilir |
+| Adım | Kullanıcı işlemi                                                                                                                          | Görünmesi gereken sonuç                                                                                                                            |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Planner ile giriş yap; **Test Plans** ekranını aç                                                                                         | `Power Supply Validation` planı; yayımlanmış v1 ve v2                                                                                              |
+| 2    | Plan sürüm listesinden **Version 1**'i aç                                                                                                 | Salt okunur v1: üç adım, 30 örnek, 200 ms, toplam 90 örnek; `Current Draw` maksimumu `0.550000 A`                                                  |
+| 3    | Operator ile giriş yap; v1 sürüm sayfasından **Start run** seç                                                                            | Start Run ekranı; `FORCED_FAILURE`, seed `42`, failing step `Current Draw`                                                                         |
+| 4    | **Start run** ile çalıştırmayı başlat; **Live Run** ekranını izle                                                                         | Önce `Running`, canlı örnekler ve `Connection: Connected`; run `FAILED` olarak tamamlanır, `90/90` örnek kaydedilir                                |
+| 5    | Current Draw adımındaki hatayı ve **View run details** bağlantısını incele                                                                | İlk hata `Sample index 14`; değer `0.600000 A`; adım `Completed`/`Failed`, ihlal sayısı `1`; Case Temperature `Completed`/`Passed`                 |
+| 6    | Run Details grafiğinde hata noktasını seç; tooltip ve ölçüm satırını kontrol et                                                           | Grafikte tolerans dışı işaret; tooltip `0.600000`; tabloda aynı satır `Outside tolerance` ve seçili                                                |
+| 7    | **Run History** ekranında planı `Power Supply Validation` olarak filtrele; forced-failure v1 ve normal v1 run'larını seçip **Compare** et | `Version 1` vs `Version 1`; sonuçlar `Failed`/`Passed`; ihlal `1`/`0`; ilk hata `Sample index 14`/`None recorded`; 3 ortak adım, değişen kural yok |
+| 8    | Aynı ekranda v1 FAILED ile v2 PASSED run'larını karşılaştır                                                                               | Farklı sürüm notu; tek değişen kural Current Draw maksimumu `0.550000 → 0.650000`; v1 run'ının kayıtlı kuralı hâlâ `0.550000`                      |
+| 9    | Run History'den partial cancelled v1 run'ını aç                                                                                           | `CANCELLED`; `90` beklenen / `45` kaydedilen örnek; adım durumları `Completed`, `Cancelled`, `Not run`                                             |
+| 10   | Viewer ile giriş yap; Test Plans ve Run History'yi aç                                                                                     | Salt okunur görünüm; run başlatma/iptal düğmeleri yok; doğrudan mutasyon API tarafından reddedilir                                                 |
 
 Adım 7 ve 8 için Run History'deki **Compare** seçimi iki terminal run ister. Sürüm farkı
 karşılaştırması için v2 run'ı seed ile hazırdır; yalnızca v2 yayımlamak yeni bir run oluşturmaz.
@@ -144,6 +144,29 @@ geçmez.
 
 ## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
 
-Yeni demo: Planner published planı bağımsız kopyalar ve cihazı oluşturur; Operator cihaz/partiyle run başlatır; Viewer Overview→history→details→report ve CSV/JSON akışını kullanır. İki cihaz eklemeli seed edilir; eski dört demo run sonradan cihazlara bağlanmaz. Yeni akış henüz doğrulanmadı; video kapsam dışı kalır.
+Eklemeli seed aynı `DC Power Module` profiline iki aktif cihaz ekler:
+
+| Cihaz                | Seri numarası |
+| -------------------- | ------------- |
+| Bench Power Module A | PSU-DEMO-0001 |
+| Bench Power Module B | PSU-DEMO-0002 |
+
+Eski dört demo run cihazlara sonradan bağlanmaz; cihaz/parti alanları null kalır.
+Tekrar seed mevcut kayıtları ve kullanıcı düzenlemelerini korur.
+
+1. Planner Devices ekranından cihaz oluşturur veya hazır aktif cihazı kullanır;
+   yayımlanmış planı bağımsız draft'a kopyalar, düzenler ve yayımlar.
+2. Operator bu sürümü uyumlu aktif cihaz ve parti numarasıyla başlatır. Run sonrası
+   cihaz yeniden adlandırılsa da Details/Report kayıtlı ad/seri snapshot'ını gösterir.
+3. Viewer Overview filtreleri ve KPI bağlantılarıyla ilgili History kayıtlarına gider;
+   terminal run raporunu açar, CSV/JSON indirir, Print / Save PDF kullanır.
+4. Legacy raporda “No device recorded” / “No batch recorded” görünür; eksik ölçümler
+   üretilmez. Ham ölçümlerin tamamı CSV/JSON içindedir.
+
+[Gerçek izole Chrome koşusu](evidence/feature-pack-1/ex-12.md) bu zinciri doğruladı.
+[Yedekli 8080 rollout](evidence/feature-pack-1/ex-13-delivery.md) mevcut45run,
+3136ölçüm ve3462event'i korudu; Viewer dashboard/device/report/indirme smoke geçti.
+A4 PDF'ler render edilip incelendi; native OS dialog/zoom ve ürün/görsel kabulü bu
+kanıttan otomatik çıkarılmaz. Video kapsam dışıdır.
 
 Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.
