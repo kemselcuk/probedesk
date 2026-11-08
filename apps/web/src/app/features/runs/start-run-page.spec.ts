@@ -90,11 +90,14 @@ describe('StartRunPage', () => {
   async function open(
     role: Role,
     versionId: string | null = VERSION_ID,
+    deviceId = '',
   ): Promise<RouterTestingHarness> {
     actAs(role);
     const url =
       versionId === null ? '/runs/new' : `/runs/new?versionId=${encodeURIComponent(versionId)}`;
-    const harness = await RouterTestingHarness.create(url);
+    const harness = await RouterTestingHarness.create(
+      url + (deviceId ? '&deviceId=' + encodeURIComponent(deviceId) : ''),
+    );
     harness.detectChanges();
     if (versionId !== null)
       TestBed.inject(HttpTestingController)
@@ -272,6 +275,54 @@ describe('StartRunPage', () => {
       { status: 409, statusText: 'Conflict' },
     );
   });
+
+  it.each(['active', 'archived', 'mismatch', 'unknown'] as const)(
+    'only preselects a validated active compatible URL device (%s)',
+    async (kind) => {
+      const deviceId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const harness = await open('OPERATOR', VERSION_ID, deviceId);
+      const http = TestBed.inject(HttpTestingController);
+      http.expectOne(`/api/plan-versions/${VERSION_ID}`).flush(VERSION_DETAIL);
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      const root = rootOf(harness);
+      expect(root.querySelector<HTMLButtonElement>('#start-run-submit')?.disabled).toBe(true);
+      const device = {
+        id: deviceId,
+        deviceProfileId: kind === 'mismatch' ? PLAN_ID : USER_ID,
+        name: 'Requested device',
+        serialNumber: 'PSU-URL',
+        description: null,
+        archivedAt: kind === 'archived' ? '2026-11-07T00:00:00.000Z' : null,
+        editRevision: 1,
+        createdAt: '2026-11-07T00:00:00.000Z',
+        updatedAt: '2026-11-07T00:00:00.000Z',
+      };
+      const request = http.expectOne(`/api/devices/${deviceId}`);
+      if (kind === 'unknown')
+        request.flush(
+          { code: 'NOT_FOUND', message: 'Device not found.', requestId: 'url-device' },
+          { status: 404, statusText: 'Not Found' },
+        );
+      else request.flush(device);
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      if (kind === 'active') {
+        // The picker independently checks the selected device for the actual start form.
+        http.expectOne(`/api/devices/${deviceId}`).flush(device);
+        await harness.fixture.whenStable();
+        harness.detectChanges();
+        expect(root.querySelector('app-page-header a')?.getAttribute('href')).toContain(deviceId);
+        expect(root.textContent).toContain('PSU-URL');
+      } else {
+        expect(root.textContent).toContain('was not preselected');
+        expect(root.querySelector('app-page-header a')?.getAttribute('href')).not.toContain(
+          'deviceId=',
+        );
+        http.expectNone(`/api/devices/${deviceId}`);
+      }
+    },
+  );
 
   it('shows the server batch field error without losing its entered value', async () => {
     const harness = await openWithVersion();

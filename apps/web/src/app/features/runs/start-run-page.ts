@@ -1,3 +1,4 @@
+import { DevicePickerFacade } from '../devices/device-picker.facade';
 import { DevicePicker } from '../devices/device-picker';
 import { DecimalPipe } from '@angular/common';
 import {
@@ -7,6 +8,8 @@ import {
   Injector,
   afterNextRender,
   computed,
+  effect,
+  untracked,
   inject,
   signal,
 } from '@angular/core';
@@ -42,6 +45,7 @@ import { RunsFacade } from './runs.facade';
 
 @Component({
   selector: 'app-start-run-page',
+  providers: [DevicePickerFacade],
   imports: [
     DevicePicker,
     DecimalPipe,
@@ -74,7 +78,7 @@ export class StartRunPage {
   protected readonly form = createRunStartForm(inject(NonNullableFormBuilder));
   protected readonly metadataForm = inject(NonNullableFormBuilder).group({
     deviceId: [
-      this.route.snapshot.queryParamMap.get('deviceId') ?? '',
+      '',
       Validators.pattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
     ],
     batchNumber: [
@@ -82,6 +86,10 @@ export class StartRunPage {
       Validators.pattern(/^\s*[A-Za-z0-9._:/-]{1,100}\s*$|^\s*$/),
     ],
   });
+  private readonly requestedDeviceId = this.route.snapshot.queryParamMap.get('deviceId') ?? '';
+  private readonly preselection = inject(DevicePickerFacade);
+  protected readonly preselectionPending = signal(!!this.requestedDeviceId);
+  protected readonly preselectionNotice = signal('');
   protected readonly deviceValid = signal(!this.metadataForm.controls.deviceId.value);
   protected readonly scenario = signal<RunScenario>('NORMAL');
   protected readonly formRevision = signal(0);
@@ -118,6 +126,7 @@ export class StartRunPage {
       this.form.valid &&
       this.metadataForm.valid &&
       this.deviceValid() &&
+      !this.preselectionPending() &&
       !this.runs.startPending()
     );
   });
@@ -180,6 +189,34 @@ export class StartRunPage {
   });
 
   constructor() {
+    effect(() => {
+      const profile = this.selectedProfileId();
+      if (profile && this.requestedDeviceId) {
+        untracked(() => this.preselection.check(this.requestedDeviceId, profile));
+      }
+    });
+    effect(() => {
+      const device = this.preselection.device();
+      const checking = this.preselection.checking();
+      const error = this.preselection.error();
+      if (!this.preselectionPending() || checking || (!device && !error)) return;
+      untracked(() => {
+        this.preselectionPending.set(false);
+        if (device && !error) {
+          this.deviceValid.set(false);
+          this.metadataForm.controls.deviceId.setValue(device.id);
+        } else
+          this.preselectionNotice.set(
+            'The requested device was not preselected. ' +
+              (device?.archivedAt
+                ? 'It is archived.'
+                : device
+                  ? 'Its profile does not match this plan.'
+                  : (error ?? 'It could not be validated.')) +
+              ' Choose an active, compatible device or leave Device as No device.',
+          );
+      });
+    });
     if (!this.isOperator()) {
       this.form.disable({ emitEvent: false });
       this.metadataForm.disable({ emitEvent: false });

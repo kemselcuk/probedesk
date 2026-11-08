@@ -56,11 +56,26 @@
                   </legend>
 
                   <div [formGroup]="metadataForm" class="run-traceability">
+                    @if (preselectionPending()) {
+                      @if (plans.plansStatus() === 'error') {
+                        <p role="alert">
+                          The plan profile could not be loaded to validate the requested device.
+                          <button mat-button type="button" (click)="plans.loadPlans()">
+                            Retry device validation
+                          </button>
+                        </p>
+                      } @else {
+                        <p role="status">Checking requested device before preselection…</p>
+                      }
+                    }
+                    @if (preselectionNotice()) {
+                      <p role="status">{{ preselectionNotice() }}</p>
+                    }
                     @if (selectedProfileId()) {
                       <app-device-picker
                         [profileId]="selectedProfileId()"
                         [deviceId]="metadataForm.controls.deviceId.value"
-                        [disabled]="!isOperator() || runs.startPending()"
+                        [disabled]="!isOperator() || runs.startPending() || preselectionPending()"
                         (deviceIdChange)="metadataForm.controls.deviceId.setValue($event)"
                         (validChange)="deviceValid.set($event)"
                       />
