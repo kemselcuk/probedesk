@@ -1,3 +1,4 @@
+import { RunExportActions } from '../reports/run-export-actions';
 import { DevicePicker } from '../devices/device-picker';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -74,6 +75,7 @@ interface FirstFailureView {
 @Component({
   selector: 'app-run-details-page',
   imports: [
+    RunExportActions,
     DevicePicker,
     ReactiveFormsModule,
     MatFormFieldModule,

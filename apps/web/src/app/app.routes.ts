@@ -80,6 +80,12 @@ export const routes: Routes = [
           import('./features/runs/live-run-page').then((module) => module.LiveRunPage),
       },
       {
+        path: 'runs/:runId/report',
+        title: 'Run Report',
+        loadComponent: () =>
+          import('./features/reports/run-report-page').then((module) => module.RunReportPage),
+      },
+      {
         path: 'runs/:runId',
         title: 'Run Details',
         loadComponent: () =>

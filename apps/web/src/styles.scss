@@ -48,3 +48,38 @@ textarea {
   background: var(--pd-primary-soft);
   color: var(--pd-text);
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+  body.pd-print-report {
+    height: auto;
+    background: white;
+    .shell-header,
+    .shell-sidenav,
+    .skip-link,
+    .cdk-overlay-container {
+      display: none !important;
+    }
+    app-root,
+    app-app-shell,
+    .shell-body,
+    .shell-content,
+    .mat-drawer-container,
+    .mat-drawer-content,
+    .shell-main {
+      display: block !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: auto !important;
+      max-width: none !important;
+      background: white !important;
+    }
+  }
+}

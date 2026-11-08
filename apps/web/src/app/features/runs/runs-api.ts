@@ -246,13 +246,25 @@ function parseRunHistoryFirstFailure(
 
 function parseRunSnapshot(value: unknown, endpoint: string): RunSnapshot {
   const record = requireRecord(value, endpoint, 'run');
+  return {
+    ...parseRecordedRun(value, endpoint),
+    id: requireUuid(record, 'id', endpoint, 'run'),
+    lastEventSequence: requireInteger(record, 'lastEventSequence', endpoint, 'run', 0),
+  };
+}
+
+/** Shared recorded fields; reports have their own identity and no event cursor. */
+export function parseRecordedRun(
+  value: unknown,
+  endpoint: string,
+): Omit<RunSnapshot, 'id' | 'lastEventSequence'> {
+  const record = requireRecord(value, endpoint, 'run');
 
   const steps = requireArray(record, 'steps', endpoint, 'run').map((entry, index) =>
     parseRunSnapshotStep(entry, endpoint, index),
   );
 
   return {
-    id: requireUuid(record, 'id', endpoint, 'run'),
     planId: requireUuid(record, 'planId', endpoint, 'run'),
     planVersionId: requireUuid(record, 'planVersionId', endpoint, 'run'),
     planName: requireString(record, 'planName', endpoint, 'run'),
@@ -273,7 +285,6 @@ function parseRunSnapshot(value: unknown, endpoint: string): RunSnapshot {
     reasonCode: requireNullableString(record, 'reasonCode', endpoint, 'run'),
     expectedSampleCount: requireInteger(record, 'expectedSampleCount', endpoint, 'run', 0),
     recordedSampleCount: requireInteger(record, 'recordedSampleCount', endpoint, 'run', 0),
-    lastEventSequence: requireInteger(record, 'lastEventSequence', endpoint, 'run', 0),
     steps,
   };
 }

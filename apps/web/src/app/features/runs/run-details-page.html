@@ -42,6 +42,15 @@
   @switch (loadStatus()) {
     @case ('loaded') {
       @if (snapshot(); as run) {
+        @if (run.status !== 'RUNNING') {
+          <section class="pd-card pd-section" aria-label="Report and downloads">
+            <h2 class="pd-section-heading">Report and downloads</h2>
+            <p>Review recorded rules and charts, or download all measurements.</p>
+            <a mat-stroked-button [routerLink]="['/runs', run.id, 'report']">View report</a>
+            <app-run-export-actions [runId]="run.id" />
+          </section>
+        }
+
         @if (!isOperator()) {
           <p class="role-note pd-notice" role="note">
             Starting and cancelling runs are Operator actions. Your role can review this record, its
