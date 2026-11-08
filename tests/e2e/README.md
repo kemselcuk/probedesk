@@ -103,6 +103,11 @@ Files:
   selection and comparison, v2 publish and v1/v2 rule comparison.
 - `compare.spec.ts` — P6 comparison scenarios, including the unit-change case
   (`°C` → `°F`) that must not produce a numeric delta.
+- `ui-controls.spec.ts` — dropdown, calendar, responsive tables and keyboard controls.
+- `feature-pack-1.spec.ts` — Planner → Operator → Viewer device/copy/run flow,
+  analytics drilldown, snapshot metadata, CSV/JSON downloads, real charts,
+  print-image preparation and responsive controls. The 200% case uses CSS zoom;
+  it does not claim native browser zoom or an operating-system print dialog.
 - `support/database.ts` — shared baseline, cleanup and safety guards.
 
 Failure artifacts are written under `test-results/`; the P7-01 evidence
