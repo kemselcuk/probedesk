@@ -109,7 +109,7 @@ async function login(
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/overview(?:\?.*)?$/);
   await expect(
-    page.getByRole('heading', { name: 'Test Plans', level: 1 }),
+    page.getByRole('heading', { name: 'Overview', level: 1 }),
   ).toBeVisible();
 
   // The signed-out /login probe intentionally receives 401 from /api/auth/me;

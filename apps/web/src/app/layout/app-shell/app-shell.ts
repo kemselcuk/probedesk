@@ -14,7 +14,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSidenavContent, MatSidenavModule } from '@angular/material/sidenav';
+import {
+  MatSidenavContainer,
+  MatSidenavContent,
+  MatSidenavModule,
+} from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -63,6 +67,7 @@ export class AppShell {
     read: ElementRef,
   });
   private readonly contentScroller = viewChild(MatSidenavContent);
+  private readonly sidenavContainer = viewChild(MatSidenavContainer);
 
   protected readonly navigationItems = NAVIGATION_ITEMS;
   protected readonly compactViewport = signal(false);
@@ -84,6 +89,7 @@ export class AppShell {
 
   constructor() {
     this.watchViewport();
+    this.watchPrintLayout();
 
     this.router.events
       .pipe(
@@ -197,6 +203,30 @@ export class AppShell {
 
   private focusMainContent(): void {
     this.mainContent()?.nativeElement.focus({ preventScroll: true });
+  }
+
+  private watchPrintLayout(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    const query = window.matchMedia('print');
+    let frame: number | undefined;
+    const restoreScreen = (event: MediaQueryListEvent): void => {
+      if (event.matches) return;
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        frame = undefined;
+        if (this.destroyRef.destroyed) return;
+        // Print hides the drawer and expands its content. Re-measure after
+        // screen styles return so actions cannot remain beneath the sidebar.
+        this.sidenavContainer()?.updateContentMargins();
+        this.contentScroller()?.scrollTo({ left: 0 });
+      });
+    };
+    query.addEventListener('change', restoreScreen);
+    this.destroyRef.onDestroy(() => {
+      query.removeEventListener('change', restoreScreen);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    });
   }
 
   private watchViewport(): void {

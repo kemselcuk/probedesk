@@ -954,6 +954,26 @@ test("planner copies and publishes a plan, operator runs it, viewer reports and 
     printBackground: true,
   });
   await viewerPage.emulateMedia({ media: "screen" });
+  await expect
+    .poll(() =>
+      viewerPage
+        .locator("mat-sidenav-content")
+        .evaluate((element) => element.scrollLeft),
+    )
+    .toBe(0);
+  await expect
+    .poll(() =>
+      viewerPage.evaluate(() => {
+        const content = document.querySelector("mat-sidenav-content")!;
+        const sidebar = document.querySelector("mat-sidenav")!;
+        return (
+          content.getBoundingClientRect().left >=
+            sidebar.getBoundingClientRect().right &&
+          document.documentElement.scrollWidth <= innerWidth
+        );
+      }),
+    )
+    .toBe(true);
 
   // --- Viewer: real CSV and JSON downloads --------------------------------
   const csvDownloadPromise = viewerPage.waitForEvent("download");
