@@ -6,7 +6,13 @@ import {
   SESSION_COOKIE_NAME,
 } from '../src/auth/auth.constants.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
-import { PlanRevisionState, Role } from '../src/prisma/generated/client.js';
+import {
+  PlanRevisionState,
+  Role,
+  RunOutcome,
+  RunScenario,
+  RunStatus,
+} from '../src/prisma/generated/client.js';
 import { createOpenApiDocument } from '../src/common/openapi/openapi.js';
 import { createTestApplication } from './support/create-test-application.js';
 import {
@@ -20,9 +26,11 @@ import {
   createPlanTestUser,
 } from './support/plan-helpers.js';
 import {
+  capturePlanSourceFingerprint,
   deletePlanCopyTestData,
   installPlanCopyFailureTrigger,
   removePlanCopyFailureTrigger,
+  type PlanSourceFingerprint,
 } from './support/plan-copy-helpers.js';
 
 interface StepBody {
@@ -317,6 +325,30 @@ describe('plan copy API (e2e)', () => {
     });
   }
 
+  async function waitForTerminalRun(runId: string): Promise<void> {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      const run = await prisma.testRun.findUnique({
+        where: { id: runId },
+        select: { status: true },
+      });
+      if (run && run.status !== RunStatus.RUNNING) return;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error('The source run did not reach a terminal status in time.');
+  }
+
+  function expectSourceFingerprintUnchanged(
+    before: PlanSourceFingerprint,
+    after: PlanSourceFingerprint,
+  ): void {
+    for (const key of Object.keys(before) as Array<
+      keyof PlanSourceFingerprint
+    >) {
+      expect(after[key], `source ${key} fingerprint changed`).toBe(before[key]);
+    }
+  }
+
   it('copies a published version into an independent draft with exact values and fresh identities', async () => {
     const source = await createPublishedSource(`Copy source ${randomUUID()}`);
     const sourceBefore = (
@@ -417,7 +449,10 @@ describe('plan copy API (e2e)', () => {
       sourceVersionId: source.published.id,
       targetPlanId: copied.planId,
     });
-    expect(storedRequest.requestHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(
+      /^[0-9a-f]{64}$/.test(storedRequest.requestHash),
+      'stored copy requestHash is not a SHA-256 hex digest',
+    ).toBe(true);
 
     const targetDetail = (
       await getAs(planner, `/api/plans/${copied.planId}`).expect(200)
@@ -470,6 +505,126 @@ describe('plan copy API (e2e)', () => {
     expect(
       await prisma.testRun.count({ where: { planId: source.plan.id } }),
     ).toBe(sourceRunsBefore);
+  });
+
+  it('keeps the full source run, rule-copy, measurement, event and request-hash fingerprint unchanged', async () => {
+    const source = await createPublishedSource(
+      `Fingerprint source ${randomUUID()}`,
+      [
+        step({
+          name: 'Fingerprint voltage',
+          unit: 'V',
+          minimum: '4.750000',
+          maximum: '5.250000',
+          sampleCount: 1,
+          intervalMs: 100,
+        }),
+      ],
+    );
+    const runKey = `copy-source-run-${randomUUID()}`;
+    const started = await postAs(operator, '/api/runs')
+      .set('Idempotency-Key', runKey)
+      .send({
+        planVersionId: source.published.id,
+        scenario: RunScenario.NORMAL,
+        seed: 424242,
+      })
+      .expect(202);
+    const runId = (started.body as { runId: string }).runId;
+
+    await waitForTerminalRun(runId);
+
+    const storedRun = await prisma.testRun.findUniqueOrThrow({
+      where: { id: runId },
+    });
+    expect(storedRun).toMatchObject({
+      planId: source.plan.id,
+      planRevisionId: source.published.id,
+      status: RunStatus.COMPLETED,
+      outcome: RunOutcome.PASSED,
+      idempotencyKey: runKey,
+      expectedSampleCount: 1,
+      recordedSampleCount: 1,
+    });
+    expect(
+      /^[0-9a-f]{64}$/.test(storedRun.requestHash),
+      'source run requestHash is not a SHA-256 hex digest',
+    ).toBe(true);
+    expect(await prisma.runStep.count({ where: { runId } })).toBe(1);
+    expect(await prisma.measurement.count({ where: { runId } })).toBe(1);
+    expect(
+      await prisma.runEvent.count({ where: { runId } }),
+    ).toBeGreaterThanOrEqual(2);
+
+    const sourceRunCountBefore = await prisma.testRun.count({
+      where: { planId: source.plan.id },
+    });
+    const before = await capturePlanSourceFingerprint(prisma, source.plan.id);
+
+    const copyKey = `copy-fingerprint-${randomUUID()}`;
+    const copiedResponse = await copyAs(planner, source.published.id, copyKey)
+      .send({ name: `Fingerprint copy ${randomUUID()}` })
+      .expect(201);
+    const copied = copiedResponse.body as CopyResponseBody;
+    expect(copied).toMatchObject({
+      sourceVersionId: source.published.id,
+      replayed: false,
+    });
+
+    const after = await capturePlanSourceFingerprint(prisma, source.plan.id);
+    expectSourceFingerprintUnchanged(before, after);
+
+    const storedRunAfter = await prisma.testRun.findUniqueOrThrow({
+      where: { id: runId },
+    });
+    expect(
+      storedRunAfter.requestHash === storedRun.requestHash,
+      'source run requestHash changed',
+    ).toBe(true);
+    expect(
+      storedRunAfter.idempotencyKey === runKey,
+      'source run idempotency key changed',
+    ).toBe(true);
+    expect(
+      await prisma.testRun.count({ where: { planId: source.plan.id } }),
+    ).toBe(sourceRunCountBefore);
+
+    // A copy creates a draft and provenance, never a clone of source history.
+    expect(
+      await prisma.testRun.count({ where: { planId: copied.planId } }),
+    ).toBe(0);
+    const targetRevision = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: copied.draftRevisionId },
+      include: { steps: { orderBy: { position: 'asc' } } },
+    });
+    expect(targetRevision).toMatchObject({
+      planId: copied.planId,
+      state: PlanRevisionState.DRAFT,
+      versionNumber: null,
+      baseVersionId: null,
+    });
+
+    const sourceRevision = await prisma.planRevision.findUniqueOrThrow({
+      where: { id: source.published.id },
+      include: { steps: { orderBy: { position: 'asc' } } },
+    });
+    const sourceLogicalStepIds = new Set(
+      sourceRevision.steps.map((entry) => entry.logicalStepId),
+    );
+    for (const targetStep of targetRevision.steps) {
+      expect(sourceLogicalStepIds.has(targetStep.logicalStepId)).toBe(false);
+    }
+
+    expect(
+      await prisma.planCopyRequest.count({
+        where: {
+          requestedById: plannerUser.id,
+          idempotencyKey: copyKey,
+          sourceVersionId: source.published.id,
+          targetPlanId: copied.planId,
+        },
+      }),
+    ).toBe(1);
   });
 
   it('enforces Planner role, CSRF, request validation and published-only sources', async () => {

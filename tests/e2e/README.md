@@ -21,7 +21,7 @@ node scripts/e2e-isolated.mjs prepare
 ```
 
 `prepare` creates `probedesk_e2e_test` when absent, applies every migration with
-`prisma migrate deploy`, and runs the additive demo seed. It never drops a
+`npm run db:migrate:test --workspace apps/api`, and runs the additive demo seed. It never drops a
 database and never resets rows. The script prints the commands below with the
 resolved values.
 
@@ -63,7 +63,7 @@ node scripts/e2e-isolated.mjs status
 ```
 
 The tests create unique plan names per run and delete only their collected plan
-ids/names plus sessions created after their `beforeAll` baseline. A failed test
+ids/names, explicitly tracked device fixtures, their copy provenance, and sessions created after their `beforeAll` baseline. A failed test
 still cleans up in `afterAll`. A RUNNING run on a test plan is allowed to finish
 for up to 20 seconds before cleanup refuses to delete it.
 
@@ -90,7 +90,7 @@ Useful overrides:
 ## Seed idempotency
 
 After `prepare`, verify that running the demo seed twice does not touch plans,
-revisions or runs:
+revisions, runs, devices or copy provenance:
 
 ```sh
 node scripts/e2e-isolated.mjs seed-check
@@ -107,3 +107,21 @@ Files:
 
 Failure artifacts are written under `test-results/`; the P7-01 evidence
 screenshots are written to `docs/evidence/`.
+
+## Cleanup support verification
+
+After preparing a fresh dedicated database, the PostgreSQL-only support check
+verifies device/copy FK cleanup, unrelated-record preservation and trigger
+restoration after success, forced failure and retry:
+
+```sh
+npx tsx tests/e2e/support/ex12-support.integration.ts
+node scripts/e2e-isolated.mjs assert-baseline
+```
+
+The helper expects the demo baseline (one plan, four runs, two devices and no
+copy requests). It does not open a browser or validate print layout. CI runs it
+between database preparation and the Playwright suite. The runner stores a
+canonical baseline digest in the system temporary directory; `assert-baseline`
+compares protected fixtures and counts, including devices and copy provenance.
+No credentials are stored in that digest file.

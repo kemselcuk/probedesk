@@ -178,6 +178,6 @@ Vitest](https://angular.dev/guide/testing), [Playwright CI](https://playwright.d
 
 ## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
 
-EX-01–EX-13 için ek sözleşmenin 11. bölümündeki migration/upgrade, gerçek DB constraint/yariş, idempotency uyumu, analytics fixture, CSV byte/HTTP ve browser/print kontrolleri zorunludur. Yeni Device/PlanCopyRequest kayıtları E2E cleanup ve assert-baseline kapsamına girer; test session kalıntısı kabul edilmez. Bu ek kontroller henüz çalıştırılmadı.
+EX-01–EX-13 için ek sözleşmenin 11. bölümündeki migration/upgrade, gerçek DB constraint/yariş, idempotency uyumu, analytics fixture, CSV byte/HTTP ve browser/print kontrolleri zorunludur. Yeni Device/PlanCopyRequest kayıtları E2E cleanup ve assert-baseline kapsamına girer; test session kalıntısı kabul edilmez. Paket API/web ve izole cleanup/seed/provenance kontrollerinin gerçek sonuçları [EX-12 kanıtında](evidence/feature-pack-1/ex-12.md) izlenir. Gerçek paket browser/print/zoom ve GitHub CI kapıları henüz açık; önceki temel E2E sonuçları yeni özelliklerin kabulü değildir.
 
 Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

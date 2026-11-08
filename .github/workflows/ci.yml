@@ -251,6 +251,9 @@ jobs:
       - name: Create, migrate and seed the E2E database
         run: node scripts/e2e-isolated.mjs prepare
 
+      - name: Verify E2E cleanup and fixture preservation
+        run: npx tsx tests/e2e/support/ex12-support.integration.ts
+
       # scripts/ci-e2e.mjs gives DATABASE_URL to the API child only. The
       # Playwright child receives E2E_DATABASE_URL without DATABASE_URL, so the
       # cleanup guard cannot confuse the E2E database with a development one.

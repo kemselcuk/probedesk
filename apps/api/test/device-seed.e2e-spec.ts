@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/prisma/generated/client.js';
+import { PrismaClient, Role } from '../src/prisma/generated/client.js';
 import { deleteDemoSeedFixture } from '../prisma/seed-demo-cleanup.js';
 import { runDemoSeed } from '../prisma/seed-demo.js';
 import { DemoSeedConflictError } from '../prisma/seed-demo-plan.js';
@@ -11,6 +11,14 @@ import {
   DEMO_PLANNER_EMAIL,
   DEMO_RUNS,
 } from '../prisma/seed-data.js';
+import { createPublishedRunFixture } from './support/run-helpers.js';
+import {
+  createRunMetadataTestDevice,
+  createRunMetadataTestProfile,
+  createRunMetadataTestUser,
+  deleteRunMetadataTestData,
+  seedMetadataRun,
+} from './support/run-metadata-helpers.js';
 
 interface DemoDigest {
   plans: string;
@@ -43,6 +51,7 @@ describe('demo device seed (e2e)', () => {
     });
 
     await deleteDemoSeedFixture(prisma);
+    await deleteRunMetadataTestData(prisma);
   });
 
   afterAll(async () => {
@@ -50,6 +59,7 @@ describe('demo device seed (e2e)', () => {
       return;
     }
 
+    await deleteRunMetadataTestData(prisma);
     await deleteDemoSeedFixture(prisma);
     await prisma.$disconnect();
   });
@@ -105,7 +115,7 @@ describe('demo device seed (e2e)', () => {
         batchNumberKey: true,
       },
     });
-    expect(runs).toHaveLength(4);
+    expect(runs).toHaveLength(DEMO_RUNS.length);
     for (const run of runs) {
       expect(run).toMatchObject({
         deviceId: null,
@@ -115,7 +125,12 @@ describe('demo device seed (e2e)', () => {
       });
     }
     expect(
-      await prisma.testRun.count({ where: { deviceId: { not: null } } }),
+      await prisma.testRun.count({
+        where: {
+          idempotencyKey: { in: DEMO_RUNS.map((run) => run.idempotencyKey) },
+          deviceId: { not: null },
+        },
+      }),
     ).toBe(0);
   });
 
@@ -165,6 +180,57 @@ describe('demo device seed (e2e)', () => {
     });
 
     expect(await captureDigest(prisma)).toEqual(before);
+  });
+
+  it('asserts only the demo fixture runs, not an unrelated device run', async () => {
+    await deleteRunMetadataTestData(prisma);
+    const before = await captureDigest(prisma);
+    const user = await createRunMetadataTestUser(prisma, Role.PLANNER);
+    const profile = await createRunMetadataTestProfile(prisma);
+    const device = await createRunMetadataTestDevice(prisma, {
+      deviceProfileId: profile.id,
+      createdById: user.id,
+      name: 'Unrelated feature device',
+      serialNumber: 'FEATURE-UNRELATED-0001',
+    });
+    const fixture = await createPublishedRunFixture(prisma, user.id, profile, {
+      planName: 'Unrelated feature plan',
+    });
+
+    try {
+      await seedMetadataRun(prisma, {
+        fixture,
+        requestedById: user.id,
+        startedAt: '2026-11-06T12:00:00.000Z',
+        device: {
+          id: device.id,
+          name: device.name,
+          serialNumber: device.serialNumber,
+          deviceProfileId: profile.id,
+        },
+      });
+
+      // The global table now contains one device run. It must not influence
+      // the demo-fixture assertions or the canonical demo digest.
+      expect(
+        await prisma.testRun.count({ where: { deviceId: { not: null } } }),
+      ).toBeGreaterThanOrEqual(1);
+
+      const summary = await runDemoSeed(prisma);
+      expect(summary.plan.createdRuns).toBe(0);
+      expect(summary.plan.existingRuns).toBe(DEMO_RUNS.length);
+      expect(
+        await prisma.testRun.count({
+          where: {
+            idempotencyKey: { in: DEMO_RUNS.map((run) => run.idempotencyKey) },
+            deviceId: { not: null },
+          },
+        }),
+      ).toBe(0);
+      expect(await captureDigest(prisma)).toEqual(before);
+    } finally {
+      await deleteRunMetadataTestData(prisma);
+    }
   });
 
   it('fails safely when a demo serial belongs to another device id', async () => {
@@ -239,7 +305,11 @@ describe('demo device seed (e2e)', () => {
 
     const cleaned = await deleteDemoSeedFixture(prisma);
     expect(cleaned.plans).toBe(2);
-    expect(await prisma.planCopyRequest.count()).toBe(0);
+    expect(
+      await prisma.planCopyRequest.count({
+        where: { idempotencyKey: 'device-seed-reset-copy' },
+      }),
+    ).toBe(0);
     expect(
       await prisma.testPlan.findUnique({ where: { id: target.id } }),
     ).toBeNull();
