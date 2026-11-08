@@ -33,4 +33,49 @@ describe('published version request ownership', () => {
     http.expectOne('/api/plans/plan/versions').flush([]);
     expect(facade.versionsStatus()).toBe('loaded');
   });
+  it('retries the same published revision after its previous HTTP request is cancelled', () => {
+    const facade = TestBed.inject(PlansFacade),
+      http = TestBed.inject(HttpTestingController);
+    const subscription = facade.loadVersion('revision').subscribe();
+    const old = http.expectOne('/api/plan-versions/revision');
+    subscription.unsubscribe();
+    expect(old.cancelled).toBe(true);
+    expect(facade.versionStatus()).toBe('idle');
+    facade.loadVersion('revision').subscribe();
+    http
+      .expectOne('/api/plan-versions/revision')
+      .flush({
+        id: 'revision',
+        planId: 'plan',
+        state: 'PUBLISHED',
+        name: 'Plan',
+        versionNumber: 1,
+        publishedAt: '2026-11-08T00:00:00.000Z',
+        steps: [],
+      });
+    expect(facade.versionStatus()).toBe('loaded');
+    expect(facade.version()?.id).toBe('revision');
+  });
+  it('does not replace a newer revision with an older response or error', () => {
+    const facade = TestBed.inject(PlansFacade),
+      http = TestBed.inject(HttpTestingController);
+    facade.loadVersion('old').subscribe({ error: () => undefined });
+    const old = http.expectOne('/api/plan-versions/old');
+    facade.loadVersion('new').subscribe();
+    http
+      .expectOne('/api/plan-versions/new')
+      .flush({
+        id: 'new',
+        planId: 'plan',
+        state: 'PUBLISHED',
+        name: 'Plan',
+        versionNumber: 1,
+        publishedAt: '2026-11-08T00:00:00.000Z',
+        steps: [],
+      });
+    old.flush({ message: 'Old failure' }, { status: 500, statusText: 'Error' });
+    expect(facade.versionStatus()).toBe('loaded');
+    expect(facade.versionError()).toBeNull();
+    expect(facade.version()?.id).toBe('new');
+  });
 });

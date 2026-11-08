@@ -252,6 +252,9 @@ describe('StartRunPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
     typeInto(root, '#start-run-seed', '42');
+    expect(root.querySelector('app-page-header a')?.getAttribute('href')).toContain(
+      'deviceId=' + deviceId,
+    );
     typeInto(root, '#start-run-batch', ' Lot-1 ');
     harness.detectChanges();
     submit(root);

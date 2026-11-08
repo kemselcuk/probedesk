@@ -34,9 +34,16 @@ export class DevicePickerFacade {
                     ? 'This device belongs to another profile. Choose a compatible device or select No device.'
                     : null,
             })),
-            catchError((error: unknown) =>
-              of({ device: null, error: this.errors.normalize(error).message }),
-            ),
+            catchError((error: unknown) => {
+              const failure = this.errors.normalize(error);
+              return of({
+                device: null,
+                error:
+                  filterMode && failure.status === 404
+                    ? 'Unknown device filter. Clear the device selection to include all devices.'
+                    : failure.message,
+              });
+            }),
           );
         }),
         takeUntilDestroyed(inject(DestroyRef)),

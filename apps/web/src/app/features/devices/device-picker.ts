@@ -45,7 +45,10 @@ import { DevicesFacade } from './devices.facade';
           @if (deviceId() && !selectedInPage()) {
             <mat-option class="pd-select-option" [value]="deviceId()"
               >{{ selection.device()?.name ?? 'Selected device' }} ·
-              {{ selection.device()?.serialNumber ?? 'Checking…' }}</mat-option
+              {{
+                selection.device()?.serialNumber ??
+                  (selection.checking() ? 'Checking…' : 'Unavailable')
+              }}</mat-option
             >
           }
           @for (device of list.page()?.items ?? []; track device.id) {

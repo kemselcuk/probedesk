@@ -26,6 +26,7 @@ export type PlansRequestStatus = 'idle' | 'loading' | 'loaded' | 'error';
 @Injectable({ providedIn: 'root' })
 export class PlansFacade {
   private versionsSequence = 0;
+  private versionSequence = 0;
   private readonly api = inject(PlansApi);
   private readonly errorNormalizer = inject(HttpErrorNormalizer);
   private readonly destroyRef = inject(DestroyRef);
@@ -297,6 +298,7 @@ export class PlansFacade {
       }
     }
 
+    const sequence = ++this.versionSequence;
     this.versionId = versionId;
     this.versionState.set(null);
     this.versionStatusState.set('loading');
@@ -304,13 +306,24 @@ export class PlansFacade {
 
     return this.api.getVersion(versionId).pipe(
       tap((version) => {
+        if (sequence !== this.versionSequence || this.versionId !== versionId) return;
         this.versionState.set(version);
         this.versionStatusState.set('loaded');
       }),
       catchError((error: unknown) => {
+        if (sequence !== this.versionSequence || this.versionId !== versionId)
+          return throwError(() => error);
         this.versionStatusState.set('error');
         this.versionErrorState.set(this.errorNormalizer.normalize(error));
         return throwError(() => error);
+      }),
+      finalize(() => {
+        if (
+          sequence === this.versionSequence &&
+          this.versionId === versionId &&
+          this.versionStatusState() === 'loading'
+        )
+          this.versionStatusState.set('idle');
       }),
     );
   }

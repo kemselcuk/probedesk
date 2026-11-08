@@ -2,7 +2,12 @@
   title="Start Run"
   subtitle="Configure one simulator run from a published plan version."
 >
-  <a mat-stroked-button routerLink="/plans">Back to plans</a>
+  <a
+    mat-stroked-button
+    routerLink="/plans"
+    [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+    >Back to plans</a
+  >
 </app-page-header>
 
 @if (missingVersionId()) {
@@ -12,7 +17,12 @@
       Starting a run requires a published plan version. This address does not include a
       <code>versionId</code>, so no plan version can be selected safely.
     </p>
-    <a mat-flat-button routerLink="/plans">Open Test Plans</a>
+    <a
+      mat-flat-button
+      routerLink="/plans"
+      [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+      >Open Test Plans</a
+    >
   </section>
 } @else {
   @switch (plans.versionStatus()) {
@@ -267,7 +277,12 @@
                 }
 
                 @if (isForbidden()) {
-                  <a mat-stroked-button routerLink="/plans">Back to Test Plans</a>
+                  <a
+                    mat-stroked-button
+                    routerLink="/plans"
+                    [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+                    >Back to Test Plans</a
+                  >
                 }
 
                 @if (failure.error.requestId; as requestId) {
@@ -386,7 +401,12 @@
             </p>
           }
           <div class="error-actions">
-            <a mat-flat-button routerLink="/plans">Back to Test Plans</a>
+            <a
+              mat-flat-button
+              routerLink="/plans"
+              [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+              >Back to Test Plans</a
+            >
             <button mat-stroked-button type="button" (click)="retryVersion()">Try again</button>
           </div>
         </section>

@@ -123,4 +123,43 @@ describe('DevicePicker', () => {
     expect(fixture.componentInstance.valid()).toBe(true);
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('PSU-1');
   });
+  it('cancels an obsolete selected-device lookup and exposes an unavailable selection after failure', async () => {
+    const fixture = setup(ID);
+    const old = http().expectOne(`/api/devices/${ID}`);
+    fixture.componentInstance.id.set(PROFILE);
+    fixture.detectChanges();
+    expect(old.cancelled).toBe(true);
+    http()
+      .expectOne(`/api/devices/${PROFILE}`)
+      .flush(
+        { code: 'NOT_FOUND', message: 'Device not found.', requestId: 'missing-device' },
+        { status: 404, statusText: 'Not Found' },
+      );
+    fixture.detectChanges();
+    expect(fixture.componentInstance.valid()).toBe(false);
+    (fixture.debugElement.query(By.directive(MatSelect)).componentInstance as MatSelect).open();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.body.textContent).toContain('Unavailable');
+    http()
+      .expectOne((request) => request.url === '/api/devices')
+      .flush({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 });
+  });
+  it('reloads opened choices under the new profile rather than keeping an old-profile list', async () => {
+    const fixture = setup();
+    const select = fixture.debugElement.query(By.directive(MatSelect))
+      .componentInstance as MatSelect;
+    select.open();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    http()
+      .expectOne((r) => r.url === '/api/devices')
+      .flush({ items: [DEVICE], page: 1, limit: 20, total: 1, totalPages: 1 });
+    fixture.componentInstance.profile.set(ID);
+    fixture.detectChanges();
+    const next = http().expectOne((r) => r.url === '/api/devices');
+    expect(next.request.params.get('deviceProfileId')).toBe(ID);
+    next.flush({ items: [], page: 1, limit: 20, total: 0, totalPages: 0 });
+    select.close();
+  });
 });
