@@ -342,3 +342,15 @@ Kanıt kaydı ve yedek/restore/fingerprint yöntemi incelendi. Lead ayrıca
 `status=ok`, database/migrations=ok. README/demo iki cihazı, yeni rol akışını ve
 gerçek E2E/teslim kayıtlarını kapsayacak şekilde güncellendi. Worker smoke
 sonuçları devralınmıştır; lead tarafından geniş suite tekrar edilmemiştir.
+
+## Print düzeltmesi sonrası web yenilemesi
+
+Lead, runtime değişikliği82eeb6b ve test/kanıtHEAD708f0b3 sonrasında yalnız web'i
+`docker compose --profile delivery build web` ve
+`docker compose --profile delivery up -d --no-deps web` ile yeniledi: exit0.
+API/Postgres/migrate/seed yeniden başlatılmadı; migration/seed/veri yazımı yapılmadı.
+Yeni web container `63588bedecc9a0197143dc5ce1edc03d5782bd4dbfcce7f46b720c998e4ad605`,
+image `sha256:d4593288b9b0d4081d6db3a9a973370f0baf408ece254c59de43a8d2c3521a94`.
+Ardından8080ready HTTP200,statusok,database/migrationsok. Print ekran dönüşü
+regresyonu ayrı izole gerçek4/4 koşuda geçmiştir; delivery'de native OS dialog
+kontrolü yapılmış sayılmaz. Yeni container/images bu bölümü önceki runtime tablosuna ekler.
