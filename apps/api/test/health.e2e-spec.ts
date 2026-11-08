@@ -1,3 +1,4 @@
+import { requireIsolatedApplicationDatabase } from '../src/common/database/test-database-guard.js';
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { Client } from 'pg';
@@ -144,7 +145,8 @@ describe('health endpoints (e2e)', () => {
     let app: INestApplication | undefined;
     let admin: Client | undefined;
     let emptyDatabaseUrl: string;
-    const databaseName = `probedesk_ready_${randomUUID().replaceAll('-', '').slice(0, 12)}`;
+    const databaseName = `probedesk_ready_${randomUUID().replaceAll('-', '').slice(0, 12)}_test`;
+    let created = false;
 
     beforeAll(async () => {
       const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -154,6 +156,7 @@ describe('health endpoints (e2e)', () => {
         );
       }
 
+      requireIsolatedApplicationDatabase(process.env);
       const adminUrl = new URL(testDatabaseUrl);
       adminUrl.pathname = '/postgres';
       admin = new Client({
@@ -162,6 +165,7 @@ describe('health endpoints (e2e)', () => {
       });
       await admin.connect();
       await admin.query(`CREATE DATABASE "${databaseName}"`);
+      created = true;
 
       const emptyUrl = new URL(testDatabaseUrl);
       emptyUrl.pathname = `/${databaseName}`;
@@ -177,9 +181,8 @@ describe('health endpoints (e2e)', () => {
 
       if (admin) {
         try {
-          await admin.query(
-            `DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`,
-          );
+          if (created)
+            await admin.query(`DROP DATABASE "${databaseName}" WITH (FORCE)`);
         } finally {
           await admin.end();
         }
