@@ -161,4 +161,4 @@ Kullanıcı özellik paketi 1’in (dört özellik) uygulanmasını yetkilendird
 | [EX-10 — Rapor projection ve güvenli export backend](EX-10.md)  | C                      | Accepted    |
 | [EX-11 — Download ve yazdırılabilir rapor frontend](EX-11.md)   | Lead                   | In Review   |
 | [EX-12 — Paket gerçek E2E ve veritabanı izolasyonu](EX-12.md)   | D                      | In Progress |
-| [EX-13 — Bağımsız review ve teslim paketi](EX-13.md)            | Review delegate + Lead | Planned     |
+| [EX-13 — Bağımsız review ve teslim paketi](EX-13.md)            | Review delegate + Lead | In Progress |

@@ -92,3 +92,10 @@ canonical baseline kapısı CI'da doğrulanmış sayılmaz.
 - Bu kayıt yalnız baseline `49ec0b0` içindir. Concurrent `bb75371` upgrade ve `2393402`
   delivery commit'leri ile `feature-pack-1-edge` çalışmaları bu incelemede değerlendirilmedi ve
   gelecekteki sonuçları adına kabul iddiası üretmez.
+
+## Lead: düzeltme sonrası CI
+
+[42519747051](https://github.com/kemselcuk/probedesk/actions/runs/42519747051),
+HEAD82eeb6b: gh run view ile okundu; APIquality,APIintegration,webquality,OpenAPI,
+PlaywrightE2E,CIrequired altı işin tamamı **success**. İlk başarısız koşu tarihsel
+kayıt olarak korunur. Sonradan eklenen3edge testi bu koşuda yoktur; sonHEADCI ayrıdır.
