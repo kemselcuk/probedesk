@@ -1,3 +1,4 @@
+import { requireIsolatedApplicationDatabase } from '../../src/common/database/test-database-guard.js';
 import { Test } from '@nestjs/testing';
 import type {
   INestApplication,
@@ -29,9 +30,16 @@ export async function createTestApplication(
   configOverrides: Partial<AppConfig> = {},
   options: TestApplicationOptions = {},
 ): Promise<INestApplication> {
+  requireIsolatedApplicationDatabase(process.env);
   const config: AppConfig = Object.freeze({
     ...loadEnv(process.env),
     ...configOverrides,
+  });
+
+  requireIsolatedApplicationDatabase({
+    NODE_ENV: process.env.NODE_ENV,
+    DATABASE_URL: config.databaseUrl,
+    TEST_DATABASE_URL: config.databaseUrl,
   });
 
   const builder = Test.createTestingModule({

@@ -384,6 +384,7 @@ describe('analytics overview API (e2e)', () => {
 
     for (const session of [planner, operator, viewer]) {
       const response = await overview(ALL_RANGE, session).expect(200);
+      expect(response.headers['cache-control']).toBe('no-store');
       expect(response.body.summary.totalRuns).toBe(0);
       expect(response.body.summary.passRatePercent).toBeNull();
       expect(response.body.summary.averageDurationMs).toBeNull();

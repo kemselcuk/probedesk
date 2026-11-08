@@ -98,14 +98,35 @@ describe('PostgreSQL schema and migrations (e2e)', () => {
         'EXPLAIN (COSTS OFF) SELECT "id", "planId", "status", "startedAt" FROM "test_runs" ORDER BY "startedAt" DESC, "id" DESC LIMIT 20',
       );
     });
-    const planText = plan
-      .map((row) => Object.values(row)[0] ?? '')
-      .join('\n');
+    const planText = plan.map((row) => Object.values(row)[0] ?? '').join('\n');
 
-    expect(planText).toContain(
-      'Index Scan using "test_runs_startedAt_id_idx"',
-    );
+    expect(planText).toContain('Index Scan using "test_runs_startedAt_id_idx"');
     expect(planText).not.toContain('Sort');
+  });
+
+  it('preserves the batch history index columns and ordered access path', async () => {
+    const indexes = await prisma.$queryRaw<Array<{ indexdef: string }>>`
+      SELECT indexdef FROM pg_indexes
+      WHERE schemaname = current_schema()
+        AND indexname = 'test_runs_batchNumberKey_startedAt_id_idx'
+    `;
+    expect(indexes).toHaveLength(1);
+    expect(indexes[0].indexdef).toContain(
+      '("batchNumberKey", "startedAt" DESC, id DESC)',
+    );
+    // This tests index capability on a tiny fixture, not cost-based selection
+    // or the separate worker's 60k-row performance measurement.
+    const plan = await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SET LOCAL enable_seqscan = off');
+      return tx.$queryRaw<Array<Record<string, string>>>`
+        EXPLAIN (COSTS OFF) SELECT id, "startedAt" FROM test_runs
+        WHERE "batchNumberKey" = 'INDEX-CAPABILITY-TEST'
+        ORDER BY "startedAt" DESC, id DESC LIMIT 20
+      `;
+    });
+    const text = plan.map((row) => Object.values(row)[0] ?? '').join('\n');
+    expect(text).toContain('test_runs_batchNumberKey_startedAt_id_idx');
+    expect(text).not.toContain('Sort');
   });
 
   it('persists a device profile across independent connections', async () => {
