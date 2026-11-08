@@ -52,10 +52,17 @@
       <h1>{{ run.planName }}</h1>
       <p>Published version {{ run.versionNumber }} · Report schema {{ run.schemaVersion }}</p>
       <app-run-status-badge [status]="run.status" [outcome]="run.outcome" />
-      @if (run.status !== 'COMPLETED') {
+      @if (isPartialSampleSet(run.status, run.recordedSampleCount, run.expectedSampleCount)) {
         <p class="pd-notice">
           Partial result: {{ run.status }}. Missing samples and unavailable statistics are not
           inferred.
+        </p>
+      } @else if (
+        isStoppedWithAllSamples(run.status, run.recordedSampleCount, run.expectedSampleCount)
+      ) {
+        <p class="pd-notice">
+          All expected samples were recorded, but the run ended as {{ run.status }}. A completed
+          verdict is not inferred.
         </p>
       }
       <p>
@@ -83,7 +90,13 @@
         </div>
         <div>
           <dt>Finished</dt>
-          <dd>{{ run.finishedAt | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }} UTC</dd>
+          <dd>
+            @if (run.finishedAt) {
+              {{ run.finishedAt | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }} UTC
+            } @else {
+              Not recorded
+            }
+          </dd>
         </div>
         <div>
           <dt>Scenario</dt>

@@ -17,7 +17,13 @@ import { LoadingState } from '../../shared/ui/loading-state/loading-state';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { RunDeviceMetadata } from '../runs/run-device-metadata';
 import { RunStatusBadge } from '../runs/run-status-badge';
-import { scenarioLabel, stepStatusLabel, stepOutcomeLabel } from '../runs/run-status';
+import {
+  scenarioLabel,
+  stepStatusLabel,
+  stepOutcomeLabel,
+  isPartialSampleSet,
+  isStoppedWithAllSamples,
+} from '../runs/run-status';
 import { RunExportActions } from './run-export-actions';
 import { ReportFacade } from './report.facade';
 import { ReportChart } from './report-chart';
@@ -52,6 +58,7 @@ export class RunReportPage {
   protected readonly prepared = signal(false);
   protected readonly printError = signal('');
   private readonly charts = viewChildren(ReportChart);
+  private printGeneration = 0;
   protected readonly canPrint = computed(() => {
     const run = this.facade.data();
     return (
@@ -62,6 +69,8 @@ export class RunReportPage {
       this.charts().every((chart) => chart.state() === 'ready')
     );
   });
+  protected readonly isPartialSampleSet = isPartialSampleSet;
+  protected readonly isStoppedWithAllSamples = isStoppedWithAllSamples;
   protected readonly scenarioLabel = scenarioLabel;
   protected readonly stepStatusLabel = stepStatusLabel;
   protected readonly stepOutcomeLabel = stepOutcomeLabel;
@@ -72,8 +81,7 @@ export class RunReportPage {
       .subscribe((params) => {
         const id = params.get('runId') ?? '';
         this.id.set(id);
-        this.prepared.set(false);
-        this.printError.set('');
+        this.resetPrint();
         const valid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         this.invalid.set(!valid);
         this.facade.load(valid ? id : null);
@@ -97,14 +105,18 @@ export class RunReportPage {
     });
   }
   protected reload(): void {
-    this.prepared.set(false);
-    this.printError.set('');
+    this.resetPrint();
     this.facade.load(this.id());
   }
   protected async print(): Promise<void> {
     if (!this.canPrint()) return;
     if (!this.preparePrint()) return;
     const printedReport = this.facade.data();
+    const generation = ++this.printGeneration;
+    const isCurrent = () =>
+      !this.destroyRef.destroyed &&
+      generation === this.printGeneration &&
+      this.facade.data() === printedReport;
     this.printing.set(true);
     this.cdr.detectChanges();
     // Let the captured PNGs decode before handing the document to native print.
@@ -113,16 +125,23 @@ export class RunReportPage {
     );
     try {
       await Promise.all(images.map((image) => image.decode()));
-      if (this.destroyRef.destroyed || this.facade.data() !== printedReport) return;
+      if (!isCurrent()) return;
       this.document.defaultView?.print();
     } catch {
+      if (!isCurrent()) return;
       this.printError.set(
         'Charts could not be prepared for printing. Retry after reloading the report.',
       );
       this.prepared.set(false);
     } finally {
-      if (!this.destroyRef.destroyed) this.printing.set(false);
+      if (isCurrent()) this.printing.set(false);
     }
+  }
+  private resetPrint(): void {
+    this.printGeneration++;
+    this.printing.set(false);
+    this.prepared.set(false);
+    this.printError.set('');
   }
   private preparePrint(): boolean {
     const run = this.facade.data();

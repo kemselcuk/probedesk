@@ -79,10 +79,17 @@ function parseReport(value: unknown, requestedId: string): RunReport {
   const run = parseRecordedRun(value, 'Run report');
   if (
     run.status === 'RUNNING' ||
-    run.finishedAt === null ||
+    run.expectedSampleCount < 1 ||
     run.expectedSampleCount > 10_000 ||
     run.recordedSampleCount > 10_000 ||
     run.steps.length > 30 ||
+    run.steps.some(
+      (step) =>
+        step.sampleCount < 1 ||
+        step.sampleCount > 1000 ||
+        step.intervalMs < 100 ||
+        step.intervalMs > 5000,
+    ) ||
     run.steps.reduce((sum, step) => sum + step.measurements.length, 0) > 10_000
   )
     return fail();

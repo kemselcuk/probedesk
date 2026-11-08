@@ -50,11 +50,12 @@ textarea {
 }
 
 @media print {
-  @page {
+  @page probedesk-report {
     size: A4 portrait;
     margin: 12mm;
   }
   body.pd-print-report {
+    page: probedesk-report;
     height: auto;
     background: white;
     .shell-header,

@@ -60,6 +60,27 @@ describe('report API and facade', () => {
       await expect(promise).rejects.toThrow();
     },
   );
+  it('accepts an explicitly absent terminal finish time', async () => {
+    const promise = firstValueFrom(TestBed.inject(ReportsApi).report(RUN_ID));
+    http()
+      .expectOne(REPORT)
+      .flush(reportFixture({ finishedAt: null }));
+    expect((await promise).finishedAt).toBeNull();
+  });
+  it.each(['expected', 'samples', 'interval', 'samplesMax', 'intervalMax'] as const)(
+    'rejects report counters or rules outside the DTO limits: %s',
+    async (kind) => {
+      const promise = firstValueFrom(TestBed.inject(ReportsApi).report(RUN_ID));
+      const report = reportFixture();
+      if (kind === 'expected') report.expectedSampleCount = 0;
+      if (kind === 'samples') report.steps[0].sampleCount = 0;
+      if (kind === 'interval') report.steps[0].intervalMs = 0;
+      if (kind === 'samplesMax') report.steps[0].sampleCount = 1001;
+      if (kind === 'intervalMax') report.steps[0].intervalMs = 5001;
+      http().expectOne(REPORT).flush(report);
+      await expect(promise).rejects.toThrow('Invalid report response');
+    },
+  );
   it('cancels previous run data and ignores an old response after route selection changes', () => {
     const facade = TestBed.inject(ReportFacade);
     facade.load(RUN_ID);
@@ -265,6 +286,69 @@ describe('report page and native print', () => {
     expect(print).not.toHaveBeenCalled();
     next.flush(reportFixture({ runId: USER_ID }));
   });
+  it('ignores a rejected old decode without disabling or changing a new report print operation', async () => {
+    let rejectOld: ((error: Error) => void) | undefined, resolveNew: (() => void) | undefined;
+    let calls = 0;
+    Object.defineProperty(HTMLImageElement.prototype, 'decode', {
+      configurable: true,
+      value: () =>
+        ++calls === 1
+          ? new Promise<void>((_resolve, reject) => {
+              rejectOld = reject;
+            })
+          : new Promise<void>((resolve) => {
+              resolveNew = resolve;
+            }),
+    });
+    const harness = await open();
+    http().expectOne(REPORT).flush(reportFixture());
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    const root = harness.fixture.nativeElement as HTMLElement;
+    printButton(root).click();
+    await harness.navigateByUrl(`/runs/${USER_ID}/report`);
+    http()
+      .expectOne(`/api/runs/${USER_ID}/report`)
+      .flush(reportFixture({ runId: USER_ID }));
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(printButton(root).disabled).toBe(false);
+    printButton(root).click();
+    harness.detectChanges();
+    rejectOld!(Error('Old image failed'));
+    await Promise.resolve();
+    await Promise.resolve();
+    harness.detectChanges();
+    expect(
+      [...root.querySelectorAll('button')].find((button) =>
+        button.textContent?.includes('Preparing print'),
+      )?.disabled,
+    ).toBe(true);
+    expect(root.textContent).not.toContain('Charts could not be prepared');
+    expect(calls).toBe(2);
+    resolveNew!();
+    await Promise.resolve();
+    await Promise.resolve();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(print).toHaveBeenCalledOnce();
+  });
+  it.each(['CANCELLED', 'INTERRUPTED', 'ERROR'] as const)(
+    'accurately labels a fully recorded %s run without inventing missing samples',
+    async (status) => {
+      const harness = await open();
+      http()
+        .expectOne(REPORT)
+        .flush(reportFixture({ status, outcome: null, finishedAt: null }));
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      const text = (harness.fixture.nativeElement as HTMLElement).textContent;
+      expect(text).toContain('All expected samples were recorded');
+      expect(text).not.toContain('Partial result:');
+      expect(text).toContain('A completed verdict is not inferred');
+      expect(text).toContain('Not recorded');
+    },
+  );
   it('blocks printing after a canvas capture failure and preserves the text report', async () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockImplementation(() => {
       throw Error('Canvas error');
