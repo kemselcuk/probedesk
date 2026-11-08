@@ -1,0 +1,209 @@
+<div class="report-actions">
+  <app-page-header title="Run report" subtitle="Recorded rules, measurements and backend results">
+    <a mat-stroked-button [routerLink]="['/runs', id()]">Back to run details</a>
+    @if (facade.data()) {
+      <button mat-stroked-button type="button" (click)="reload()">Reload report</button>
+      <button mat-flat-button type="button" [disabled]="!canPrint()" (click)="print()">
+        {{ printing() ? 'Preparing print…' : 'Print / Save PDF' }}
+      </button>
+    }
+  </app-page-header>
+</div>
+@if (!prepared()) {
+  <p class="print-warning">
+    INCOMPLETE PRINT: fonts or charts have not been prepared. Use Print / Save PDF after the report
+    is ready.
+  </p>
+}
+
+@if (invalid()) {
+  <app-error-state
+    heading="Invalid run address"
+    message="Choose a recorded run from Run History."
+  />
+} @else if (facade.loading()) {
+  <app-loading-state message="Loading recorded report…" />
+} @else if (facade.error(); as error) {
+  <app-error-state
+    heading="Report unavailable"
+    [message]="
+      error.code === 'RUN_NOT_TERMINAL'
+        ? 'This run is still running. Open run details and wait for a terminal state before creating a report.'
+        : error.message
+    "
+    [requestId]="error.requestId"
+    [retryable]="true"
+    (retry)="reload()"
+  />
+} @else if (facade.data(); as run) {
+  <div class="report-actions downloads">
+    <app-run-export-actions [runId]="run.runId" />
+    <p>
+      Download every recorded sample as CSV or JSON. The printed report contains charts and
+      summaries.
+    </p>
+  </div>
+  @if (printError()) {
+    <p class="report-actions pd-notice" role="alert">{{ printError() }}</p>
+  }
+  <article class="report-document" aria-label="Recorded run report">
+    <header class="report-heading">
+      <p class="eyebrow">ProbeDesk · Simulated test results</p>
+      <h1>{{ run.planName }}</h1>
+      <p>Published version {{ run.versionNumber }} · Report schema {{ run.schemaVersion }}</p>
+      <app-run-status-badge [status]="run.status" [outcome]="run.outcome" />
+      @if (isPartialSampleSet(run.status, run.recordedSampleCount, run.expectedSampleCount)) {
+        <p class="pd-notice">
+          Partial result: {{ run.status }}. Missing samples and unavailable statistics are not
+          inferred.
+        </p>
+      } @else if (
+        isStoppedWithAllSamples(run.status, run.recordedSampleCount, run.expectedSampleCount)
+      ) {
+        <p class="pd-notice">
+          All expected samples were recorded, but the run ended as {{ run.status }}. A completed
+          verdict is not inferred.
+        </p>
+      }
+      <p>
+        Recorded samples:
+        <strong>{{ run.recordedSampleCount }} / {{ run.expectedSampleCount }}</strong>
+      </p>
+      <p class="identifier">Run ID: {{ run.runId }}</p>
+      <p>Generated: {{ run.generatedAt | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }} UTC</p>
+    </header>
+    <section class="metadata-section" aria-labelledby="report-metadata-heading">
+      <h2 id="report-metadata-heading">Recorded context</h2>
+      <app-run-device-metadata [run]="run" />
+      <dl class="metadata-grid">
+        <div>
+          <dt>Profile</dt>
+          <dd>{{ run.profile.name }} · {{ run.profile.code }}</dd>
+        </div>
+        <div>
+          <dt>Requested by</dt>
+          <dd>{{ run.requestedBy.email }} ({{ run.requestedBy.role }})</dd>
+        </div>
+        <div>
+          <dt>Started</dt>
+          <dd>{{ run.startedAt | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }} UTC</dd>
+        </div>
+        <div>
+          <dt>Finished</dt>
+          <dd>
+            @if (run.finishedAt) {
+              {{ run.finishedAt | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }} UTC
+            } @else {
+              Not recorded
+            }
+          </dd>
+        </div>
+        <div>
+          <dt>Scenario</dt>
+          <dd>{{ scenarioLabel(run.scenario) }}</dd>
+        </div>
+        <div>
+          <dt>Seed</dt>
+          <dd>{{ run.seed }}</dd>
+        </div>
+        <div>
+          <dt>Error probability</dt>
+          <dd>{{ run.errorProbability ?? 'Not applicable' }}</dd>
+        </div>
+        <div>
+          <dt>Forced failure step</dt>
+          <dd>{{ run.failureStepId ?? 'Not applicable' }}</dd>
+        </div>
+        <div>
+          <dt>Simulator / evaluation</dt>
+          <dd>{{ run.simulatorVersion }} / {{ run.evaluationVersion }}</dd>
+        </div>
+        <div>
+          <dt>Reason</dt>
+          <dd>{{ run.reasonCode ?? 'None recorded' }}</dd>
+        </div>
+        <div>
+          <dt>Plan ID</dt>
+          <dd>{{ run.planId }}</dd>
+        </div>
+        <div>
+          <dt>Published version ID</dt>
+          <dd>{{ run.planVersionId }}</dd>
+        </div>
+      </dl>
+      <p class="note">
+        Names, serial numbers and tolerance rules reflect the run snapshot. Later edits do not
+        change this report. This is a simulator report, not a production certificate.
+      </p>
+    </section>
+    @for (step of run.steps; track step.runStepId) {
+      <section class="report-step" [attr.aria-labelledby]="'report-step-' + step.runStepId">
+        <h2 [id]="'report-step-' + step.runStepId">{{ step.position }}. {{ step.name }}</h2>
+        <p>
+          {{ stepStatusLabel(step.status) }} · {{ stepOutcomeLabel(step.outcome) }} · Recorded
+          {{ step.recordedCount }} / {{ step.sampleCount }} samples
+        </p>
+        <div
+          class="pd-table-wrap"
+          tabindex="0"
+          role="region"
+          [attr.aria-label]="'Copied rules and statistics for ' + step.name"
+        >
+          <table class="pd-table">
+            <caption class="visually-hidden">
+              Recorded rules and statistics in
+              {{
+                step.unit
+              }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Unit</th>
+                <th scope="col">Minimum rule</th>
+                <th scope="col">Maximum rule</th>
+                <th scope="col">Interval</th>
+                <th scope="col">Out of tolerance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ step.unit }}</td>
+                <td>{{ step.minimum }}</td>
+                <td>{{ step.maximum }}</td>
+                <td>{{ step.intervalMs }} ms</td>
+                <td>{{ step.outOfToleranceCount }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <dl class="statistics">
+          <div>
+            <dt>Recorded minimum</dt>
+            <dd>{{ step.statistics.minimum ?? 'Not available' }}</dd>
+          </div>
+          <div>
+            <dt>Recorded maximum</dt>
+            <dd>{{ step.statistics.maximum ?? 'Not available' }}</dd>
+          </div>
+          <div>
+            <dt>Recorded average</dt>
+            <dd>{{ step.statistics.average ?? 'Not available' }}</dd>
+          </div>
+          <div>
+            <dt>Statistics samples</dt>
+            <dd>{{ step.statistics.sampleCount ?? 'Not available' }}</dd>
+          </div>
+          <div>
+            <dt>First failure sample index</dt>
+            <dd>{{ step.firstFailureSampleIndex ?? 'None recorded' }}</dd>
+          </div>
+        </dl>
+        <app-report-chart [runId]="run.runId" [planName]="run.planName" [step]="step" />
+      </section>
+    }
+    <footer class="report-footer">
+      Simulated test results · Official verdicts and statistics come from stored backend data.
+      Missing measurements remain missing. Full samples are available in CSV/JSON.
+    </footer>
+  </article>
+}

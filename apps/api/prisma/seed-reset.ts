@@ -45,7 +45,7 @@ async function resetDemoData(): Promise<void> {
   try {
     const summary = await deleteDemoSeedFixture(prisma);
     console.log(
-      `Demo data reset on "${databaseName}": ${summary.runs} runs, ${summary.plans} plans, ${summary.users} accounts and ${summary.profiles} device profiles deleted.`,
+      `Demo data reset on "${databaseName}": ${summary.runs} runs, ${summary.plans} plans, ${summary.devices} devices, ${summary.users} accounts and ${summary.profiles} device profiles deleted.`,
     );
   } catch {
     // Driver errors may contain the connection string; never print them.

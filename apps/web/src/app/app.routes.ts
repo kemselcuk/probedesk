@@ -21,7 +21,13 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'plans',
+        redirectTo: 'overview',
+      },
+      {
+        path: 'overview',
+        title: 'Overview',
+        loadComponent: () =>
+          import('./features/overview/overview-page').then((module) => module.OverviewPage),
       },
       {
         path: 'plans',
@@ -44,6 +50,18 @@ export const routes: Routes = [
           import('./features/plans/plan-version-page').then((module) => module.PlanVersionPage),
       },
       {
+        path: 'devices',
+        title: 'Devices',
+        loadComponent: () =>
+          import('./features/devices/devices-page').then((module) => module.DevicesPage),
+      },
+      {
+        path: 'devices/:deviceId',
+        title: 'Device',
+        loadComponent: () =>
+          import('./features/devices/device-detail-page').then((module) => module.DeviceDetailPage),
+      },
+      {
         path: 'runs',
         title: 'Run History',
         loadComponent: () =>
@@ -60,6 +78,12 @@ export const routes: Routes = [
         title: 'Live Run',
         loadComponent: () =>
           import('./features/runs/live-run-page').then((module) => module.LiveRunPage),
+      },
+      {
+        path: 'runs/:runId/report',
+        title: 'Run Report',
+        loadComponent: () =>
+          import('./features/reports/run-report-page').then((module) => module.RunReportPage),
       },
       {
         path: 'runs/:runId',

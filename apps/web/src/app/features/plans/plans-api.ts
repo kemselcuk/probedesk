@@ -1,9 +1,11 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { MalformedApiResponseError } from '../../core/http/malformed-api-response.error';
 import type {
   CreatePlanRequest,
+  CopyPlanRequest,
+  CopyPlanResponse,
   DeviceProfile,
   PlanDetail,
   PlanDraft,
@@ -28,6 +30,40 @@ import type {
 @Injectable({ providedIn: 'root' })
 export class PlansApi {
   private readonly http = inject(HttpClient);
+
+  copyPlan(
+    versionId: string,
+    request: CopyPlanRequest,
+    idempotencyKey: string,
+  ): Observable<CopyPlanResponse> {
+    const endpoint = `POST /api/plan-versions/${versionId}/copy`;
+    return this.http
+      .post<unknown>(`/api/plan-versions/${encodeURIComponent(versionId)}/copy`, request, {
+        headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
+      })
+      .pipe(
+        map((value) => {
+          const record = requireRecord(value, endpoint, 'copy response');
+          const result = {
+            planId: requireString(record, 'planId', endpoint, 'copy response'),
+            draftRevisionId: requireString(record, 'draftRevisionId', endpoint, 'copy response'),
+            sourceVersionId: requireString(record, 'sourceVersionId', endpoint, 'copy response'),
+            replayed: record['replayed'],
+          };
+          const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (
+            !uuid.test(result.planId) ||
+            !uuid.test(result.draftRevisionId) ||
+            !uuid.test(result.sourceVersionId) ||
+            typeof result.replayed !== 'boolean' ||
+            result.sourceVersionId.toLowerCase() !== versionId.toLowerCase()
+          ) {
+            throw new MalformedApiResponseError(endpoint, 'invalid copy identity or replay flag.');
+          }
+          return { ...result, replayed: result.replayed };
+        }),
+      );
+  }
 
   listPlans(): Observable<readonly PlanSummary[]> {
     return this.http
@@ -107,7 +143,12 @@ function parsePlanSummary(value: unknown, endpoint: string, index: number): Plan
   const summary: PlanSummary = {
     id: requireString(record, 'id', endpoint, label),
     name: requireString(record, 'name', endpoint, label),
-    profile: parseDeviceProfile(record['profile'], endpoint, `${label} profile`, `${label}.profile`),
+    profile: parseDeviceProfile(
+      record['profile'],
+      endpoint,
+      `${label} profile`,
+      `${label}.profile`,
+    ),
     latestPublishedVersion: parseNullable(
       record,
       'latestPublishedVersion',
@@ -170,11 +211,7 @@ function parsePlanDetail(value: unknown, endpoint: string): PlanDetail {
   return { ...plan, draft: parseDraftRevision(draftValue, endpoint, 'plan.draft') };
 }
 
-function parseDraftRevision(
-  value: unknown,
-  endpoint: string,
-  label = 'draft revision',
-): PlanDraft {
+function parseDraftRevision(value: unknown, endpoint: string, label = 'draft revision'): PlanDraft {
   const record = requireRecord(value, endpoint, label);
   requireState(record, 'DRAFT', endpoint, label);
 
@@ -240,7 +277,10 @@ function parsePublishedVersionListItem(
   };
 }
 
-function parsePublishedVersionSummary(value: unknown, endpoint: string): {
+function parsePublishedVersionSummary(
+  value: unknown,
+  endpoint: string,
+): {
   readonly id: string;
   readonly versionNumber: number;
   readonly publishedAt: string;
@@ -311,11 +351,7 @@ function parseNullable<T>(
   return value === null ? null : parse(value, `${endpoint} (${label}.${key})`);
 }
 
-function requireRecord(
-  value: unknown,
-  endpoint: string,
-  label: string,
-): Record<string, unknown> {
+function requireRecord(value: unknown, endpoint: string, label: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new MalformedApiResponseError(endpoint, `${label} is not an object.`);
   }

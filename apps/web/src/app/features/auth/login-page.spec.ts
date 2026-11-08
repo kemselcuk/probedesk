@@ -1,3 +1,4 @@
+import { overviewFixture } from '../overview/testing/overview-fixtures';
 import { provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -105,9 +106,9 @@ describe('LoginPage', () => {
     harness.detectChanges();
 
     expect(root.textContent).toContain('Enter a valid email address.');
-    expect(
-      root.querySelector('#email')?.getAttribute('aria-describedby')?.split(/\s+/),
-    ).toContain('email-error');
+    expect(root.querySelector('#email')?.getAttribute('aria-describedby')?.split(/\s+/)).toContain(
+      'email-error',
+    );
     expect(http.match('/api/auth/login')).toHaveLength(0);
   });
 
@@ -118,9 +119,7 @@ describe('LoginPage', () => {
     harness.detectChanges();
     const root = rootOf(harness);
 
-    expect(root.querySelector('.session-notice')?.textContent).toContain(
-      'Your session ended.',
-    );
+    expect(root.querySelector('.session-notice')?.textContent).toContain('Your session ended.');
     expect(root.querySelector('.session-notice')?.textContent).toContain(
       'Its address and filters were kept.',
     );
@@ -281,7 +280,7 @@ describe('LoginPage', () => {
     expect(root.textContent).toContain('The password does not match.');
   });
 
-  it('rejects an external return URL and falls back to Test Plans', async () => {
+  it('rejects an external return URL and falls back to Overview', async () => {
     const harness = await openLogin('//evil.example/steal');
     const root = rootOf(harness);
     const http = TestBed.inject(HttpTestingController);
@@ -297,7 +296,14 @@ describe('LoginPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(TestBed.inject(Router).url).toBe('/plans');
+    const analytics = http.expectOne((request) => request.url === '/api/analytics/overview');
+    analytics.flush(
+      overviewFixture(
+        { from: analytics.request.params.get('from')!, to: analytics.request.params.get('to')! },
+        true,
+      ),
+    );
+    expect(TestBed.inject(Router).url).toContain('/overview?');
   });
 
   it('toggles password visibility with an accessible control', async () => {

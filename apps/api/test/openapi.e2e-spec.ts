@@ -28,14 +28,20 @@ describe('OpenAPI document (e2e)', () => {
     const document = createOpenApiDocument(app);
 
     expect(Object.keys(document.paths).sort()).toEqual([
+      '/api/analytics/overview',
       '/api/auth/login',
       '/api/auth/logout',
       '/api/auth/me',
       '/api/comparisons',
       '/api/device-profiles',
+      '/api/devices',
+      '/api/devices/{id}',
+      '/api/devices/{id}/archive',
+      '/api/devices/{id}/restore',
       '/api/health/live',
       '/api/health/ready',
       '/api/plan-versions/{id}',
+      '/api/plan-versions/{id}/copy',
       '/api/plans',
       '/api/plans/{id}',
       '/api/plans/{id}/draft',
@@ -47,7 +53,18 @@ describe('OpenAPI document (e2e)', () => {
       '/api/runs/{id}',
       '/api/runs/{id}/cancel',
       '/api/runs/{id}/events',
+      '/api/runs/{id}/export',
+      '/api/runs/{id}/report',
     ]);
+
+    for (const status of ['400', '401', '403', '404', '409']) {
+      expect(
+        document.paths['/api/runs/{id}/export']?.get?.responses[status],
+      ).toMatchObject({ content: { 'application/json': expect.anything() } });
+      expect(
+        document.paths['/api/runs/{id}/export']?.get?.responses[status],
+      ).not.toHaveProperty('content.text/csv');
+    }
 
     expect(document.paths['/api/auth/login']?.post?.responses).toHaveProperty(
       '200',

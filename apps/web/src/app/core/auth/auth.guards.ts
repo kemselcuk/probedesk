@@ -30,7 +30,7 @@ function authorize(
   const decide = (user: AuthenticatedUser | null): boolean | UrlTree => {
     if (user === null) {
       return router.createUrlTree(['/login'], {
-        queryParams: { returnUrl: state.url === '/' ? '/plans' : state.url },
+        queryParams: { returnUrl: state.url === '/' ? '/overview' : state.url },
       });
     }
 

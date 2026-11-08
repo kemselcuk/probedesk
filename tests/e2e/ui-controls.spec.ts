@@ -35,7 +35,7 @@ test("selection edges, calendar dates and table gutters remain usable", async ({
   await page.locator("#email").fill("operator@probedesk.local");
   await page.locator("#password").fill("OperatorDemo!2026");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/plans$/);
+  await expect(page).toHaveURL(/\/overview(?:\?.*)?$/);
 
   await page.goto("/compare");
   for (const id of ["compare-left-run", "compare-right-run"]) {
@@ -107,7 +107,7 @@ test('measurement columns stay grouped on wide screens and scroll locally on mob
   await page.locator('#email').fill('operator@probedesk.local');
   await page.locator('#password').fill('OperatorDemo!2026');
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-  await expect(page).toHaveURL(/\/plans$/);
+  await expect(page).toHaveURL(/\/overview(?:\?.*)?$/);
   await page.goto('/runs');
   const details = page.getByRole('link', { name: /^View details for/ }).first();
   await expect(details).toBeVisible();

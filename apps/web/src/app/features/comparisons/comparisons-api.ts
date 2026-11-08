@@ -1,3 +1,4 @@
+import { parseRunMetadata } from '../runs/run-metadata';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
@@ -223,6 +224,7 @@ function parseRunSummary(
     planId: requireUuid(record, 'planId', endpoint, label),
     planVersionId: requireUuid(record, 'planVersionId', endpoint, label),
     planName: requireString(record, 'planName', endpoint, label),
+    ...parseRunMetadata(record, endpoint),
     versionNumber: requireInteger(record, 'versionNumber', endpoint, label, 1),
     profile: parseProfile(record['profile'], endpoint, `${label}.profile`),
     scenario: requireEnum(record['scenario'], RUN_SCENARIOS, endpoint, `${label}.scenario`),

@@ -29,16 +29,19 @@ REST mutasyon/okuma işlemlerini, SSE sunucudan istemciye olay aktarımını ta�
 
 ## Backend modülleri
 
-| Modül | Sorumluluk |
-|---|---|
-| Auth | Login/logout/me, parola doğrulama, oturum, CSRF, rol guard'ları |
-| Plans | Taslak kaydı, optimistic concurrency, Publish, sürüm okuma |
-| Runs | Başlatma, snapshot, sıralı yürütme, iptal, kesinti, sonuç ve özetler |
-| Simulator | Seed tabanlı saf ölçüm üretimi; senaryo uygulama |
-| Events | Kalıcı olayları sıralı okuma; SSE, replay, heartbeat ve cleanup |
-| Comparisons | Aynı planın terminal çalıştırmalarını kayıtlı verilerle eşleştirme |
-| Common | DTO doğrulama, hata biçimi, request ID, zaman/sayı yardımcıları |
-| Health | Liveness, veritabanı ve başlangıç uzlaştırmasını içeren readiness |
+| Modül       | Sorumluluk                                                                             |
+| ----------- | -------------------------------------------------------------------------------------- |
+| Auth        | Login/logout/me, parola doğrulama, oturum, CSRF, rol guard'ları                        |
+| Plans       | Taslak kaydı, optimistic concurrency, Publish, sürüm okuma                             |
+| Runs        | Başlatma, snapshot, sıralı yürütme, iptal, kesinti, sonuç ve özetler                   |
+| Simulator   | Seed tabanlı saf ölçüm üretimi; senaryo uygulama                                       |
+| Events      | Kalıcı olayları sıralı okuma; SSE, replay, heartbeat ve cleanup                        |
+| Comparisons | Aynı planın terminal çalıştırmalarını kayıtlı verilerle eşleştirme                     |
+| Common      | DTO doğrulama, hata biçimi, request ID, zaman/sayı yardımcıları                        |
+| Health      | Liveness, veritabanı ve başlangıç uzlaştırmasını içeren readiness                      |
+| Devices     | Cihaz kimliği, canonical seri/revision, archive/restore; run snapshot kilitleme sınırı |
+| Analytics   | Repeatable-read aggregate KPI/UTC trend/top10; measurements payload yok                |
+| Reports     | Terminal snapshot projection; güvenli CSV/JSON ve HTTP attachment                      |
 
 Controller HTTP sınırını yönetir; durum geçişleri ve transaction'lar servislerde uygulanır. Saf değerlendirme/üretim kodu HTTP'den ve Prisma'dan ayrılır. Genel amaçlı bir repository katmanı yalnızca arayüz çoğaltmak için eklenmez; gerçek test veya sınır ihtiyacı olduğunda kullanılır.
 
@@ -61,19 +64,19 @@ Ayrıntılar: [frontend.md](frontend.md).
 
 Araştırma tarihi 2026-11-03. Bu tablo proje içinde başarılı kurulum kanıtı değildir. P1-01 kurulum/derleme/test araçlarını doğrulayıp kesin patch sürümlerini lockfile'a sabitler.
 
-| Bileşen | Başlangıç adayı |
-|---|---|
-| Node.js | 24 LTS; en az 24.15.0 ve seçilen paketlerle uyumlu güncel patch |
-| TypeScript | 6.0.x; Angular compiler'ın izin verdiği aralık |
-| Angular | 22.2.x; core/compiler/compiler-cli eşleşmeli |
-| Material / CDK | 22.2.x; kendi aralarında uyumlu patch |
-| RxJS | 7.8.x |
-| NestJS | 12.x; common/core/platform/testing uyumlu |
-| Prisma | CLI ve client 7.10.1; uyumlu adapter-pg ve pg |
-| PostgreSQL | 18, sabitlenmiş konteyner sürümü |
-| Chart.js | 4.x; araştırmada 4.6.1 |
-| Annotation / zoom | Araştırmada 3.1.0 / 2.2.0; peer aralıkları doğrulanacak |
-| Playwright | 1.64.x adayı; test paketi/tarayıcı sürümleri eşleşecek |
+| Bileşen           | Başlangıç adayı                                                 |
+| ----------------- | --------------------------------------------------------------- |
+| Node.js           | 24 LTS; en az 24.15.0 ve seçilen paketlerle uyumlu güncel patch |
+| TypeScript        | 6.0.x; Angular compiler'ın izin verdiği aralık                  |
+| Angular           | 22.2.x; core/compiler/compiler-cli eşleşmeli                    |
+| Material / CDK    | 22.2.x; kendi aralarında uyumlu patch                           |
+| RxJS              | 7.8.x                                                           |
+| NestJS            | 12.x; common/core/platform/testing uyumlu                       |
+| Prisma            | CLI ve client 7.10.1; uyumlu adapter-pg ve pg                   |
+| PostgreSQL        | 18, sabitlenmiş konteyner sürümü                                |
+| Chart.js          | 4.x; araştırmada 4.6.1                                          |
+| Annotation / zoom | Araştırmada 3.1.0 / 2.2.0; peer aralıkları doğrulanacak         |
+| Playwright        | 1.64.x adayı; test paketi/tarayıcı sürümleri eşleşecek          |
 
 Workspace için npm workspaces ve tek lockfile kullanılacak. Derleyici/runtime modül ayarları NestJS ve Prisma adapter'ıyla birlikte P1-01'de doğrulanacak. Preview/RC sürüm kendiliğinden seçilmeyecek. Prisma'nın sürümsüz belgeleri farklı ana sürüme yönlenebildiği için v7 belgeleri kullanılacak.
 
@@ -81,19 +84,18 @@ Workspace için npm workspaces ve tek lockfile kullanılacak. Derleyici/runtime 
 
 Kurulum, derleme ve testler bu makinede gerçekten çalıştırıldı; kesin sürümler `package-lock.json` içinde sabitlendi.
 
-| Bileşen | Doğrulanan sürüm | Not |
-|---|---|---|
-| Node.js | 22.23.2 | Planlanan 24 LTS yerine kurulu LTS; Angular 22.2.4 `engines` aralığı `^22.22.3 || ^24.15.0` ile uyumlu. `.nvmrc` ve `engines` bunu kaydeder. |
-| npm | 11.6.2 | npm 10.9.8 workspace peer çözümlemesinde `edgesOut` hatası verdi; `packageManager` alanı npm 11'i sabitler. |
-| TypeScript | 6.0.3 | Angular compiler-cli `>=6.0 <6.1` aralığı. |
-| Angular | 22.2.4 (CLI/build 22.2.5) | Standalone, zoneless, SCSS, Vitest unit-test builder. |
-| Material / CDK | 22.2.5 | Core 22.2.4 ile peer uyumlu. |
-| RxJS | 7.8.2 | |
-| NestJS | 12.3.2 | ESM (`type: module`, `module: nodenext`), Vitest 4.1.12. |
-| Prisma CLI / client | 7.10.1 | P1-02'de adapter/migration ile bağlanacak; `latest` etiketi 8 RC olduğu için sabit `prev` sürümü kullanılır. |
-| PostgreSQL | 18 | Compose imajı P1-02'de sabitlenecek. |
-| Vitest | 5.1.0 (web) / 4.1.12 (api) | Angular builder sürümü ile Nest şablonunun sürümü ayrı; her ikisi de kilitli. |
-
+| Bileşen             | Doğrulanan sürüm           | Not                                                                                                          |
+| ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Node.js             | 22.23.2                    | Angular 22.2.4 engines: `^22.22.3` veya `^24.15.0`; `.nvmrc` ve engines ile kayıtlı.                         |
+| npm                 | 11.6.2                     | npm 10.9.8 workspace peer çözümlemesinde `edgesOut` hatası verdi; `packageManager` alanı npm 11'i sabitler.  |
+| TypeScript          | 6.0.3                      | Angular compiler-cli `>=6.0 <6.1` aralığı.                                                                   |
+| Angular             | 22.2.4 (CLI/build 22.2.5)  | Standalone, zoneless, SCSS, Vitest unit-test builder.                                                        |
+| Material / CDK      | 22.2.5                     | Core 22.2.4 ile peer uyumlu.                                                                                 |
+| RxJS                | 7.8.2                      |                                                                                                              |
+| NestJS              | 12.3.2                     | ESM (`type: module`, `module: nodenext`), Vitest 4.1.12.                                                     |
+| Prisma CLI / client | 7.10.1                     | P1-02'de adapter/migration ile bağlanacak; `latest` etiketi 8 RC olduğu için sabit `prev` sürümü kullanılır. |
+| PostgreSQL          | 18                         | Compose imajı P1-02'de sabitlenecek.                                                                         |
+| Vitest              | 5.1.0 (web) / 4.1.12 (api) | Angular builder sürümü ile Nest şablonunun sürümü ayrı; her ikisi de kilitli.                                |
 
 Kaynaklar: [Node LTS](https://nodejs.org/en/about/previous-releases), [Angular uyumluluğu](https://angular.dev/reference/versions), [Angular compiler paket bilgisi](https://registry.npmjs.org/@angular%2fcompiler-cli/22.2.4), [Prisma CLI 7.10.1](https://registry.npmjs.org/prisma/7.10.1), [Prisma client 7.10.1](https://registry.npmjs.org/@prisma%2fclient/7.10.1).
 
@@ -141,3 +143,9 @@ Docker Desktop kişisel kullanım koşulları kapsamında ücretsiz olabilir; ku
 ## Teknik kararlar
 
 [Karar dizini](decisions/README.md), bu mimarinin kısa karar kayıtlarını içerir. Mimari değişikliği ilgili karar, veri/API sözleşmesi, test ve görevlerle birlikte güncellenir.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Devices, Analytics ve Reports modülleri eklenir; simülatör aynı tek API sürecinde kalır. Analytics kısa repeatable-read ve DB aggregate, report tutarlı terminal snapshot projection kullanır. Yeni servis/ücretli bağımlılık olmadan browser print/PDF uygulanır. Frontend yalnız lead, backend disjoint dosya sahipliğiyle istenen OpenCode modeline delege edilir.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

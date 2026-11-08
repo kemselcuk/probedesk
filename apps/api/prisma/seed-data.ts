@@ -52,6 +52,35 @@ export const DEMO_DEVICE_PROFILES = [
   },
 ] as const satisfies readonly DemoDeviceProfileSeed[];
 
+export interface DemoDeviceSeed {
+  /** Stable fixture id; a repeat seed treats this row as existing. */
+  id: string;
+  name: string;
+  serialNumber: string;
+  description: string | null;
+}
+
+/**
+ * Two additive device records for the seeded DC Power Module profile. The
+ * fixed ids make a repeat seed preserve any edits made through the API instead
+ * of recreating or overwriting the rows. Existing demo runs are never linked
+ * to these devices.
+ */
+export const DEMO_DEVICES = [
+  {
+    id: '5f0d3c1e-2a4b-4c6d-8e9f-000000000001',
+    name: 'Bench Power Module A',
+    serialNumber: 'PSU-DEMO-0001',
+    description: 'Primary demo unit used for local walkthroughs.',
+  },
+  {
+    id: '5f0d3c1e-2a4b-4c6d-8e9f-000000000002',
+    name: 'Bench Power Module B',
+    serialNumber: 'PSU-DEMO-0002',
+    description: 'Secondary demo unit for device selection examples.',
+  },
+] as const satisfies readonly DemoDeviceSeed[];
+
 export const DEMO_PLANNER_EMAIL = 'planner@probedesk.local';
 export const DEMO_OPERATOR_EMAIL = 'operator@probedesk.local';
 

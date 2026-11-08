@@ -3,7 +3,7 @@
  * Protocol-relative and absolute URLs are rejected, and `/login` itself is
  * replaced to avoid a redirect loop.
  */
-const FALLBACK_URL = '/plans';
+const FALLBACK_URL = '/overview';
 
 export function sanitizeReturnUrl(value: string | null | undefined): string {
   if (typeof value !== 'string') {

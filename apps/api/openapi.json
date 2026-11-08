@@ -384,6 +384,27 @@
         "operationId": "RunsController_list",
         "parameters": [
           {
+            "name": "batchNumber",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "BATCH-2026-001"
+            },
+            "description": "Only runs with this batch. Matches the uppercase canonical key; display case and surrounding whitespace do not matter."
+          },
+          {
+            "name": "deviceId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs started with this device. Unknown ids return an empty page."
+          },
+          {
             "name": "from",
             "required": false,
             "in": "query",
@@ -441,6 +462,31 @@
               "format": "uuid"
             },
             "description": "Only runs of this plan."
+          },
+          {
+            "name": "planVersionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs of this published version. When planId is also supplied it must belong to that plan."
+          },
+          {
+            "name": "scenario",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NORMAL",
+                "FORCED_FAILURE",
+                "RANDOM"
+              ],
+              "example": "NORMAL"
+            },
+            "description": "Only runs using this simulator scenario."
           },
           {
             "name": "status",
@@ -815,6 +861,541 @@
         "summary": "List the available simulated device profiles.",
         "tags": [
           "device-profiles"
+        ]
+      }
+    },
+    "/api/devices": {
+      "get": {
+        "operationId": "DevicesController_list",
+        "parameters": [
+          {
+            "name": "deviceProfileId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only devices of this profile. An unknown id returns an empty page."
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Page size. Defaults to 20 and must not exceed 100."
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "description": "1-based page number."
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "description": "Case-insensitive prefix search over name and serial number. Wildcards are literal."
+          },
+          {
+            "name": "state",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "archived",
+                "all"
+              ],
+              "default": "active"
+            },
+            "description": "Active devices only, archived devices only, or all devices."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page ordered by name ASC, id ASC. Archived rows are excluded unless requested.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceListResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, page or limit is malformed or an unknown query parameter was supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "List devices with prefix search, state filter and pagination.",
+        "tags": [
+          "devices"
+        ]
+      },
+      "post": {
+        "operationId": "DevicesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeviceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new active device. The serial display case is preserved while uniqueness is case-insensitive inside the profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A field is missing, invalid or unknown, or deviceProfileId does not reference an existing profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DEVICE_SERIAL_CONFLICT when the canonical serial number already exists in the profile. No row was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Create a device record with a canonical unique serial number.",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/{id}": {
+      "get": {
+        "operationId": "DevicesController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Device id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current device row. Archived devices remain readable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The device does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read the current device record with revision and archive state.",
+        "tags": [
+          "devices"
+        ]
+      },
+      "patch": {
+        "operationId": "DevicesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Device id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeviceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated device. An unchanged payload returns the current row without incrementing the revision.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "expectedRevision or a changed field is invalid, deviceProfileId was supplied, or another unknown field was supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The device does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DEVICE_CONFLICT for a stale editRevision, or DEVICE_SERIAL_CONFLICT when another device owns the canonical serial number. Nothing was changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Update mutable device fields with an optimistic revision check. The profile is fixed.",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/{id}/archive": {
+      "post": {
+        "operationId": "DevicesController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Device id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceRevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The archived device. When the target state already holds and expectedRevision matches, the revision is unchanged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "expectedRevision is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The device does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DEVICE_CONFLICT for a stale editRevision, even when the device is already archived.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Archive a device without deleting its history. Archiving an archived row is a no-op after the revision check.",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/{id}/restore": {
+      "post": {
+        "operationId": "DevicesController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Device id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceRevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The active device. When it was already active and expectedRevision matches, the revision is unchanged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "expectedRevision is missing or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The device does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "DEVICE_CONFLICT for a stale editRevision, even when the device is already active.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Restore an archived device to active use. Restoring an active row is a no-op after the revision check.",
+        "tags": [
+          "devices"
         ]
       }
     },
@@ -1378,6 +1959,449 @@
         ]
       }
     },
+    "/api/plan-versions/{id}/copy": {
+      "post": {
+        "operationId": "PlanVersionsController_copy",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Client-generated key scoped to the current user. Retrying the same request with this key returns the original target plan.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "6b6f0a1e-2b64-4e9d-9b8d-0fbe7e75a0c4",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Published source plan revision id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyPlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An earlier copy for the same user and Idempotency-Key was replayed. The original target plan and initial revision ids are returned even after that revision was published.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopyPlanResponseDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "A new independent plan and its initial DRAFT revision with freshly generated step identities.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopyPlanResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The Idempotency-Key header, name or body is missing, unknown or invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user is not a Planner or the CSRF token is invalid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The source version does not exist or is not published. Drafts are never copied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "IDEMPOTENCY_CONFLICT when the key was already used for a different source version or name.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": [],
+            "csrfToken": []
+          }
+        ],
+        "summary": "Copy a published plan version into a new independent plan, or replay an idempotent retry.",
+        "tags": [
+          "plan-versions"
+        ]
+      }
+    },
+    "/api/runs/{id}/report": {
+      "get": {
+        "operationId": "ReportsController_getReport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Run id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One consistent projection of the terminal run, its copied step rules, stored statistics and recorded samples. schemaVersion is 1. A RUNNING run is rejected with RUN_NOT_TERMINAL; COMPLETED, CANCELLED, INTERRUPTED and ERROR are readable, including partial and empty data.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The run id is not a UUID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have a report-reading role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The run does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RUN_NOT_TERMINAL when the run is still RUNNING. The response contains a safe status detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read the versioned report projection of a terminal run from its immutable snapshot.",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/runs/{id}/export": {
+      "get": {
+        "operationId": "ReportsController_exportRun",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Run id.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "required": true,
+            "in": "query",
+            "description": "csv produces UTF-8 BOM, comma-delimited CRLF rows with RFC 4180 quoting; json produces the same schemaVersion=1 report projection.",
+            "schema": {
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attachment response with Cache-Control: no-store. The filename is derived only from the canonical run UUID. CSV rows contain one line per actually recorded measurement, ordered by step position and sample index; JSON preserves decimal strings.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary",
+                  "description": "UTF-8 CSV document starting with a BOM. Header-only when the run has no recorded measurements."
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunReportDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The run id is not a UUID, format is missing or not csv/json, or an unknown query parameter was supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The user does not have a report-reading role.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The run does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RUN_NOT_TERMINAL when the run is still RUNNING. Terminal statuses are all exportable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Download a terminal run report as a CSV or JSON attachment built from the same immutable projection.",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/api/analytics/overview": {
+      "get": {
+        "operationId": "AnalyticsController_overview",
+        "parameters": [
+          {
+            "name": "batchNumber",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "BATCH-2026-001"
+            },
+            "description": "Only runs with this batch. The comparison uses the canonical uppercase key, so display case does not matter."
+          },
+          {
+            "name": "deviceId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs started with this device. Unknown ids return an empty overview."
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-10-01T00:00:00.000Z"
+            },
+            "description": "Inclusive UTC lower bound for run.startedAt. Must include an explicit timezone."
+          },
+          {
+            "name": "planId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs of this plan. Unknown ids return an empty overview."
+          },
+          {
+            "name": "planVersionId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Only runs of this published version. When planId is also present it must belong to that plan; an unknown version returns an empty overview."
+          },
+          {
+            "name": "scenario",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NORMAL",
+                "FORCED_FAILURE",
+                "RANDOM"
+              ],
+              "example": "NORMAL"
+            },
+            "description": "Only runs with this simulator scenario."
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-10-31T00:00:00.000Z"
+            },
+            "description": "Exclusive UTC upper bound for run.startedAt. The range is [from, to) and may span at most 366 days."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary totals, every UTC day intersecting [from, to), and at most ten failing step groups. Decimal KPI values are backend-rounded strings; null means no applicable sample.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsOverviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "from/to is missing or malformed, the range is empty or wider than 366 days, a filter is invalid, or an unknown query parameter was supplied.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The session is missing, expired or revoked.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Read dashboard KPIs, the UTC daily trend and the top failing steps from one consistent snapshot.",
+        "tags": [
+          "analytics"
+        ]
+      }
+    },
     "/api/comparisons": {
       "get": {
         "operationId": "ComparisonsController_compare",
@@ -1548,6 +2572,10 @@
               "IDEMPOTENCY_CONFLICT",
               "RUN_NOT_TERMINAL",
               "COMPARISON_PLAN_MISMATCH",
+              "DEVICE_SERIAL_CONFLICT",
+              "DEVICE_CONFLICT",
+              "DEVICE_ARCHIVED",
+              "DEVICE_PROFILE_MISMATCH",
               "TOO_MANY_REQUESTS",
               "INTERNAL_ERROR",
               "SERVICE_UNAVAILABLE"
@@ -1732,6 +2760,20 @@
             "type": "string",
             "description": "Required for RANDOM only: decimal failure probability between 0 and 1 with at most 6 fractional digits.",
             "example": "0.050000"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Optional active device of the same profile. Its name and serial number are copied into the run snapshot."
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Optional batch number. It is trimmed; empty input is absent. The displayed value keeps its case and filters use its uppercase canonical key."
           }
         },
         "required": [
@@ -1783,6 +2825,33 @@
           "outcome",
           "snapshotUrl",
           "eventsUrl"
+        ]
+      },
+      "RunDeviceSnapshotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Bench Power Module"
+          },
+          "serialNumber": {
+            "type": "string",
+            "example": "PSU-AbC/01"
+          },
+          "deviceProfileId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "serialNumber",
+          "deviceProfileId"
         ]
       },
       "RunFirstFailureDto": {
@@ -1867,6 +2936,29 @@
             "type": "number",
             "minimum": 1,
             "example": 1
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied at start, or null. Later device edits never change history.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Batch display value copied at start, or null."
           },
           "scenario": {
             "type": "string",
@@ -1956,6 +3048,9 @@
           "planVersionId",
           "planName",
           "versionNumber",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
           "scenario",
           "seed",
           "status",
@@ -2262,6 +3357,29 @@
           "profile": {
             "$ref": "#/components/schemas/DeviceProfileDto"
           },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied at start, or null when the run had no device. Later device edits do not change it.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Batch display value copied at start, or null. The canonical filter key is internal."
+          },
           "scenario": {
             "type": "string",
             "enum": [
@@ -2369,6 +3487,9 @@
           "planName",
           "versionNumber",
           "profile",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
           "scenario",
           "seed",
           "errorProbability",
@@ -2426,6 +3547,176 @@
           "sequence",
           "occurredAt",
           "payload"
+        ]
+      },
+      "DeviceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceProfileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "serialNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500,
+            "description": "Trimmed description, or null when it is empty."
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Archive time, or null while the device is active."
+          },
+          "editRevision": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Optimistic concurrency revision. Updates, archive and restore require the current value."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "deviceProfileId",
+          "name",
+          "serialNumber",
+          "description",
+          "archivedAt",
+          "editRevision",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DeviceListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceDto"
+            }
+          },
+          "page": {
+            "type": "number",
+            "minimum": 1
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "total": {
+            "type": "number",
+            "minimum": 0
+          },
+          "totalPages": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Number of pages for this filter and limit, zero when empty."
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "CreateDeviceDto": {
+        "type": "object",
+        "properties": {
+          "deviceProfileId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Id returned by GET /api/device-profiles."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "serialNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "PSU-DEMO-0001"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500,
+            "description": "Optional description. It is trimmed; empty or whitespace-only input is stored as null."
+          }
+        },
+        "required": [
+          "deviceProfileId",
+          "name",
+          "serialNumber"
+        ]
+      },
+      "UpdateDeviceDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Current editRevision. A mismatch is rejected with DEVICE_CONFLICT and no writes."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "serialNumber": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "PSU-DEMO-0001"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500,
+            "description": "New description. It is trimmed; null, empty or whitespace-only input clears it."
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ]
+      },
+      "DeviceRevisionDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Current editRevision. A stale value is always rejected with DEVICE_CONFLICT."
+          }
+        },
+        "required": [
+          "expectedRevision"
         ]
       },
       "CreatePlanDto": {
@@ -2906,6 +4197,661 @@
           "publishedBy"
         ]
       },
+      "CopyPlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "Power rail verification (copy)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CopyPlanResponseDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "New independent plan created by the copy."
+          },
+          "draftRevisionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Initial draft revision created with the copy. The id stays stable after the draft is saved or published."
+          },
+          "sourceVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Published source revision named in the request path."
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "True when an earlier request for the same user, Idempotency-Key and canonical request is replayed."
+          }
+        },
+        "required": [
+          "planId",
+          "draftRevisionId",
+          "sourceVersionId",
+          "replayed"
+        ]
+      },
+      "RunReportStepDto": {
+        "type": "object",
+        "properties": {
+          "runStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "number",
+            "minimum": 1,
+            "description": "1-based step order inside this run."
+          },
+          "name": {
+            "type": "string",
+            "example": "Output voltage"
+          },
+          "unit": {
+            "type": "string",
+            "example": "V"
+          },
+          "minimum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "4.750000"
+          },
+          "maximum": {
+            "type": "string",
+            "pattern": "^-?\\d+\\.\\d{6}$",
+            "example": "5.250000"
+          },
+          "sampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "example": 100
+          },
+          "intervalMs": {
+            "type": "number",
+            "minimum": 100,
+            "maximum": 5000,
+            "example": 250
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR",
+              "NOT_RUN"
+            ],
+            "example": "COMPLETED"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Stored step verdict. Null unless the step completed; partial steps keep their recorded samples."
+          },
+          "recordedCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 100
+          },
+          "outOfToleranceCount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "firstFailureSampleIndex": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "example": null
+          },
+          "hasOutOfTolerance": {
+            "type": "boolean",
+            "example": false,
+            "description": "True exactly when outOfToleranceCount is greater than zero."
+          },
+          "statistics": {
+            "description": "Stored summary for a completed step; every numeric member is null for a partial step.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunStepStatisticsDto"
+              }
+            ]
+          },
+          "measurements": {
+            "description": "Only the samples actually recorded, ordered by ascending sampleIndex. Missing samples are never invented.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunMeasurementDto"
+            }
+          }
+        },
+        "required": [
+          "runStepId",
+          "logicalStepId",
+          "position",
+          "name",
+          "unit",
+          "minimum",
+          "maximum",
+          "sampleCount",
+          "intervalMs",
+          "status",
+          "outcome",
+          "recordedCount",
+          "outOfToleranceCount",
+          "firstFailureSampleIndex",
+          "hasOutOfTolerance",
+          "statistics",
+          "measurements"
+        ]
+      },
+      "RunReportDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": {
+            "type": "number",
+            "enum": [
+              1
+            ],
+            "example": 1,
+            "description": "Report projection schema version."
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC time at which this projection was generated."
+          },
+          "runId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 1
+          },
+          "profile": {
+            "$ref": "#/components/schemas/DeviceProfileDto"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied at start. Later device edits never change it.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "description": "Batch display value copied at start, or null when the run had no batch."
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "example": "NORMAL"
+          },
+          "seed": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 4294967295,
+            "example": 123456789
+          },
+          "errorProbability": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^\\d+\\.\\d{6}$",
+            "description": "Canonical six-place probability for RANDOM, otherwise null."
+          },
+          "failureStepId": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "description": "Logical step selected for FORCED_FAILURE, otherwise null."
+          },
+          "simulatorVersion": {
+            "type": "string",
+            "example": "sim-v1"
+          },
+          "evaluationVersion": {
+            "type": "string",
+            "example": "decimal-v1"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "CANCELLED",
+              "INTERRUPTED",
+              "ERROR"
+            ],
+            "example": "COMPLETED"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASSED",
+              "FAILED"
+            ],
+            "nullable": true,
+            "description": "Overall verdict; only a COMPLETED run has one."
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Safe technical reason code for a terminal non-success."
+          },
+          "expectedSampleCount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10000,
+            "example": 6
+          },
+          "recordedSampleCount": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "example": 6
+          },
+          "requestedBy": {
+            "description": "Public requester summary. Session and password fields are never included.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunRequestedByDto"
+              }
+            ]
+          },
+          "steps": {
+            "description": "Steps ordered by ascending position.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunReportStepDto"
+            }
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "generatedAt",
+          "runId",
+          "planId",
+          "planVersionId",
+          "planName",
+          "versionNumber",
+          "profile",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
+          "scenario",
+          "seed",
+          "errorProbability",
+          "failureStepId",
+          "simulatorVersion",
+          "evaluationVersion",
+          "startedAt",
+          "finishedAt",
+          "status",
+          "outcome",
+          "reasonCode",
+          "expectedSampleCount",
+          "recordedSampleCount",
+          "requestedBy",
+          "steps"
+        ]
+      },
+      "AnalyticsOverviewFiltersDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Canonical UTC inclusive lower bound actually applied."
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Canonical UTC exclusive upper bound actually applied."
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Applied plan filter, or null."
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Applied published version filter, or null."
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Applied device filter, or null."
+          },
+          "batchNumber": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true,
+            "example": "BATCH-2026-001",
+            "description": "Applied canonical uppercase batch key, or null. Filtering is exact and case-insensitive on the stored key."
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "NORMAL",
+              "FORCED_FAILURE",
+              "RANDOM"
+            ],
+            "nullable": true,
+            "description": "Applied scenario filter, or null."
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "planId",
+          "planVersionId",
+          "deviceId",
+          "batchNumber",
+          "scenario"
+        ]
+      },
+      "AnalyticsOverviewSummaryDto": {
+        "type": "object",
+        "properties": {
+          "totalRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 42
+          },
+          "completedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 30
+          },
+          "passedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 25
+          },
+          "failedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 5
+          },
+          "runningRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "cancelledRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 2
+          },
+          "interruptedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "errorRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "passRatePercent": {
+            "type": "string",
+            "nullable": true,
+            "example": "83.33",
+            "description": "100 × passedRuns / completedRuns, rounded half-up to two decimal places by PostgreSQL numeric. Null when completedRuns is zero."
+          },
+          "averageDurationMs": {
+            "type": "string",
+            "nullable": true,
+            "example": "2500.000",
+            "description": "Mean finishedAt-startedAt duration of COMPLETED runs with a finish time, rounded half-up to three decimal places. Null when no sample exists."
+          }
+        },
+        "required": [
+          "totalRuns",
+          "completedRuns",
+          "passedRuns",
+          "failedRuns",
+          "runningRuns",
+          "cancelledRuns",
+          "interruptedRuns",
+          "errorRuns",
+          "passRatePercent",
+          "averageDurationMs"
+        ]
+      },
+      "AnalyticsOverviewTrendDayDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-10-01",
+            "description": "UTC calendar day (YYYY-MM-DD)."
+          },
+          "totalRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 4
+          },
+          "completedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 3
+          },
+          "passedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 2
+          },
+          "failedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "runningRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "cancelledRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 1
+          },
+          "interruptedRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "errorRuns": {
+            "type": "number",
+            "minimum": 0,
+            "example": 0
+          },
+          "passRatePercent": {
+            "type": "string",
+            "nullable": true,
+            "example": "66.67",
+            "description": "Day pass rate as a two-decimal half-up string, or null when the day has no COMPLETED run."
+          }
+        },
+        "required": [
+          "date",
+          "totalRuns",
+          "completedRuns",
+          "passedRuns",
+          "failedRuns",
+          "runningRuns",
+          "cancelledRuns",
+          "interruptedRuns",
+          "errorRuns",
+          "passRatePercent"
+        ]
+      },
+      "AnalyticsOverviewTopFailedStepDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "logicalStepId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Power rail verification"
+          },
+          "stepName": {
+            "type": "string",
+            "example": "Output Voltage"
+          },
+          "versionNumber": {
+            "type": "number",
+            "minimum": 1,
+            "example": 3
+          },
+          "unit": {
+            "type": "string",
+            "example": "V"
+          },
+          "completedStepRuns": {
+            "type": "number",
+            "minimum": 1,
+            "example": 10,
+            "description": "COMPLETED steps in COMPLETED runs for this plan/version/logical step/unit group."
+          },
+          "failedStepRuns": {
+            "type": "number",
+            "minimum": 1,
+            "example": 4,
+            "description": "COMPLETED steps whose recorded outcome is FAILED."
+          },
+          "failureRatePercent": {
+            "type": "string",
+            "nullable": true,
+            "example": "40.00",
+            "description": "100 × failedStepRuns / completedStepRuns, rounded half-up to two decimal places. Null only when the denominator is zero."
+          }
+        },
+        "required": [
+          "planId",
+          "planVersionId",
+          "logicalStepId",
+          "planName",
+          "stepName",
+          "versionNumber",
+          "unit",
+          "completedStepRuns",
+          "failedStepRuns",
+          "failureRatePercent"
+        ]
+      },
+      "AnalyticsOverviewDto": {
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Transaction snapshot timestamp. Summary, trend and top steps all come from the same repeatable-read snapshot."
+          },
+          "filters": {
+            "$ref": "#/components/schemas/AnalyticsOverviewFiltersDto"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AnalyticsOverviewSummaryDto"
+          },
+          "trend": {
+            "description": "Every UTC day intersecting the range, including zero-count days.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsOverviewTrendDayDto"
+            }
+          },
+          "topFailedSteps": {
+            "description": "At most ten failing step groups ordered by failedStepRuns DESC, completedStepRuns DESC and permanent ids.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsOverviewTopFailedStepDto"
+            }
+          }
+        },
+        "required": [
+          "asOf",
+          "filters",
+          "summary",
+          "trend",
+          "topFailedSteps"
+        ]
+      },
       "ComparisonVersionDifferenceDto": {
         "type": "object",
         "properties": {
@@ -2957,6 +4903,29 @@
           },
           "profile": {
             "$ref": "#/components/schemas/DeviceProfileDto"
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Device linked at start, or null for legacy and device-less runs."
+          },
+          "deviceSnapshot": {
+            "nullable": true,
+            "description": "Device values copied into this run at start, or null. The live device is never joined.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RunDeviceSnapshotDto"
+              }
+            ]
+          },
+          "batchNumber": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "example": "BATCH-2026-001",
+            "description": "Batch display value copied at start, or null."
           },
           "scenario": {
             "type": "string",
@@ -3066,6 +5035,9 @@
           "planName",
           "versionNumber",
           "profile",
+          "deviceId",
+          "deviceSnapshot",
+          "batchNumber",
           "scenario",
           "seed",
           "errorProbability",

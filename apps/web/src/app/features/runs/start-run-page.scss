@@ -315,3 +315,9 @@ tbody tr:last-child td {
     margin-top: 0;
   }
 }
+
+.run-traceability {
+  display: grid;
+  gap: var(--pd-space-3);
+  margin-bottom: var(--pd-space-5);
+}

@@ -37,16 +37,15 @@ localhost demo, not a hosted production service.
 All images below were captured from the running Angular application during recorded verification
 runs. Links point to the evidence records with the commands and observed results.
 
-| Plan editor | Live execution |
-|---|---|
-| ![Plan editor with three measurement steps](docs/evidence/phase-2-editor.png) | ![Live Run receiving measurements over SSE](docs/evidence/phase-7-live-running.png) |
-| **Failure investigation** | **Run comparison** |
+| Plan editor                                                                                                 | Live execution                                                                                          |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| ![Plan editor with three measurement steps](docs/evidence/phase-2-editor.png)                               | ![Live Run receiving measurements over SSE](docs/evidence/phase-7-live-running.png)                     |
+| **Failure investigation**                                                                                   | **Run comparison**                                                                                      |
 | ![Run Details with the failing sample selected and chart tooltip](docs/evidence/phase-7-failed-details.png) | ![Compare Runs showing the changed Current Draw maximum](docs/evidence/phase-7-compare-v1-v2-rules.png) |
 
 The failure and comparison screenshots come from the P7 main demo
 ([evidence](docs/evidence/phase-7-e2e.md)); the editor screenshot comes from the Phase 2 plan
 lifecycle evidence ([evidence](docs/evidence/phase-2-demo.md)).
-
 
 ## Quick start
 
@@ -104,11 +103,11 @@ local plans and runs as the development workflow.
 These passwords are local demo fixtures only. The seed refuses to run with
 `NODE_ENV=production` and never changes an existing account's password or role.
 
-| Role | Email | Password |
-|---|---|---|
-| Planner | `planner@probedesk.local` | `PlannerDemo!2026` |
+| Role     | Email                      | Password            |
+| -------- | -------------------------- | ------------------- |
+| Planner  | `planner@probedesk.local`  | `PlannerDemo!2026`  |
 | Operator | `operator@probedesk.local` | `OperatorDemo!2026` |
-| Viewer | `viewer@probedesk.local` | `ViewerDemo!2026` |
+| Viewer   | `viewer@probedesk.local`   | `ViewerDemo!2026`   |
 
 ## Main demo flow
 
@@ -139,6 +138,28 @@ a clean delivery database for the exact fixture.
    `docker compose --profile delivery up -d`; plans and runs remain because the named volume is
    preserved ([persistence evidence](docs/evidence/phase-8-clean-install.md)).
 
+## Devices, analytics and reports
+
+The additive seed also provides two active devices for `DC Power Module`:
+`Bench Power Module A` (`PSU-DEMO-0001`) and `Bench Power Module B`
+(`PSU-DEMO-0002`). The four legacy demo runs keep their original null device/batch
+metadata. Re-running the seed preserves existing records and user edits.
+
+1. As Planner, open **Devices** to create a device, or use a seeded device. Copy a
+   published plan into an independent draft, edit it and publish it.
+2. As Operator, start that version with a compatible active device and a batch
+   number. Run Details retains the device name/serial snapshot even after a rename.
+3. As Viewer, use **Overview** filters and KPI links to open the corresponding
+   **Run History**. Open a terminal run's **Report**, download CSV/JSON, or choose
+   **Print / Save PDF**. Reports use recorded rules and measurements; missing samples
+   remain missing. CSV/JSON contain the complete recorded measurements.
+
+This flow passed on a real isolated stack ([E2E evidence](docs/evidence/feature-pack-1/ex-12.md)).
+The local `8080` delivery was updated with a restore-tested backup and preserved
+45 existing runs, 3,136 measurements and 3,462 events
+([delivery evidence](docs/evidence/feature-pack-1/ex-13-delivery.md)).
+These are technical checks; final product acceptance remains with the user.
+
 ## Architecture and stack
 
 ```text
@@ -160,14 +181,14 @@ Browser (Angular)
                             PostgreSQL 18
 ```
 
-| Area | Implementation |
-|---|---|
-| Backend | Node.js `22.23.2`, TypeScript `6.0.3`, NestJS `12.3.2`, Prisma `7.10.1`, PostgreSQL `18.1` |
-| Frontend | Angular `22.2.4` standalone components, Angular Material/CDK, typed Reactive Forms, RxJS, Chart.js `4.6.1` |
-| API contract | OpenAPI document plus generated client types in `packages/api-client` |
-| Auth | Argon2id passwords, opaque server-side sessions, HttpOnly cookies, CSRF protection, role guards |
-| Delivery | Docker Compose, nginx reverse proxy, named PostgreSQL volume, one API process |
-| Verification | Vitest (API unit, Angular, API integration), Playwright with real Chrome, GitHub Actions |
+| Area         | Implementation                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| Backend      | Node.js `22.23.2`, TypeScript `6.0.3`, NestJS `12.3.2`, Prisma `7.10.1`, PostgreSQL `18.1`                 |
+| Frontend     | Angular `22.2.4` standalone components, Angular Material/CDK, typed Reactive Forms, RxJS, Chart.js `4.6.1` |
+| API contract | OpenAPI document plus generated client types in `packages/api-client`                                      |
+| Auth         | Argon2id passwords, opaque server-side sessions, HttpOnly cookies, CSRF protection, role guards            |
+| Delivery     | Docker Compose, nginx reverse proxy, named PostgreSQL volume, one API process                              |
+| Verification | Vitest (API unit, Angular, API integration), Playwright with real Chrome, GitHub Actions                   |
 
 More detail: [architecture](docs/architecture.md), [data model](docs/data-model.md), and
 [API contract](docs/api.md). Product requirements and the acceptance checklist are in

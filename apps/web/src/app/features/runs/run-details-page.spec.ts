@@ -1,3 +1,5 @@
+import { getDebugNode } from '@angular/core';
+import { DevicePicker } from '../devices/device-picker';
 import { provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -126,6 +128,9 @@ const PASSED_SNAPSHOT = {
   planId: PLAN_ID,
   planVersionId: VERSION_ID,
   planName: 'Power rail verification',
+  deviceId: null,
+  deviceSnapshot: null,
+  batchNumber: null,
   versionNumber: 3,
   profile: PROFILE,
   scenario: 'NORMAL',
@@ -814,6 +819,51 @@ describe('RunDetailsPage', () => {
     harness.detectChanges();
 
     expect(root.querySelector('h1')?.textContent?.trim()).toBe('Live Run');
+  });
+
+  it('requires an archived recorded device to be explicitly replaced or cleared', async () => {
+    const deviceId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const stored = {
+      id: deviceId,
+      name: 'Recorded bench',
+      serialNumber: 'PSU-OLD',
+      deviceProfileId: PROFILE_ID,
+    };
+    const harness = await openLoaded({
+      ...PASSED_SNAPSHOT,
+      deviceId,
+      deviceSnapshot: stored,
+      batchNumber: 'Lot-1',
+    });
+    const http = TestBed.inject(HttpTestingController);
+    const root = rootOf(harness);
+    http
+      .expectOne(`/api/devices/${deviceId}`)
+      .flush({
+        ...stored,
+        name: 'Current name',
+        description: null,
+        archivedAt: '2026-11-07T10:00:00.000Z',
+        editRevision: 2,
+        createdAt: '2026-11-07T10:00:00.000Z',
+        updatedAt: '2026-11-07T10:00:00.000Z',
+      });
+    settle(harness);
+    expect(root.textContent).toContain('Recorded bench · PSU-OLD');
+    expect(root.querySelector<HTMLButtonElement>('#run-again-button')?.disabled).toBe(true);
+    const picker = getDebugNode(root.querySelector('app-device-picker')!)
+      ?.componentInstance as DevicePicker;
+    picker.deviceIdChange.emit('');
+    settle(harness);
+    root.querySelector<HTMLButtonElement>('#run-again-button')?.click();
+    settle(harness);
+    const request = http.expectOne('/api/runs');
+    expect(request.request.body.deviceId).toBeUndefined();
+    expect(request.request.body.batchNumber).toBe('Lot-1');
+    request.flush(
+      { code: 'RUN_ALREADY_ACTIVE', message: 'Busy.', requestId: 'req-busy' },
+      { status: 409, statusText: 'Conflict' },
+    );
   });
 
   it('runs again with the stored RANDOM probability as decimal text', async () => {

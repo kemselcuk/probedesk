@@ -4,7 +4,7 @@ import {
   RunScenario,
   RunStatus,
 } from '../../prisma/generated/client.js';
-import { RunRequestedByDto } from './run-snapshot.dto.js';
+import { RunDeviceSnapshotDto, RunRequestedByDto } from './run-snapshot.dto.js';
 
 /**
  * Earliest out-of-tolerance sample of a run. It comes from the step rows copied
@@ -53,6 +53,32 @@ export class RunHistoryItemDto {
 
   @ApiProperty({ type: Number, minimum: 1, example: 1 })
   versionNumber!: number;
+
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description:
+      'Device linked at start, or null for legacy and device-less runs.',
+  })
+  deviceId!: string | null;
+
+  @ApiProperty({
+    type: () => RunDeviceSnapshotDto,
+    nullable: true,
+    description:
+      'Device values copied at start, or null. Later device edits never change history.',
+  })
+  deviceSnapshot!: RunDeviceSnapshotDto | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    maxLength: 100,
+    example: 'BATCH-2026-001',
+    description: 'Batch display value copied at start, or null.',
+  })
+  batchNumber!: string | null;
 
   @ApiProperty({ enum: RunScenario, example: RunScenario.NORMAL })
   scenario!: RunScenario;

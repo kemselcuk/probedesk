@@ -1,0 +1,381 @@
+<app-page-header
+  title="Overview"
+  subtitle="Simulated test results across recorded plans and devices."
+>
+  <button
+    mat-stroked-button
+    type="button"
+    (click)="refresh()"
+    [disabled]="facade.loading() || !query()"
+  >
+    Refresh
+  </button>
+</app-page-header>
+<mat-card appearance="outlined" class="filters-card">
+  <form
+    [formGroup]="form"
+    (ngSubmit)="apply()"
+    class="filters"
+    aria-label="Overview filters"
+    novalidate
+  >
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      ><mat-label>From date (UTC)</mat-label
+      ><input
+        matInput
+        id="overview-from"
+        formControlName="from"
+        [matDatepicker]="fromPicker"
+        placeholder="YYYY-MM-DD"
+      /><mat-datepicker-toggle
+        matIconSuffix
+        [for]="fromPicker"
+        aria-label="Choose from date"
+      /><mat-datepicker #fromPicker /><mat-error>Enter a valid date.</mat-error></mat-form-field
+    >
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      ><mat-label>To date (UTC, exclusive)</mat-label
+      ><input
+        matInput
+        id="overview-to"
+        formControlName="to"
+        [matDatepicker]="toPicker"
+        placeholder="YYYY-MM-DD"
+      /><mat-datepicker-toggle
+        matIconSuffix
+        [for]="toPicker"
+        aria-label="Choose to date"
+      /><mat-datepicker #toPicker /><mat-error>Enter a valid date.</mat-error></mat-form-field
+    >
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      ><mat-label>Scenario</mat-label
+      ><mat-select id="overview-scenario" formControlName="scenario"
+        ><mat-option class="pd-select-option" value="">All scenarios</mat-option
+        ><mat-option class="pd-select-option" value="NORMAL">Normal</mat-option
+        ><mat-option class="pd-select-option" value="FORCED_FAILURE">Forced failure</mat-option
+        ><mat-option class="pd-select-option" value="RANDOM">Random</mat-option></mat-select
+      ></mat-form-field
+    >
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      ><mat-label>Plan</mat-label
+      ><mat-select id="overview-plan" formControlName="planId"
+        ><mat-option class="pd-select-option" value="">All plans</mat-option>
+        @for (plan of plans.plans(); track plan.id) {
+          <mat-option class="pd-select-option" [value]="plan.id">{{
+            planLabel(plan.id, plan.name)
+          }}</mat-option>
+        }
+        @if (selectedPlanMissing()) {
+          <mat-option class="pd-select-option" [value]="form.controls.planId.value"
+            >Selected plan</mat-option
+          >
+        }
+      </mat-select></mat-form-field
+    >
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      ><mat-label>Published version</mat-label
+      ><mat-select
+        id="overview-version"
+        formControlName="planVersionId"
+        (openedChange)="$event && loadVersions()"
+        ><mat-option class="pd-select-option" value="">All versions</mat-option>
+        @if (versionsForPlan() === form.controls.planId.value) {
+          @for (version of plans.versions(); track version.id) {
+            <mat-option class="pd-select-option" [value]="version.id"
+              >Version {{ version.versionNumber }} · {{ version.name }}</mat-option
+            >
+          }
+        }
+        @if (selectedVersionMissing()) {
+          <mat-option class="pd-select-option" [value]="form.controls.planVersionId.value"
+            >Selected published version</mat-option
+          >
+        }</mat-select
+      ><mat-hint>Select a plan to choose a version.</mat-hint></mat-form-field
+    >
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      ><mat-label>Batch number</mat-label
+      ><input matInput id="overview-batch" formControlName="batchNumber" /><mat-hint
+        >Exact match, ignoring letter case.</mat-hint
+      ><mat-error>Use at most 100 ASCII letters, digits and ._:/-.</mat-error></mat-form-field
+    >
+    <details class="device-filter pd-disclosure" [open]="!!form.controls.deviceId.value">
+      <summary>
+        {{
+          form.controls.deviceId.value
+            ? 'Device filter: ' + form.controls.deviceId.value
+            : 'Filter by device (active or archived)'
+        }}
+      </summary>
+      <div class="pd-disclosure-body">
+        <app-device-picker
+          [filterMode]="true"
+          [deviceId]="form.controls.deviceId.value"
+          (deviceIdChange)="
+            form.controls.deviceId.setValue($event); form.controls.deviceId.markAsDirty()
+          "
+        />
+      </div>
+    </details>
+    <div class="filter-actions">
+      <button mat-flat-button type="submit">Apply filters</button
+      ><button mat-button type="button" (click)="reset()">Reset to last 30 days</button
+      ><span>UTC range [From, To), up to 366 days.</span>
+    </div>
+    @if (form.hasError('range')) {
+      <p class="filter-message" role="alert">Choose From before To, up to 366 days.</p>
+    }
+    @if (form.dirty) {
+      <p class="filter-message" role="status">Apply filters to update the overview.</p>
+    }
+  </form>
+  @if (query()?.planVersionId) {
+    <button
+      mat-button
+      type="button"
+      (click)="form.controls.planVersionId.setValue(''); form.markAsDirty()"
+    >
+      Clear version filter
+    </button>
+  }
+  @if (plans.plansStatus() === 'error') {
+    <p class="filter-message" role="status">
+      Plan names are unavailable; applied filters still work.
+      <button mat-button type="button" (click)="plans.loadPlans()">Retry plan names</button>
+    </p>
+  }
+  @if (plans.versionsStatus() === 'error' && versionsForPlan() === form.controls.planId.value) {
+    <p class="filter-message" role="status">
+      Version choices are unavailable.
+      <button mat-button type="button" (click)="loadVersions()">Retry versions</button>
+    </p>
+  }
+</mat-card>
+@if (invalid(); as message) {
+  <app-error-state
+    heading="Invalid overview filters"
+    [message]="message"
+    [retryable]="true"
+    retryLabel="Reset filters"
+    (retry)="reset()"
+  />
+} @else if (facade.loading()) {
+  <app-loading-state message="Loading overview…" />
+} @else if (facade.error(); as error) {
+  <app-error-state
+    heading="Overview could not be loaded"
+    [message]="error.message"
+    [requestId]="error.requestId"
+    [retryable]="true"
+    (retry)="refresh()"
+  />
+} @else if (facade.data(); as data) {
+  <p class="updated">
+    Updated
+    <time [attr.datetime]="data.asOf"
+      >{{ data.asOf | date: 'yyyy-MM-dd HH:mm:ss' : 'UTC' }} UTC</time
+    >
+    · {{ data.filters.from }} to {{ data.filters.to }} (exclusive)
+  </p>
+  <p class="updated" aria-label="Applied filters">
+    Plan: {{ data.filters.planId ?? 'All' }} · Version: {{ data.filters.planVersionId ?? 'All' }} ·
+    Scenario: {{ data.filters.scenario ?? 'All' }} · Device: {{ data.filters.deviceId ?? 'All' }} ·
+    Batch: {{ data.filters.batchNumber ?? 'All' }}
+  </p>
+  <section class="kpis" aria-label="Run summary">
+    <a
+      class="kpi"
+      routerLink="/runs"
+      [queryParams]="links(data)"
+      title="View all runs in this selection"
+      ><span>Total runs</span><strong>{{ data.summary.totalRuns }}</strong
+      ><small>All recorded states</small></a
+    >
+    <a
+      class="kpi"
+      routerLink="/runs"
+      [queryParams]="links(data, { status: 'COMPLETED' })"
+      title="View completed runs in this selection"
+      ><span>Pass rate</span
+      ><strong>{{
+        data.summary.passRatePercent === null ? '—' : data.summary.passRatePercent + '%'
+      }}</strong
+      ><small
+        >{{ data.summary.completedRuns }} completed runs{{
+          data.summary.passRatePercent === null ? ' · No completed results' : ''
+        }}</small
+      ></a
+    >
+    <a
+      class="kpi"
+      routerLink="/runs"
+      [queryParams]="links(data, { status: 'COMPLETED', outcome: 'FAILED' })"
+      title="View failed completed runs in this selection"
+      ><span>Failed runs</span><strong>{{ data.summary.failedRuns }}</strong
+      ><small>Completed with a failed verdict</small></a
+    >
+    <a
+      class="kpi"
+      routerLink="/runs"
+      [queryParams]="links(data, { status: 'COMPLETED' })"
+      title="View runs included in average duration"
+      ><span>Average duration</span
+      ><strong
+        >{{ data.summary.averageDurationMs === null ? '—' : data.summary.averageDurationMs
+        }}<span class="unit">{{
+          data.summary.averageDurationMs === null ? '' : ' ms'
+        }}</span></strong
+      ><small>{{
+        data.summary.averageDurationMs === null ? 'No completed durations' : 'Completed runs only'
+      }}</small></a
+    >
+  </section>
+  <nav class="state-counts" aria-label="Other run states">
+    @for (state of additionalStates; track state.key) {
+      <a routerLink="/runs" [queryParams]="links(data, { status: state.status })"
+        >{{ state.label }} <strong>{{ data.summary[state.key] }}</strong></a
+      >
+    }
+  </nav>
+  @if (data.summary.totalRuns === 0) {
+    <app-empty-state
+      heading="No runs in this selection"
+      message="Try a different date range, plan, device or scenario. No completed results means the pass rate and average duration are unavailable."
+    />
+  }
+  <mat-card appearance="outlined" class="results-card">
+    <h2>Daily results</h2>
+    <p class="section-note">
+      Recorded counts grouped by UTC day. First and last days follow the exact selected time
+      boundaries. A dash (—) means there were no completed runs that day.
+    </p>
+    @if (data.summary.totalRuns > 0) {
+      <app-overview-trend [days]="data.trend" (daySelected)="openDay($event)" />
+    }
+    <div
+      class="pd-table-wrap trend-table"
+      tabindex="0"
+      role="region"
+      aria-label="Daily run results"
+    >
+      <table class="pd-table">
+        <caption class="visually-hidden">
+          Daily run counts and pass rates in UTC
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">UTC day</th>
+            <th scope="col">Total</th>
+            <th scope="col">Completed</th>
+            <th scope="col">Passed</th>
+            <th scope="col">Failed</th>
+            <th scope="col">Running</th>
+            <th scope="col">Cancelled</th>
+            <th scope="col">Interrupted</th>
+            <th scope="col">Error</th>
+            <th scope="col">Pass rate</th>
+            <th scope="col">History</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (day of data.trend; track day.date) {
+            <tr>
+              <th scope="row">{{ day.date }}</th>
+              <td>{{ day.totalRuns }}</td>
+              <td>{{ day.completedRuns }}</td>
+              <td>{{ day.passedRuns }}</td>
+              <td>{{ day.failedRuns }}</td>
+              <td>{{ day.runningRuns }}</td>
+              <td>{{ day.cancelledRuns }}</td>
+              <td>{{ day.interruptedRuns }}</td>
+              <td>{{ day.errorRuns }}</td>
+              <td>{{ day.passRatePercent === null ? '—' : day.passRatePercent + '%' }}</td>
+              <td>
+                <a
+                  routerLink="/runs"
+                  [queryParams]="dayLinks(data, day.date)"
+                  [attr.aria-label]="'View runs for UTC day ' + day.date"
+                  >View runs</a
+                >
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </mat-card>
+  <mat-card appearance="outlined" class="results-card">
+    <h2>Most frequently failed steps</h2>
+    <p class="section-note">
+      Completed steps of completed runs, grouped by published version and unit. Links open failed
+      runs for the listed plan and version.
+    </p>
+    @if (data.topFailedSteps.length) {
+      <div
+        class="pd-table-wrap"
+        tabindex="0"
+        role="region"
+        aria-label="Most frequently failed steps"
+      >
+        <table class="pd-table top-table">
+          <caption class="visually-hidden">
+            Up to ten failing step groups
+          </caption>
+          <colgroup>
+            <col class="step-column" />
+            <col class="plan-column" />
+            <col class="unit-column" />
+            <col class="count-column" />
+            <col class="count-column" />
+            <col class="rate-column" />
+            <col class="action-column" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Step</th>
+              <th scope="col">Plan / version</th>
+              <th scope="col">Unit</th>
+              <th scope="col">Completed</th>
+              <th scope="col">Failed</th>
+              <th scope="col">Failure rate</th>
+              <th scope="col">History</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (
+              row of data.topFailedSteps;
+              track row.planVersionId + row.logicalStepId + row.unit
+            ) {
+              <tr>
+                <th scope="row">{{ row.stepName }}</th>
+                <td>
+                  {{ row.planName }}<span class="cell-detail">Version {{ row.versionNumber }}</span>
+                </td>
+                <td>{{ row.unit }}</td>
+                <td>{{ row.completedStepRuns }}</td>
+                <td>{{ row.failedStepRuns }}</td>
+                <td>{{ row.failureRatePercent === null ? '—' : row.failureRatePercent + '%' }}</td>
+                <td>
+                  <a
+                    routerLink="/runs"
+                    [queryParams]="topLinks(data, row)"
+                    [attr.aria-label]="
+                      'View failed runs for ' + row.planName + ', version ' + row.versionNumber
+                    "
+                    >Failed runs for this version</a
+                  >
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <p class="section-note">No failed completed steps in this selection.</p>
+    }
+  </mat-card>
+  <p class="simulation-note">
+    Simulated test results. Normal, forced-failure and random scenarios describe simulator
+    behaviour; these figures are not production quality metrics.
+  </p>
+}

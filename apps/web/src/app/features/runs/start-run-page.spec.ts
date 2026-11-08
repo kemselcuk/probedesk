@@ -90,12 +90,36 @@ describe('StartRunPage', () => {
   async function open(
     role: Role,
     versionId: string | null = VERSION_ID,
+    deviceId = '',
   ): Promise<RouterTestingHarness> {
     actAs(role);
     const url =
       versionId === null ? '/runs/new' : `/runs/new?versionId=${encodeURIComponent(versionId)}`;
-    const harness = await RouterTestingHarness.create(url);
+    const harness = await RouterTestingHarness.create(
+      url + (deviceId ? '&deviceId=' + encodeURIComponent(deviceId) : ''),
+    );
     harness.detectChanges();
+    if (versionId !== null)
+      TestBed.inject(HttpTestingController)
+        .expectOne('/api/plans')
+        .flush([
+          {
+            id: PLAN_ID,
+            name: 'Power rail verification',
+            profile: {
+              id: USER_ID,
+              code: 'DC_POWER_MODULE',
+              name: 'DC Power Module',
+              description: null,
+            },
+            draft: null,
+            latestPublishedVersion: {
+              id: VERSION_ID,
+              versionNumber: 3,
+              publishedAt: '2026-11-03T10:00:00.000Z',
+            },
+          },
+        ]);
     return harness;
   }
 
@@ -201,6 +225,130 @@ describe('StartRunPage', () => {
 
     expect(root.querySelector('.totals')?.textContent).toContain('5');
     expect(root.querySelector('.totals')?.textContent).toContain('4.0 s');
+  });
+
+  it('starts with a selected device and trimmed display batch', async () => {
+    const harness = await openWithVersion();
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
+    const deviceId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'.toLowerCase();
+    const device = {
+      id: deviceId,
+      deviceProfileId: USER_ID,
+      name: 'Bench',
+      serialNumber: 'PSU-1',
+      description: null,
+      archivedAt: null,
+      editRevision: 1,
+      createdAt: '2026-11-07T10:00:00.000Z',
+      updatedAt: '2026-11-07T10:00:00.000Z',
+    };
+    materialSelect(root, 'app-device-picker mat-select').open();
+    await harness.fixture.whenStable();
+    http
+      .expectOne((request) => request.url === '/api/devices')
+      .flush({ items: [device], page: 1, limit: 20, total: 1, totalPages: 1 });
+    harness.detectChanges();
+    selectValue(root, 'app-device-picker mat-select', deviceId);
+    harness.detectChanges();
+    http.expectOne(`/api/devices/${deviceId}`).flush(device);
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    typeInto(root, '#start-run-seed', '42');
+    expect(root.querySelector('app-page-header a')?.getAttribute('href')).toContain(
+      'deviceId=' + deviceId,
+    );
+    typeInto(root, '#start-run-batch', ' Lot-1 ');
+    harness.detectChanges();
+    submit(root);
+    harness.detectChanges();
+    const request = http.expectOne('/api/runs');
+    expect(request.request.body).toEqual({
+      planVersionId: VERSION_ID,
+      scenario: 'NORMAL',
+      seed: 42,
+      deviceId,
+      batchNumber: 'Lot-1',
+    });
+    request.flush(
+      { code: 'RUN_ALREADY_ACTIVE', message: 'Busy.', requestId: 'req-busy' },
+      { status: 409, statusText: 'Conflict' },
+    );
+  });
+
+  it.each(['active', 'archived', 'mismatch', 'unknown'] as const)(
+    'only preselects a validated active compatible URL device (%s)',
+    async (kind) => {
+      const deviceId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const harness = await open('OPERATOR', VERSION_ID, deviceId);
+      const http = TestBed.inject(HttpTestingController);
+      http.expectOne(`/api/plan-versions/${VERSION_ID}`).flush(VERSION_DETAIL);
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      const root = rootOf(harness);
+      expect(root.querySelector<HTMLButtonElement>('#start-run-submit')?.disabled).toBe(true);
+      const device = {
+        id: deviceId,
+        deviceProfileId: kind === 'mismatch' ? PLAN_ID : USER_ID,
+        name: 'Requested device',
+        serialNumber: 'PSU-URL',
+        description: null,
+        archivedAt: kind === 'archived' ? '2026-11-07T00:00:00.000Z' : null,
+        editRevision: 1,
+        createdAt: '2026-11-07T00:00:00.000Z',
+        updatedAt: '2026-11-07T00:00:00.000Z',
+      };
+      const request = http.expectOne(`/api/devices/${deviceId}`);
+      if (kind === 'unknown')
+        request.flush(
+          { code: 'NOT_FOUND', message: 'Device not found.', requestId: 'url-device' },
+          { status: 404, statusText: 'Not Found' },
+        );
+      else request.flush(device);
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      if (kind === 'active') {
+        // The picker independently checks the selected device for the actual start form.
+        http.expectOne(`/api/devices/${deviceId}`).flush(device);
+        await harness.fixture.whenStable();
+        harness.detectChanges();
+        expect(root.querySelector('app-page-header a')?.getAttribute('href')).toContain(deviceId);
+        expect(root.textContent).toContain('PSU-URL');
+      } else {
+        expect(root.textContent).toContain('was not preselected');
+        expect(root.querySelector('app-page-header a')?.getAttribute('href')).not.toContain(
+          'deviceId=',
+        );
+        http.expectNone(`/api/devices/${deviceId}`);
+      }
+    },
+  );
+
+  it('shows the server batch field error without losing its entered value', async () => {
+    const harness = await openWithVersion();
+    const root = rootOf(harness);
+    typeInto(root, '#start-run-seed', '42');
+    typeInto(root, '#start-run-batch', 'Lot-1');
+    harness.detectChanges();
+    submit(root);
+    harness.detectChanges();
+    TestBed.inject(HttpTestingController)
+      .expectOne('/api/runs')
+      .flush(
+        {
+          code: 'VALIDATION_ERROR',
+          message: 'Check the fields.',
+          requestId: 'req-batch',
+          fieldErrors: [
+            { path: 'batchNumber', code: 'INVALID_VALUE', message: 'Review this batch number.' },
+          ],
+        },
+        { status: 400, statusText: 'Bad Request' },
+      );
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(root.textContent).toContain('Review this batch number.');
+    expect(root.querySelector<HTMLInputElement>('#start-run-batch')?.value).toBe('Lot-1');
   });
 
   it('sends only NORMAL fields and navigates with the created runId', async () => {

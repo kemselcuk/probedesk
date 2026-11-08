@@ -7,35 +7,35 @@ import {
   afterNextRender,
   computed,
   inject,
+  signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { EMPTY, Observable, catchError, merge, switchMap } from 'rxjs';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import { NotificationService } from '../../shared/notifications/notification.service';
 import { ErrorState } from '../../shared/ui/error-state/error-state';
 import { LoadingState } from '../../shared/ui/loading-state/loading-state';
 import { PageHeader } from '../../shared/ui/page-header/page-header';
-import {
-  formatDuration,
-  nominalTotals,
-} from './plan-draft-form';
+import { formatDuration, nominalTotals } from './plan-draft-form';
 import { createDraftErrorGuidance } from './plan-error-guidance';
 import type { PlanErrorGuidance } from './plan-error-guidance';
 import type { PlanStep } from './plans-api.types';
 import { PlansFacade } from './plans.facade';
+import { CopyPlanButton } from './copy-plan-button';
 
 /**
  * Read-only view of one immutable published revision.
  *
- * The screen deliberately contains no form controls. The only write action is
- * "Start new draft" for a Planner, and it creates a separate draft through
- * POST /api/plans/:id/drafts instead of modifying this version.
+ * The screen contains no editable published fields. Planner actions create a
+ * new version draft or copy this version into an independent plan.
  */
 @Component({
   selector: 'app-plan-version-page',
   imports: [
+    CopyPlanButton,
     DatePipe,
     DecimalPipe,
     ErrorState,
@@ -58,16 +58,21 @@ export class PlanVersionPage {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
 
-  protected readonly planId = this.route.snapshot.paramMap.get('planId') ?? '';
-  protected readonly versionId = this.route.snapshot.paramMap.get('versionId') ?? '';
+  protected readonly deviceContext = signal('');
+  private readonly routeState = signal(this.route.snapshot.paramMap);
+  protected get planId(): string {
+    return this.routeState().get('planId') ?? '';
+  }
+  protected get versionId(): string {
+    return this.routeState().get('versionId') ?? '';
+  }
   protected readonly formatDuration = formatDuration;
 
   protected readonly isPlanner = computed(() => this.auth.role() === 'PLANNER');
   protected readonly isOperator = computed(() => this.auth.role() === 'OPERATOR');
   protected readonly publisher = computed(
     () =>
-      this.facade.versions().find((version) => version.id === this.versionId)?.publishedBy ??
-      null,
+      this.facade.versions().find((version) => version.id === this.versionId)?.publishedBy ?? null,
   );
   /** The route's plan and the loaded version must describe the same plan. */
   protected readonly versionPlanMismatch = computed(() => {
@@ -141,22 +146,27 @@ export class PlanVersionPage {
   );
 
   constructor() {
-    this.facade
-      .loadVersion(this.versionId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ error: () => undefined });
-
-    this.facade
-      .loadVersions(this.planId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ error: () => undefined });
-
-    if (this.isPlanner()) {
-      this.facade
-        .loadPlan(this.planId)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({ error: () => undefined });
-    }
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const id = params.get('deviceId') ?? '';
+      this.deviceContext.set(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : '',
+      );
+    });
+    this.route.paramMap
+      .pipe(
+        switchMap((params) => {
+          this.routeState.set(params);
+          const requests: Observable<unknown>[] = [
+            this.facade.loadVersion(this.versionId).pipe(catchError(() => EMPTY)),
+            this.facade.loadVersions(this.planId).pipe(catchError(() => EMPTY)),
+          ];
+          if (this.isPlanner())
+            requests.push(this.facade.loadPlan(this.planId).pipe(catchError(() => EMPTY)));
+          return merge(...requests);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   protected retryVersion(): void {
@@ -192,9 +202,7 @@ export class PlanVersionPage {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.notifications.success(
-            `New draft created from version ${versionNumber}.`,
-          );
+          this.notifications.success(`New draft created from version ${versionNumber}.`);
           void this.router.navigate(['/plans', this.planId, 'edit']);
         },
         error: () => this.focusAfterRender('draft-create-error-panel'),

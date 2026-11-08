@@ -47,6 +47,9 @@ function snapshot(overrides: Partial<RunSnapshot> = {}): RunSnapshot {
     planId: PLAN_ID,
     planVersionId: VERSION_ID,
     planName: 'Power rail verification',
+    deviceId: null,
+    deviceSnapshot: null,
+    batchNumber: null,
     versionNumber: 1,
     profile: {
       id: PROFILE_ID,

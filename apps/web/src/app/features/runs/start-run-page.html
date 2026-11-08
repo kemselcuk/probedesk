@@ -2,7 +2,12 @@
   title="Start Run"
   subtitle="Configure one simulator run from a published plan version."
 >
-  <a mat-stroked-button routerLink="/plans">Back to plans</a>
+  <a
+    mat-stroked-button
+    routerLink="/plans"
+    [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+    >Back to plans</a
+  >
 </app-page-header>
 
 @if (missingVersionId()) {
@@ -12,7 +17,12 @@
       Starting a run requires a published plan version. This address does not include a
       <code>versionId</code>, so no plan version can be selected safely.
     </p>
-    <a mat-flat-button routerLink="/plans">Open Test Plans</a>
+    <a
+      mat-flat-button
+      routerLink="/plans"
+      [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+      >Open Test Plans</a
+    >
   </section>
 } @else {
   @switch (plans.versionStatus()) {
@@ -45,12 +55,60 @@
                     Scenario, seed, and scenario-specific settings
                   </legend>
 
+                  <div [formGroup]="metadataForm" class="run-traceability">
+                    @if (preselectionPending()) {
+                      @if (plans.plansStatus() === 'error') {
+                        <p role="alert">
+                          The plan profile could not be loaded to validate the requested device.
+                          <button mat-button type="button" (click)="plans.loadPlans()">
+                            Retry device validation
+                          </button>
+                        </p>
+                      } @else {
+                        <p role="status">Checking requested device before preselection…</p>
+                      }
+                    }
+                    @if (preselectionNotice()) {
+                      <p role="status">{{ preselectionNotice() }}</p>
+                    }
+                    @if (selectedProfileId()) {
+                      <app-device-picker
+                        [profileId]="selectedProfileId()"
+                        [deviceId]="metadataForm.controls.deviceId.value"
+                        [disabled]="!isOperator() || runs.startPending() || preselectionPending()"
+                        (deviceIdChange)="metadataForm.controls.deviceId.setValue($event)"
+                        (validChange)="deviceValid.set($event)"
+                      />
+                    } @else {
+                      <p role="status">
+                        Device selection needs the plan profile.
+                        <button mat-button type="button" (click)="plans.loadPlans()">
+                          Load plan profiles
+                        </button>
+                      </p>
+                    }
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                      <mat-label>Batch number (optional)</mat-label>
+                      <input
+                        matInput
+                        id="start-run-batch"
+                        formControlName="batchNumber"
+                        [readonly]="runs.startPending()"
+                      />
+                      <mat-hint
+                        >Up to 100 ASCII letters, digits and ._:/-. A device is optional.</mat-hint
+                      >
+                      <mat-error>Enter a valid batch number, or leave it empty.</mat-error>
+                    </mat-form-field>
+                  </div>
                   <div class="settings-grid">
                     <mat-form-field appearance="outline" subscriptSizing="dynamic">
                       <mat-label>Scenario</mat-label>
                       <mat-select id="start-run-scenario" formControlName="scenario">
                         <mat-option class="pd-select-option" value="NORMAL">Normal</mat-option>
-                        <mat-option class="pd-select-option" value="FORCED_FAILURE"> Forced failure </mat-option>
+                        <mat-option class="pd-select-option" value="FORCED_FAILURE">
+                          Forced failure
+                        </mat-option>
                         <mat-option class="pd-select-option" value="RANDOM"> Random </mat-option>
                       </mat-select>
                       <mat-hint id="start-run-scenario-hint">
@@ -115,7 +173,9 @@
                       <mat-form-field appearance="outline" subscriptSizing="dynamic">
                         <mat-label>Failing step</mat-label>
                         <mat-select id="start-run-failure-step" formControlName="failureStepId">
-                          <mat-option class="pd-select-option" value="" disabled>Select a step</mat-option>
+                          <mat-option class="pd-select-option" value="" disabled
+                            >Select a step</mat-option
+                          >
                           @for (
                             step of version.steps;
                             track step.logicalStepId;
@@ -202,6 +262,14 @@
               >
                 <h2 id="start-run-error-heading">{{ startErrorHeading() }}</h2>
                 <p>{{ startErrorMessage() }}</p>
+                @for (field of failure.error.fieldErrors; track $index) {
+                  @if (
+                    (field.path === 'deviceId' || field.path === 'batchNumber') &&
+                    metadataForm.get(field.path)?.hasError('server')
+                  ) {
+                    <p>{{ field.path }}: {{ field.message }}</p>
+                  }
+                }
                 <p>
                   Your settings are still here. Nothing is marked as started until the server
                   confirms it.
@@ -224,7 +292,12 @@
                 }
 
                 @if (isForbidden()) {
-                  <a mat-stroked-button routerLink="/plans">Back to Test Plans</a>
+                  <a
+                    mat-stroked-button
+                    routerLink="/plans"
+                    [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+                    >Back to Test Plans</a
+                  >
                 }
 
                 @if (failure.error.requestId; as requestId) {
@@ -343,7 +416,12 @@
             </p>
           }
           <div class="error-actions">
-            <a mat-flat-button routerLink="/plans">Back to Test Plans</a>
+            <a
+              mat-flat-button
+              routerLink="/plans"
+              [queryParams]="{ deviceId: metadataForm.controls.deviceId.value || null }"
+              >Back to Test Plans</a
+            >
             <button mat-stroked-button type="button" (click)="retryVersion()">Try again</button>
           </div>
         </section>

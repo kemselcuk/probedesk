@@ -105,7 +105,7 @@ async function loginUi(page: Page, email: string, password: string): Promise<voi
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/plans$/);
+  await expect(page).toHaveURL(/\/overview(?:\?.*)?$/);
 }
 
 test('compares a failed v1 run with v2 after the tolerance changed to 0.65 A', async ({

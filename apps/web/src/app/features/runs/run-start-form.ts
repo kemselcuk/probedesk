@@ -24,6 +24,8 @@ export interface RunStartFormControls {
 
 /** The typed value of the start form. Decimal input stays a string. */
 export interface RunStartFormValue {
+  readonly deviceId?: string;
+  readonly batchNumber?: string;
   readonly scenario: RunScenario;
   readonly seed: string;
   readonly failureStepId: string;
@@ -88,10 +90,7 @@ export function createRunStartForm(formBuilder: NonNullableFormBuilder): RunStar
  * Applies only the validators that belong to the selected scenario. The caller
  * clears the unused values, so a hidden field can never reach the payload.
  */
-export function applyScenarioValidation(
-  form: RunStartFormGroup,
-  scenario: RunScenario,
-): void {
+export function applyScenarioValidation(form: RunStartFormGroup, scenario: RunScenario): void {
   const failureStepId = form.controls.failureStepId;
   const errorProbability = form.controls.errorProbability;
 
@@ -119,7 +118,15 @@ export function buildStartRunRequest(
   value: RunStartFormValue,
 ): StartRunRequest {
   const seed = parseSeed(value.seed);
+  const deviceId = value.deviceId?.trim().toLowerCase() ?? '';
+  const batchNumber = value.batchNumber?.trim() ?? '';
+  if (deviceId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(deviceId))
+    throw new Error('Select a valid device.');
+  if (batchNumber && !/^[A-Za-z0-9._:/-]{1,100}$/.test(batchNumber))
+    throw new Error('Enter a valid batch number.');
   const base = {
+    ...(deviceId ? { deviceId } : {}),
+    ...(batchNumber ? { batchNumber } : {}),
     planVersionId,
     scenario: value.scenario,
     seed,
@@ -136,10 +143,7 @@ export function buildStartRunRequest(
 
   if (value.scenario === 'RANDOM') {
     const errorProbability = value.errorProbability.trim();
-    if (
-      errorProbability.length === 0 ||
-      validateProbability(errorProbability) !== null
-    ) {
+    if (errorProbability.length === 0 || validateProbability(errorProbability) !== null) {
       throw new Error('A decimal error probability between 0 and 1 is required.');
     }
 
@@ -228,5 +232,7 @@ function requestFingerprint(request: StartRunRequest): string {
     request.seed,
     request.failureStepId ?? null,
     request.errorProbability ?? null,
+    request.deviceId?.toLowerCase() ?? null,
+    request.batchNumber?.trim().toUpperCase() || null,
   ]);
 }

@@ -3,6 +3,12 @@
   subtitle="Recorded runs across plans, with filters and comparison selection."
 />
 
+@if (currentQuery().deviceId; as deviceId) {
+  <p class="filter-warning" role="status">
+    Showing runs recorded for this device.
+    <a [routerLink]="['/devices', deviceId]">View current device</a>
+  </p>
+}
 <mat-card class="filters-card" appearance="outlined">
   <form
     [formGroup]="filters"
@@ -22,7 +28,9 @@
         <mat-select id="history-plan" formControlName="planId">
           <mat-option class="pd-select-option" value="">All plans</mat-option>
           @for (plan of plans.plans(); track plan.id) {
-            <mat-option class="pd-select-option" [value]="plan.id">{{ planOptionLabel(plan) }}</mat-option>
+            <mat-option class="pd-select-option" [value]="plan.id">{{
+              planOptionLabel(plan)
+            }}</mat-option>
           }
           @if (selectedPlanMissing() && currentQuery().planId) {
             <mat-option class="pd-select-option" [value]="currentQuery().planId ?? ''">
@@ -53,6 +61,56 @@
         </mat-select>
       </mat-form-field>
 
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="version-field">
+        <mat-label>Published version</mat-label>
+        <mat-select
+          id="history-version"
+          formControlName="planVersionId"
+          (openedChange)="$event && loadVersionOptions()"
+        >
+          <mat-option class="pd-select-option" value="">All versions</mat-option>
+          @if (versionsForPlan() === filters.controls.planId.value) {
+            @for (version of plans.versions(); track version.id) {
+              <mat-option class="pd-select-option" [value]="version.id"
+                >Version {{ version.versionNumber }} · {{ version.name }}</mat-option
+              >
+            }
+          }
+          @if (selectedVersionMissing()) {
+            <mat-option class="pd-select-option" [value]="filters.controls.planVersionId.value"
+              >Selected published version</mat-option
+            >
+          }
+        </mat-select>
+        <mat-hint>Select a plan to choose its version.</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="scenario-field">
+        <mat-label>Scenario</mat-label>
+        <mat-select id="history-scenario" formControlName="scenario"
+          ><mat-option class="pd-select-option" value="">All scenarios</mat-option
+          ><mat-option class="pd-select-option" value="NORMAL">Normal</mat-option
+          ><mat-option class="pd-select-option" value="FORCED_FAILURE">Forced failure</mat-option
+          ><mat-option class="pd-select-option" value="RANDOM">Random</mat-option></mat-select
+        >
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="batch-field"
+        ><mat-label>Batch number</mat-label
+        ><input matInput id="history-batch" formControlName="batchNumber" /><mat-hint
+          >Exact match, ignoring letter case.</mat-hint
+        ><mat-error>Use at most 100 ASCII letters, digits and ._:/-.</mat-error></mat-form-field
+      >
+      <div class="device-field">
+        <details class="pd-disclosure">
+          <summary>Filter by device (active or archived)</summary>
+          <div class="pd-disclosure-body">
+            <app-device-picker
+              [filterMode]="true"
+              [deviceId]="filters.controls.deviceId.value"
+              (deviceIdChange)="filters.controls.deviceId.setValue($event)"
+            />
+          </div>
+        </details>
+      </div>
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="from-field">
         <mat-label>From date (UTC)</mat-label>
         <input
@@ -97,6 +155,24 @@
     </div>
   </form>
 
+  @if (hasPartialDayBounds()) {
+    <p class="filter-note">
+      Exact UTC range: {{ currentQuery().from ?? 'Any start' }} to
+      {{ currentQuery().to ?? 'Any end' }} (exclusive). Changing a calendar date resets that
+      boundary to midnight UTC.
+    </p>
+  }
+  @if (currentQuery().planVersionId) {
+    <button mat-button type="button" (click)="filters.controls.planVersionId.setValue('')">
+      Clear version filter
+    </button>
+  }
+  @if (plans.versionsStatus() === 'error' && versionsForPlan() === filters.controls.planId.value) {
+    <p class="filter-warning" role="status">
+      Version choices could not be loaded.
+      <button mat-button type="button" (click)="loadVersionOptions()">Retry versions</button>
+    </p>
+  }
   @if (invalidUrlFilters().length > 0) {
     <p class="filter-warning" role="alert" id="history-invalid-filter-warning">
       {{ invalidFilterMessage() }}
@@ -285,6 +361,14 @@
                           · Plan {{ run.planId.slice(0, 8) }}
                         }
                       </span>
+                      <span class="cell-detail">{{
+                        run.deviceSnapshot
+                          ? run.deviceSnapshot.name + ' · ' + run.deviceSnapshot.serialNumber
+                          : 'No device recorded'
+                      }}</span>
+                      <span class="cell-detail">{{
+                        run.batchNumber ? 'Batch ' + run.batchNumber : 'No batch recorded'
+                      }}</span>
                       @if (run.firstFailure; as failure) {
                         <span class="cell-detail failure-detail">
                           First failure: Step {{ failure.stepPosition }}: {{ failure.stepName }} ·

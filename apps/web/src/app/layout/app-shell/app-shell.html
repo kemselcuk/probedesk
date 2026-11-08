@@ -27,7 +27,7 @@
       </button>
     }
 
-    <a class="product-name" routerLink="/plans">ProbeDesk</a>
+    <a class="product-name" routerLink="/overview">ProbeDesk</a>
     <span class="toolbar-spacer" aria-hidden="true"></span>
     <span class="user-session" aria-live="polite">
       @if (userEmail(); as email) {
@@ -38,7 +38,7 @@
   </mat-toolbar>
 </header>
 
-<mat-sidenav-container class="shell-body">
+<mat-sidenav-container class="shell-body" (backdropClick)="closeNavigationOnNavigate()">
   <mat-sidenav
     class="shell-sidenav"
     [mode]="navMode()"
@@ -47,7 +47,7 @@
     [attr.aria-modal]="compactViewport() ? 'true' : null"
     [attr.aria-label]="compactViewport() ? 'Navigation' : null"
     [disableClose]="navMode() === 'side'"
-    (openedChange)="onSidenavOpenedChange($event)"
+    (keydown.escape)="onDocumentEscape($event)"
   >
     <div class="sidenav-inner">
       <nav id="primary-navigation" class="shell-nav" aria-label="Primary navigation">
@@ -62,6 +62,16 @@
               (click)="closeNavigationOnNavigate()"
             >
               @switch (item.icon) {
+                @case ('overview') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                    />
+                  </svg>
+                }
                 @case ('plans') {
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path
@@ -71,6 +81,18 @@
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="1.7"
+                    />
+                  </svg>
+                }
+                @case ('devices') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M4 5h16v14H4zM8 9h8M8 13h3M16 13v2"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
                     />
                   </svg>
                 }

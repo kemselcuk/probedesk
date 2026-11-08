@@ -10,19 +10,19 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 
 ## Aşama özeti
 
-| Aşama | Konu | Görev sayısı | İlk paket durumu |
-|---|---|---|---|
-| 0 | Ürün ve teknik sözleşmeler | 5 | In Review |
-| 1 | İskelet, giriş ve ilk CI | 8 | Accepted |
-| 2 | Plan editörü ve sürümler | 8 | Accepted |
-| 3 | Simülasyon ve yürütme | 10 | Accepted |
-| 4 | Canlı durum ve bağlantı dayanıklılığı | 7 | Accepted |
-| 5 | Geçmiş ve grafikler | 6 | Accepted |
-| 6 | Karşılaştırma ve sürüm tutarlılığı | 6 | Accepted |
-| 7 | Bütünleşik kalite ve CI | 6 | Accepted |
-| 8 | Yerel teslim ve kanıt | 6 | In Review |
+| Aşama | Konu                                  | Görev sayısı | İlk paket durumu |
+| ----- | ------------------------------------- | ------------ | ---------------- |
+| 0     | Ürün ve teknik sözleşmeler            | 5            | In Review        |
+| 1     | İskelet, giriş ve ilk CI              | 8            | Accepted         |
+| 2     | Plan editörü ve sürümler              | 8            | Accepted         |
+| 3     | Simülasyon ve yürütme                 | 10           | Accepted         |
+| 4     | Canlı durum ve bağlantı dayanıklılığı | 7            | Accepted         |
+| 5     | Geçmiş ve grafikler                   | 6            | Accepted         |
+| 6     | Karşılaştırma ve sürüm tutarlılığı    | 6            | Accepted         |
+| 7     | Bütünleşik kalite ve CI               | 6            | Accepted         |
+| 8     | Yerel teslim ve kanıt                 | 6            | In Review        |
 
-Toplam 62 görev. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
+İlk ürün paketi 62 görevdir; 10 UI ve 13 EX ek kartıyla güncel toplam **85 görev**. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
 
 ## Aşama 0 — Ürün ve teknik sözleşmeler
 
@@ -170,14 +170,12 @@ Demo/inceleme: Temiz checkout kurulumu açılır; hazır veri ve ana demo uygula
 ## Doğrulama ve teslim
 
 - [Gereksinim eşlemesi](requirements.md) her REQ için görev/kontrol gösterir.
-- [Test matrisi](testing.md) T01–T28'i ve komut/CI sözleşmesini tanımlar.
+- [Test matrisi](testing.md) T01–T39'u ve komut/CI sözleşmesini tanımlar.
 - [Demo](demo.md) üç run dahil gerçek v1/v2 kanıt akışını verir.
 - [Nihai kabul](acceptance.md) ürünün kapanış şartıdır.
 - [Kanıt dizini](evidence/README.md) gerçek çıktılar gelene kadar boş tutulur.
 
 Bir aşama yalnızca kartlar kapandı diye kabul edilmez; birleşen davranışların demosu ve incelemesi de başarılı olmalıdır. Test, CI veya ekran kanıtı olmadan tamamlanma iddiası eklenmez.
-
-
 
 ## UI yenileme ek kampanyası — kullanıcı talebi 2026-11-04
 
@@ -186,3 +184,9 @@ Bir aşama yalnızca kartlar kapandı diye kabul edilmez; birleşen davranışla
 UI-09: kullanıcı geri bildirimi üzerine dropdown/takvim/tablo/form boşluk düzeltmeleri — **In Review**; gerçek kontroller ve 8080 teslimi [UI-09 kanıtında](evidence/ui-refresh/ui-09.md).
 
 UI-10: Grafana tablo referansına göre içerik genişliği, veri hizası ve panel boşluk ritmi — **In Review**; [gerçek ölçüm ve teslim kanıtı](evidence/ui-refresh/ui-10.md).
+
+## Özellik paketi 1 — 2026-11-06
+
+Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01/EX-02/EX-03/EX-04/EX-06/EX-08/EX-10 Accepted; EX-05/EX-07/EX-09/EX-11 In Review; EX-12 In Progress (E2E ve edge testleri geçti; native zoom/OS print açık); EX-13 In Progress (upgrade/teslim kanıtı mevcut; son CI/merge hazırlanıyor). Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Kullanıcı 2026-11-08 tarihinde son kontroller sonrası PR/main merge yetkisini ayrıca verdi; ürün kabulü ayrı kalır.
+
+2026-11-08 EX-08 teknik kabul: ayrı review sonrası düşük test boşlukları kapatıldı. Worker dev5434 yazma ihlali ve cleanup sınırı [EX-08 kanıtında](evidence/feature-pack-1/ex-08.md) korunur; önce/sonra tam fingerprint yoktur, dev/delivery veri bütünlüğü kanıtlanmış sayılmaz.

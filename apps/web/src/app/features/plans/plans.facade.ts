@@ -25,6 +25,8 @@ export type PlansRequestStatus = 'idle' | 'loading' | 'loaded' | 'error';
  */
 @Injectable({ providedIn: 'root' })
 export class PlansFacade {
+  private versionsSequence = 0;
+  private versionSequence = 0;
   private readonly api = inject(PlansApi);
   private readonly errorNormalizer = inject(HttpErrorNormalizer);
   private readonly destroyRef = inject(DestroyRef);
@@ -238,10 +240,7 @@ export class PlansFacade {
    * Loads published versions newest first. The list is cached per plan unless
    * `force` asks for the post-publish refresh.
    */
-  loadVersions(
-    planId: string,
-    force = false,
-  ): Observable<readonly PublishedVersionListItem[]> {
+  loadVersions(planId: string, force = false): Observable<readonly PublishedVersionListItem[]> {
     if (this.versionsPlanId !== planId) {
       this.versionsState.set([]);
       this.versionsStatusState.set('idle');
@@ -249,10 +248,7 @@ export class PlansFacade {
       this.versionsPlanId = planId;
     }
 
-    if (
-      this.versionsStatusState() === 'loading' &&
-      this.versionsPlanId === planId
-    ) {
+    if (this.versionsStatusState() === 'loading' && this.versionsPlanId === planId) {
       return of(this.versionsState());
     }
 
@@ -260,18 +256,30 @@ export class PlansFacade {
       return of(this.versionsState());
     }
 
+    const sequence = ++this.versionsSequence;
     this.versionsStatusState.set('loading');
     this.versionsErrorState.set(null);
 
     return this.api.listVersions(planId).pipe(
       tap((versions) => {
+        if (sequence !== this.versionsSequence || this.versionsPlanId !== planId) return;
         this.versionsState.set(versions);
         this.versionsStatusState.set('loaded');
       }),
       catchError((error: unknown) => {
+        if (sequence !== this.versionsSequence || this.versionsPlanId !== planId)
+          return throwError(() => error);
         this.versionsStatusState.set('error');
         this.versionsErrorState.set(this.errorNormalizer.normalize(error));
         return throwError(() => error);
+      }),
+      finalize(() => {
+        if (
+          sequence === this.versionsSequence &&
+          this.versionsPlanId === planId &&
+          this.versionsStatusState() === 'loading'
+        )
+          this.versionsStatusState.set('idle');
       }),
     );
   }
@@ -280,9 +288,7 @@ export class PlansFacade {
   loadVersion(versionId: string): Observable<PublishedRevision> {
     if (this.versionStatusState() === 'loading' && this.versionId === versionId) {
       const current = this.versionState();
-      return current === null
-        ? EMPTY
-        : of(current);
+      return current === null ? EMPTY : of(current);
     }
 
     if (this.versionStatusState() === 'loaded' && this.versionId === versionId) {
@@ -292,6 +298,7 @@ export class PlansFacade {
       }
     }
 
+    const sequence = ++this.versionSequence;
     this.versionId = versionId;
     this.versionState.set(null);
     this.versionStatusState.set('loading');
@@ -299,13 +306,24 @@ export class PlansFacade {
 
     return this.api.getVersion(versionId).pipe(
       tap((version) => {
+        if (sequence !== this.versionSequence || this.versionId !== versionId) return;
         this.versionState.set(version);
         this.versionStatusState.set('loaded');
       }),
       catchError((error: unknown) => {
+        if (sequence !== this.versionSequence || this.versionId !== versionId)
+          return throwError(() => error);
         this.versionStatusState.set('error');
         this.versionErrorState.set(this.errorNormalizer.normalize(error));
         return throwError(() => error);
+      }),
+      finalize(() => {
+        if (
+          sequence === this.versionSequence &&
+          this.versionId === versionId &&
+          this.versionStatusState() === 'loading'
+        )
+          this.versionStatusState.set('idle');
       }),
     );
   }

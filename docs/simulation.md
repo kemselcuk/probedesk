@@ -66,3 +66,9 @@ Hata kararı, yön ve değer üretiminin PRNG çağrı sırası sabitlenir. Olas
 Sabit beklenen dizi, sınırlar, negatif değerler, eşit sınırlar, tek örnek, seed 0 ve en büyük seed doğrulanır. Demo hata noktası tam `0.600000` olmalıdır. Değer üretimi testlerinde gerçek zaman beklemek yerine kontrollü saat kullanılabilir; gerçek zamanlı davranış ayrıca entegrasyon/tarayıcı kontrolünde sınanır.
 
 Henüz PRNG golden fixture'ı veya üretilmiş örnek verisi yoktur. Bunlar uygulama görevlerinin çıktısıdır.
+
+## Özellik paketi 1 — yetkilendirilen ek sözleşme (2026-11-06)
+
+Yeni Device kayıtları mevcut DC Power Module profiline bağlı izlenebilirlik nesneleridir. deviceId/batchNumber simülatör girdisi veya seed hesaplama kaynağı değildir; örnek dizisini/verdicti değiştirmez. Yeni profil/senaryo veya fiziksel cihaz bağlantısı eklenmez.
+
+Birincil ayrıntılı sözleşme: [Özellik paketi 1](feature-pack-1-plan.md). Görev/durum kaynağı: [EX kartları](tasks/README.md). Çelişki halinde yeni davranışlar için paket sözleşmesi, korunacak davranışlar için mevcut temel sözleşme birlikte uygulanır; kapsam sessizce genişletilmez.

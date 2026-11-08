@@ -1,3 +1,4 @@
+import { parseRunMetadata } from './run-metadata';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
@@ -127,6 +128,10 @@ function parseRunStartResponse(value: unknown, endpoint: string): RunStartRespon
 
 function buildHistoryParams(query: RunHistoryQuery): HttpParams {
   let params = new HttpParams();
+  for (const key of ['deviceId', 'batchNumber', 'planVersionId', 'scenario'] as const) {
+    const value = query[key];
+    if (value !== undefined && value.length > 0) params = params.set(key, value);
+  }
 
   if (query.planId !== undefined && query.planId.length > 0) {
     params = params.set('planId', query.planId);
@@ -178,6 +183,7 @@ function parseRunHistoryItem(
     planId: requireUuid(record, 'planId', endpoint, label),
     planVersionId: requireUuid(record, 'planVersionId', endpoint, label),
     planName: requireString(record, 'planName', endpoint, label),
+    ...parseRunMetadata(record, endpoint),
     versionNumber: requireInteger(record, 'versionNumber', endpoint, label, 1),
     status: parseStatus(record['status'], endpoint),
     outcome: parseOutcome(record['outcome'], endpoint),
@@ -240,16 +246,29 @@ function parseRunHistoryFirstFailure(
 
 function parseRunSnapshot(value: unknown, endpoint: string): RunSnapshot {
   const record = requireRecord(value, endpoint, 'run');
+  return {
+    ...parseRecordedRun(value, endpoint),
+    id: requireUuid(record, 'id', endpoint, 'run'),
+    lastEventSequence: requireInteger(record, 'lastEventSequence', endpoint, 'run', 0),
+  };
+}
+
+/** Shared recorded fields; reports have their own identity and no event cursor. */
+export function parseRecordedRun(
+  value: unknown,
+  endpoint: string,
+): Omit<RunSnapshot, 'id' | 'lastEventSequence'> {
+  const record = requireRecord(value, endpoint, 'run');
 
   const steps = requireArray(record, 'steps', endpoint, 'run').map((entry, index) =>
     parseRunSnapshotStep(entry, endpoint, index),
   );
 
   return {
-    id: requireUuid(record, 'id', endpoint, 'run'),
     planId: requireUuid(record, 'planId', endpoint, 'run'),
     planVersionId: requireUuid(record, 'planVersionId', endpoint, 'run'),
     planName: requireString(record, 'planName', endpoint, 'run'),
+    ...parseRunMetadata(record, endpoint),
     versionNumber: requireInteger(record, 'versionNumber', endpoint, 'run', 1),
     profile: parseProfile(record['profile'], endpoint, 'run.profile'),
     scenario: requireEnum(record['scenario'], RUN_SCENARIOS, endpoint, 'run.scenario'),
@@ -266,7 +285,6 @@ function parseRunSnapshot(value: unknown, endpoint: string): RunSnapshot {
     reasonCode: requireNullableString(record, 'reasonCode', endpoint, 'run'),
     expectedSampleCount: requireInteger(record, 'expectedSampleCount', endpoint, 'run', 0),
     recordedSampleCount: requireInteger(record, 'recordedSampleCount', endpoint, 'run', 0),
-    lastEventSequence: requireInteger(record, 'lastEventSequence', endpoint, 'run', 0),
     steps,
   };
 }

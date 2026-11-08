@@ -43,16 +43,7 @@ describe('start run form validation', () => {
       expect(probabilityValue(valueControl(value))).toBeNull();
     }
 
-    for (const value of [
-      '-0.1',
-      '1.000001',
-      '0.1234567',
-      '1e-2',
-      '0,05',
-      '2',
-      '00.5',
-      'abc',
-    ]) {
+    for (const value of ['-0.1', '1.000001', '0.1234567', '1e-2', '0,05', '2', '00.5', 'abc']) {
       expect(probabilityValue(valueControl(value))).toEqual({ probability: true });
     }
   });
@@ -81,6 +72,24 @@ describe('start run form validation', () => {
 
 describe('start run payload', () => {
   const VERSION_ID = '22222222-2222-4222-8222-222222222222';
+
+  it('preserves display batch while reusing the canonical metadata attempt key', () => {
+    const deviceId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA';
+    const request = buildStartRunRequest(VERSION_ID, {
+      scenario: 'NORMAL',
+      seed: '42',
+      failureStepId: '',
+      errorProbability: '',
+      deviceId,
+      batchNumber: ' Lot-1 ',
+    });
+    expect(request.deviceId).toBe(deviceId.toLowerCase());
+    expect(request.batchNumber).toBe('Lot-1');
+    let key = 0;
+    const attempt = new RunStartAttempt(() => String(++key));
+    expect(attempt.keyFor(request)).toBe(attempt.keyFor({ ...request, batchNumber: 'lot-1' }));
+    expect(attempt.keyFor({ ...request, batchNumber: 'Lot-2' })).not.toBe(attempt.keyFor(request));
+  });
 
   it('sends only plan version, scenario, and seed for NORMAL', () => {
     expect(
@@ -210,8 +219,8 @@ describe('RunStartAttempt', () => {
 
     expect(attempt.keyFor(forced)).toBe('key-1');
     expect(attempt.keyFor({ ...forced })).toBe('key-1');
-    expect(attempt.keyFor({ ...forced, failureStepId: '44444444-4444-4444-8444-444444444444' })).toBe(
-      'key-2',
-    );
+    expect(
+      attempt.keyFor({ ...forced, failureStepId: '44444444-4444-4444-8444-444444444444' }),
+    ).toBe('key-2');
   });
 });

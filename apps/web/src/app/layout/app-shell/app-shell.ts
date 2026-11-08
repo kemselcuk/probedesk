@@ -14,15 +14,13 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSidenavContent, MatSidenavModule } from '@angular/material/sidenav';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import {
-  NavigationEnd,
-  Router,
-  RouterLink,
-  RouterLinkActive,
-  RouterOutlet,
-} from '@angular/router';
+  MatSidenavContainer,
+  MatSidenavContent,
+  MatSidenavModule,
+} from '@angular/material/sidenav';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthFacade } from '../../core/auth/auth.facade';
 import { roleLabel } from '../../core/auth/auth.types';
@@ -31,11 +29,13 @@ import { UnsavedChangesService } from '../../core/navigation/unsaved-changes.ser
 interface NavigationItem {
   readonly path: string;
   readonly label: string;
-  readonly icon: 'plans' | 'history' | 'compare';
+  readonly icon: 'plans' | 'history' | 'compare' | 'devices' | 'overview';
 }
 
 const NAVIGATION_ITEMS: readonly NavigationItem[] = [
+  { path: '/overview', label: 'Overview', icon: 'overview' },
   { path: '/plans', label: 'Test Plans', icon: 'plans' },
+  { path: '/devices', label: 'Devices', icon: 'devices' },
   { path: '/runs', label: 'Run History', icon: 'history' },
   { path: '/compare', label: 'Compare Runs', icon: 'compare' },
 ];
@@ -63,17 +63,18 @@ export class AppShell {
   private readonly unsavedChanges = inject(UnsavedChangesService);
 
   private readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
-  private readonly navToggle = viewChild<ElementRef<HTMLButtonElement>>('navToggle');
+  private readonly navToggle = viewChild<unknown, ElementRef<HTMLButtonElement>>('navToggle', {
+    read: ElementRef,
+  });
   private readonly contentScroller = viewChild(MatSidenavContent);
+  private readonly sidenavContainer = viewChild(MatSidenavContainer);
 
   protected readonly navigationItems = NAVIGATION_ITEMS;
   protected readonly compactViewport = signal(false);
   private readonly mobileNavigationOpen = signal(false);
   private readonly signOutPromptOpen = signal(false);
 
-  protected readonly navMode = computed(() =>
-    this.compactViewport() ? 'over' : 'side',
-  );
+  protected readonly navMode = computed(() => (this.compactViewport() ? 'over' : 'side'));
 
   protected readonly sidenavOpened = computed(() =>
     this.compactViewport() ? this.mobileNavigationOpen() : true,
@@ -83,15 +84,12 @@ export class AppShell {
 
   protected readonly userEmail = computed(() => this.auth.user()?.email ?? null);
 
-  protected readonly canCreatePlan = computed(
-    () => this.auth.role() === 'PLANNER',
-  );
-  protected readonly canStartRun = computed(
-    () => this.auth.role() === 'OPERATOR',
-  );
+  protected readonly canCreatePlan = computed(() => this.auth.role() === 'PLANNER');
+  protected readonly canStartRun = computed(() => this.auth.role() === 'OPERATOR');
 
   constructor() {
     this.watchViewport();
+    this.watchPrintLayout();
 
     this.router.events
       .pipe(
@@ -116,12 +114,6 @@ export class AppShell {
   protected toggleNavigation(): void {
     if (this.compactViewport()) {
       this.mobileNavigationOpen.update((open) => !open);
-    }
-  }
-
-  protected onSidenavOpenedChange(opened: boolean): void {
-    if (this.compactViewport()) {
-      this.mobileNavigationOpen.set(opened);
     }
   }
 
@@ -182,10 +174,7 @@ export class AppShell {
           void this.router.navigateByUrl('/login');
         },
         error: () => {
-          this.notify(
-            'error',
-            this.auth.error()?.message ?? 'Sign out failed. Please try again.',
-          );
+          this.notify('error', this.auth.error()?.message ?? 'Sign out failed. Please try again.');
         },
       });
   }
@@ -216,11 +205,32 @@ export class AppShell {
     this.mainContent()?.nativeElement.focus({ preventScroll: true });
   }
 
+  private watchPrintLayout(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    const query = window.matchMedia('print');
+    let frame: number | undefined;
+    const restoreScreen = (event: MediaQueryListEvent): void => {
+      if (event.matches) return;
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        frame = undefined;
+        if (this.destroyRef.destroyed) return;
+        // Print hides the drawer and expands its content. Re-measure after
+        // screen styles return so actions cannot remain beneath the sidebar.
+        this.sidenavContainer()?.updateContentMargins();
+        this.contentScroller()?.scrollTo({ left: 0 });
+      });
+    };
+    query.addEventListener('change', restoreScreen);
+    this.destroyRef.onDestroy(() => {
+      query.removeEventListener('change', restoreScreen);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    });
+  }
+
   private watchViewport(): void {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return;
     }
 
@@ -228,6 +238,7 @@ export class AppShell {
     this.compactViewport.set(query.matches);
 
     const onChange = (event: MediaQueryListEvent): void => {
+      this.mobileNavigationOpen.set(false);
       this.compactViewport.set(event.matches);
     };
 

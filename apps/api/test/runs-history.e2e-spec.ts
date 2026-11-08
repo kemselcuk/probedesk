@@ -48,6 +48,14 @@ interface HistoryItemBody {
   planVersionId: string;
   planName: string;
   versionNumber: number;
+  deviceId: string | null;
+  deviceSnapshot: {
+    id: string;
+    name: string;
+    serialNumber: string;
+    deviceProfileId: string;
+  } | null;
+  batchNumber: string | null;
   scenario: RunScenario;
   seed: number;
   status: RunStatus;
@@ -106,6 +114,9 @@ const HISTORY_ITEM_KEYS = [
   'planVersionId',
   'planName',
   'versionNumber',
+  'deviceId',
+  'deviceSnapshot',
+  'batchNumber',
   'scenario',
   'seed',
   'status',

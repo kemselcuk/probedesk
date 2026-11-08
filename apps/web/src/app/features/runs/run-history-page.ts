@@ -1,3 +1,4 @@
+import { DevicePicker } from '../devices/device-picker';
 import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -10,7 +11,12 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { DateAdapter, MAT_DATE_FORMATS, MAT_NATIVE_DATE_FORMATS } from '@angular/material/core';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import {
@@ -56,6 +62,10 @@ type OutcomeFilter = 'PASSED' | 'FAILED' | '';
 
 interface HistoryUrlState {
   readonly planId: string;
+  readonly deviceId: string;
+  readonly planVersionId: string;
+  readonly batchNumber: string;
+  readonly scenario: RunHistoryQuery['scenario'] | '';
   readonly status: RunStatus | '';
   readonly outcome: OutcomeFilter;
   readonly from: string;
@@ -86,6 +96,7 @@ interface ParsedHistoryUrl {
 @Component({
   selector: 'app-run-history-page',
   imports: [
+    DevicePicker,
     DatePipe,
     EmptyState,
     ErrorState,
@@ -133,20 +144,35 @@ export class RunHistoryPage {
   protected readonly invalidUrlFilters = signal<readonly InvalidUrlFilter[]>([]);
 
   /** Set by goToPage so focus moves only after that page actually loads. */
+  private exactBounds = { from: '', to: '' };
   private pendingPageNavigation: number | null = null;
 
   protected readonly filters = inject(NonNullableFormBuilder).group({
     planId: '',
+    deviceId: '',
+    planVersionId: new FormControl({ value: '', disabled: true }, { nonNullable: true }),
+    batchNumber: ['', Validators.pattern(/^\s*[A-Za-z0-9._:/-]{1,100}\s*$|^\s*$/)],
+    scenario: '' as RunHistoryQuery['scenario'] | '',
     status: '' as RunStatus | '',
     outcome: '' as OutcomeFilter,
     from: new FormControl<Date | null>(null),
     to: new FormControl<Date | null>(null),
   });
 
+  protected readonly hasPartialDayBounds = computed(() =>
+    [this.currentQuery().from, this.currentQuery().to].some(
+      (value) => value && !value.endsWith('T00:00:00.000Z'),
+    ),
+  );
+
   protected readonly hasActiveFilters = computed(() => {
     const query = this.currentQuery();
     return (
       query.planId !== undefined ||
+      query.deviceId !== undefined ||
+      query.planVersionId !== undefined ||
+      query.batchNumber !== undefined ||
+      query.scenario !== undefined ||
       query.status !== undefined ||
       query.outcome !== undefined ||
       query.from !== undefined ||
@@ -269,6 +295,14 @@ export class RunHistoryPage {
       this.load(this.currentQuery(), focusResults);
     });
 
+    this.filters.controls.planId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((id) => {
+        this.filters.controls.planVersionId.setValue('', { emitEvent: false });
+        if (id) this.filters.controls.planVersionId.enable({ emitEvent: false });
+        else this.filters.controls.planVersionId.disable({ emitEvent: false });
+      });
+
     this.filters.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.applyFilters());
@@ -283,6 +317,10 @@ export class RunHistoryPage {
       relativeTo: this.route,
       queryParams: {
         planId: filters.planId.length > 0 ? filters.planId : null,
+        deviceId: filters.deviceId || null,
+        planVersionId: filters.planVersionId || null,
+        batchNumber: filters.batchNumber || null,
+        scenario: filters.scenario || null,
         status: filters.status.length > 0 ? filters.status : null,
         outcome: filters.outcome.length > 0 ? filters.outcome : null,
         from: filters.from.length > 0 ? filters.from : null,
@@ -296,6 +334,10 @@ export class RunHistoryPage {
   protected clearFilters(): void {
     this.syncForm({
       planId: '',
+      deviceId: '',
+      planVersionId: '',
+      batchNumber: '',
+      scenario: '' as RunHistoryQuery['scenario'] | '',
       status: '',
       outcome: '',
       from: '',
@@ -326,6 +368,10 @@ export class RunHistoryPage {
       relativeTo: this.route,
       queryParams: {
         planId: filters.planId.length > 0 ? filters.planId : null,
+        deviceId: filters.deviceId || null,
+        planVersionId: filters.planVersionId || null,
+        batchNumber: filters.batchNumber || null,
+        scenario: filters.scenario || null,
         status: filters.status.length > 0 ? filters.status : null,
         outcome: filters.outcome.length > 0 ? filters.outcome : null,
         from: filters.from.length > 0 ? filters.from : null,
@@ -506,26 +552,59 @@ export class RunHistoryPage {
   }
 
   private syncForm(filters: HistoryUrlState): void {
+    this.exactBounds = { from: filters.from, to: filters.to };
+    if (filters.planId) this.filters.controls.planVersionId.enable({ emitEvent: false });
+    else this.filters.controls.planVersionId.disable({ emitEvent: false });
     this.filters.setValue(
       {
         planId: filters.planId,
+        deviceId: filters.deviceId,
+        planVersionId: filters.planVersionId,
+        batchNumber: filters.batchNumber,
+        scenario: filters.scenario,
         status: filters.status,
         outcome: filters.outcome,
-        from: parseCalendarDate(filters.from),
-        to: parseCalendarDate(filters.to),
+        from: parseCalendarDate(filters.from.slice(0, 10)),
+        to: parseCalendarDate(filters.to.slice(0, 10)),
       },
       { emitEvent: false },
     );
   }
 
+  protected readonly selectedVersionMissing = computed(() => {
+    const query = this.currentQuery();
+    return (
+      !!query.planVersionId &&
+      (this.versionsForPlan() !== query.planId ||
+        !this.plans.versions().some((version) => version.id === query.planVersionId))
+    );
+  });
+  protected readonly versionsForPlan = signal('');
+  protected loadVersionOptions(): void {
+    const id = this.filters.controls.planId.value;
+    if (!id) return;
+    this.versionsForPlan.set(id);
+    this.plans
+      .loadVersions(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => undefined });
+  }
+  private preserveBound(date: Date | null, original: string): string {
+    const day = formatCalendarDate(date);
+    return day && day === original.slice(0, 10) ? original : day;
+  }
   private readFilters(): HistoryUrlState {
     const value = this.filters.getRawValue();
     return {
       planId: value.planId,
+      deviceId: value.deviceId,
+      planVersionId: value.planVersionId,
+      batchNumber: value.batchNumber.trim(),
+      scenario: value.scenario,
       status: RUN_STATUSES.includes(value.status as RunStatus) ? (value.status as RunStatus) : '',
       outcome: value.outcome === 'PASSED' || value.outcome === 'FAILED' ? value.outcome : '',
-      from: formatCalendarDate(value.from),
-      to: formatCalendarDate(value.to),
+      from: this.preserveBound(value.from, this.exactBounds.from),
+      to: this.preserveBound(value.to, this.exactBounds.to),
       page: 1,
     };
   }
@@ -534,6 +613,21 @@ export class RunHistoryPage {
 function readUrlState(params: ParamMap): ParsedHistoryUrl {
   const invalid: InvalidUrlFilter[] = [];
   const planIdValue = params.get('planId');
+  const rawDevice = params.get('deviceId') ?? '';
+  const deviceId = UUID_PATTERN.test(rawDevice) ? rawDevice : '';
+  if (rawDevice && !deviceId) invalid.push({ label: 'Device', value: rawDevice });
+  const rawVersion = params.get('planVersionId') ?? '';
+  const planVersionId = UUID_PATTERN.test(rawVersion) ? rawVersion : '';
+  if (rawVersion && !planVersionId) invalid.push({ label: 'Version', value: rawVersion });
+  const rawBatch = (params.get('batchNumber') ?? '').trim();
+  const batchNumber = /^[A-Za-z0-9._:/-]{1,100}$/.test(rawBatch) ? rawBatch : '';
+  if (rawBatch && !batchNumber) invalid.push({ label: 'Batch', value: rawBatch });
+  const rawScenario = params.get('scenario') ?? '';
+  const scenario =
+    rawScenario === 'NORMAL' || rawScenario === 'FORCED_FAILURE' || rawScenario === 'RANDOM'
+      ? rawScenario
+      : '';
+  if (rawScenario && !scenario) invalid.push({ label: 'Scenario', value: rawScenario });
   const statusValue = params.get('status');
   const outcomeValue = params.get('outcome');
   const fromValue = params.get('from');
@@ -581,6 +675,10 @@ function readUrlState(params: ParamMap): ParsedHistoryUrl {
   return {
     state: {
       planId,
+      deviceId,
+      planVersionId,
+      batchNumber,
+      scenario,
       status,
       outcome,
       from,
@@ -615,7 +713,14 @@ function normalizeDateInput(value: string): string {
     parsed.getUTCMonth() === month - 1 &&
     parsed.getUTCDate() === day;
 
-  return isRealDate ? date : '';
+  if (!isRealDate) return '';
+  if (value === date) return date;
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) ||
+    !Number.isFinite(Date.parse(value))
+  )
+    return '';
+  return new Date(value).toISOString();
 }
 
 function toServerQuery(filters: HistoryUrlState): RunHistoryQuery {
@@ -624,6 +729,10 @@ function toServerQuery(filters: HistoryUrlState): RunHistoryQuery {
 
   return {
     ...(filters.planId.length > 0 ? { planId: filters.planId } : {}),
+    ...(filters.deviceId ? { deviceId: filters.deviceId } : {}),
+    ...(filters.planVersionId ? { planVersionId: filters.planVersionId } : {}),
+    ...(filters.batchNumber ? { batchNumber: filters.batchNumber } : {}),
+    ...(filters.scenario ? { scenario: filters.scenario } : {}),
     ...(status !== '' ? { status } : {}),
     ...(outcome !== '' ? { outcome } : {}),
     ...(filters.from.length > 0 ? { from: toUtcStart(filters.from) } : {}),
@@ -635,5 +744,5 @@ function toServerQuery(filters: HistoryUrlState): RunHistoryQuery {
 
 /** The API contract is the UTC half-open range [from, to). */
 function toUtcStart(date: string): string {
-  return `${date}T00:00:00.000Z`;
+  return date.length === 10 ? `${date}T00:00:00.000Z` : date;
 }

@@ -204,6 +204,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List devices with prefix search, state filter and pagination. */
+        get: operations["DevicesController_list"];
+        put?: never;
+        /** Create a device record with a canonical unique serial number. */
+        post: operations["DevicesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the current device record with revision and archive state. */
+        get: operations["DevicesController_getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update mutable device fields with an optimistic revision check. The profile is fixed. */
+        patch: operations["DevicesController_update"];
+        trace?: never;
+    };
+    "/api/devices/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive a device without deleting its history. Archiving an archived row is a no-op after the revision check. */
+        post: operations["DevicesController_archive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/{id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore an archived device to active use. Restoring an active row is a no-op after the revision check. */
+        post: operations["DevicesController_restore"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/plans": {
         parameters: {
             query?: never;
@@ -324,6 +394,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/plan-versions/{id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a published plan version into a new independent plan, or replay an idempotent retry. */
+        post: operations["PlanVersionsController_copy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the versioned report projection of a terminal run from its immutable snapshot. */
+        get: operations["ReportsController_getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a terminal run report as a CSV or JSON attachment built from the same immutable projection. */
+        get: operations["ReportsController_exportRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analytics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read dashboard KPIs, the UTC daily trend and the top failing steps from one consistent snapshot. */
+        get: operations["AnalyticsController_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/comparisons": {
         parameters: {
             query?: never;
@@ -362,7 +500,7 @@ export interface components {
              * @example VALIDATION_ERROR
              * @enum {string}
              */
-            code: "VALIDATION_ERROR" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DRAFT_CONFLICT" | "RUN_ALREADY_ACTIVE" | "IDEMPOTENCY_CONFLICT" | "RUN_NOT_TERMINAL" | "COMPARISON_PLAN_MISMATCH" | "TOO_MANY_REQUESTS" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
+            code: "VALIDATION_ERROR" | "UNAUTHENTICATED" | "FORBIDDEN" | "NOT_FOUND" | "DRAFT_CONFLICT" | "RUN_ALREADY_ACTIVE" | "IDEMPOTENCY_CONFLICT" | "RUN_NOT_TERMINAL" | "COMPARISON_PLAN_MISMATCH" | "DEVICE_SERIAL_CONFLICT" | "DEVICE_CONFLICT" | "DEVICE_ARCHIVED" | "DEVICE_PROFILE_MISMATCH" | "TOO_MANY_REQUESTS" | "INTERNAL_ERROR" | "SERVICE_UNAVAILABLE";
             /** @example The request contains invalid fields. */
             message: string;
             /**
@@ -457,6 +595,16 @@ export interface components {
              * @example 0.050000
              */
             errorProbability?: string;
+            /**
+             * Format: uuid
+             * @description Optional active device of the same profile. Its name and serial number are copied into the run snapshot.
+             */
+            deviceId?: string | null;
+            /**
+             * @description Optional batch number. It is trimmed; empty input is absent. The displayed value keeps its case and filters use its uppercase canonical key.
+             * @example BATCH-2026-001
+             */
+            batchNumber?: string | null;
         };
         RunStartResponseDto: {
             /** Format: uuid */
@@ -476,6 +624,16 @@ export interface components {
             snapshotUrl: string;
             /** @example /api/runs/6b1f9c9e-2a7c-4d8d-9f5f-7d2c4a1b3e6f/events */
             eventsUrl: string;
+        };
+        RunDeviceSnapshotDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example Bench Power Module */
+            name: string;
+            /** @example PSU-AbC/01 */
+            serialNumber: string;
+            /** Format: uuid */
+            deviceProfileId: string;
         };
         RunFirstFailureDto: {
             /**
@@ -518,6 +676,18 @@ export interface components {
             planName: string;
             /** @example 1 */
             versionNumber: number;
+            /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied at start, or null. Later device edits never change history. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /**
+             * @description Batch display value copied at start, or null.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
             /**
              * @example NORMAL
              * @enum {string}
@@ -684,6 +854,18 @@ export interface components {
             versionNumber: number;
             profile: components["schemas"]["DeviceProfileDto"];
             /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied at start, or null when the run had no device. Later device edits do not change it. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /**
+             * @description Batch display value copied at start, or null. The canonical filter key is internal.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
+            /**
              * @example NORMAL
              * @enum {string}
              */
@@ -762,6 +944,60 @@ export interface components {
             payload: {
                 [key: string]: unknown;
             };
+        };
+        DeviceDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            deviceProfileId: string;
+            name: string;
+            serialNumber: string;
+            /** @description Trimmed description, or null when it is empty. */
+            description: string | null;
+            /**
+             * Format: date-time
+             * @description Archive time, or null while the device is active.
+             */
+            archivedAt: string | null;
+            /** @description Optimistic concurrency revision. Updates, archive and restore require the current value. */
+            editRevision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DeviceListResponseDto: {
+            items: components["schemas"]["DeviceDto"][];
+            page: number;
+            limit: number;
+            total: number;
+            /** @description Number of pages for this filter and limit, zero when empty. */
+            totalPages: number;
+        };
+        CreateDeviceDto: {
+            /**
+             * Format: uuid
+             * @description Id returned by GET /api/device-profiles.
+             */
+            deviceProfileId: string;
+            name: string;
+            /** @example PSU-DEMO-0001 */
+            serialNumber: string;
+            /** @description Optional description. It is trimmed; empty or whitespace-only input is stored as null. */
+            description?: string | null;
+        };
+        UpdateDeviceDto: {
+            /** @description Current editRevision. A mismatch is rejected with DEVICE_CONFLICT and no writes. */
+            expectedRevision: number;
+            name?: string;
+            /** @example PSU-DEMO-0001 */
+            serialNumber?: string;
+            /** @description New description. It is trimmed; null, empty or whitespace-only input clears it. */
+            description?: string | null;
+        };
+        DeviceRevisionDto: {
+            /** @description Current editRevision. A stale value is always rejected with DEVICE_CONFLICT. */
+            expectedRevision: number;
         };
         CreatePlanDto: {
             /** @example Power rail verification */
@@ -937,6 +1173,287 @@ export interface components {
             name: string;
             publishedBy: components["schemas"]["PublishedBySummaryDto"];
         };
+        CopyPlanDto: {
+            /** @example Power rail verification (copy) */
+            name: string;
+        };
+        CopyPlanResponseDto: {
+            /**
+             * Format: uuid
+             * @description New independent plan created by the copy.
+             */
+            planId: string;
+            /**
+             * Format: uuid
+             * @description Initial draft revision created with the copy. The id stays stable after the draft is saved or published.
+             */
+            draftRevisionId: string;
+            /**
+             * Format: uuid
+             * @description Published source revision named in the request path.
+             */
+            sourceVersionId: string;
+            /** @description True when an earlier request for the same user, Idempotency-Key and canonical request is replayed. */
+            replayed: boolean;
+        };
+        RunReportStepDto: {
+            /** Format: uuid */
+            runStepId: string;
+            /** Format: uuid */
+            logicalStepId: string;
+            /** @description 1-based step order inside this run. */
+            position: number;
+            /** @example Output voltage */
+            name: string;
+            /** @example V */
+            unit: string;
+            /** @example 4.750000 */
+            minimum: string;
+            /** @example 5.250000 */
+            maximum: string;
+            /** @example 100 */
+            sampleCount: number;
+            /** @example 250 */
+            intervalMs: number;
+            /**
+             * @example COMPLETED
+             * @enum {string}
+             */
+            status: "PENDING" | "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR" | "NOT_RUN";
+            /**
+             * @description Stored step verdict. Null unless the step completed; partial steps keep their recorded samples.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** @example 100 */
+            recordedCount: number;
+            /** @example 0 */
+            outOfToleranceCount: number;
+            /** @example null */
+            firstFailureSampleIndex: number | null;
+            /**
+             * @description True exactly when outOfToleranceCount is greater than zero.
+             * @example false
+             */
+            hasOutOfTolerance: boolean;
+            /** @description Stored summary for a completed step; every numeric member is null for a partial step. */
+            statistics: components["schemas"]["RunStepStatisticsDto"];
+            /** @description Only the samples actually recorded, ordered by ascending sampleIndex. Missing samples are never invented. */
+            measurements: components["schemas"]["RunMeasurementDto"][];
+        };
+        RunReportDto: {
+            /**
+             * @description Report projection schema version.
+             * @example 1
+             * @enum {number}
+             */
+            schemaVersion: 1;
+            /**
+             * Format: date-time
+             * @description UTC time at which this projection was generated.
+             */
+            generatedAt: string;
+            /** Format: uuid */
+            runId: string;
+            /** Format: uuid */
+            planId: string;
+            /** Format: uuid */
+            planVersionId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example 1 */
+            versionNumber: number;
+            profile: components["schemas"]["DeviceProfileDto"];
+            /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied at start. Later device edits never change it. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /** @description Batch display value copied at start, or null when the run had no batch. */
+            batchNumber: string | null;
+            /**
+             * @example NORMAL
+             * @enum {string}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+            /** @example 123456789 */
+            seed: number;
+            /** @description Canonical six-place probability for RANDOM, otherwise null. */
+            errorProbability: string | null;
+            /**
+             * Format: uuid
+             * @description Logical step selected for FORCED_FAILURE, otherwise null.
+             */
+            failureStepId: string | null;
+            /** @example sim-v1 */
+            simulatorVersion: string;
+            /** @example decimal-v1 */
+            evaluationVersion: string;
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            /**
+             * @example COMPLETED
+             * @enum {string}
+             */
+            status: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
+            /**
+             * @description Overall verdict; only a COMPLETED run has one.
+             * @enum {string|null}
+             */
+            outcome: "PASSED" | "FAILED" | null;
+            /** @description Safe technical reason code for a terminal non-success. */
+            reasonCode: string | null;
+            /** @example 6 */
+            expectedSampleCount: number;
+            /** @example 6 */
+            recordedSampleCount: number;
+            /** @description Public requester summary. Session and password fields are never included. */
+            requestedBy: components["schemas"]["RunRequestedByDto"];
+            /** @description Steps ordered by ascending position. */
+            steps: components["schemas"]["RunReportStepDto"][];
+        };
+        AnalyticsOverviewFiltersDto: {
+            /**
+             * Format: date-time
+             * @description Canonical UTC inclusive lower bound actually applied.
+             */
+            from: string;
+            /**
+             * Format: date-time
+             * @description Canonical UTC exclusive upper bound actually applied.
+             */
+            to: string;
+            /**
+             * Format: uuid
+             * @description Applied plan filter, or null.
+             */
+            planId: string | null;
+            /**
+             * Format: uuid
+             * @description Applied published version filter, or null.
+             */
+            planVersionId: string | null;
+            /**
+             * Format: uuid
+             * @description Applied device filter, or null.
+             */
+            deviceId: string | null;
+            /**
+             * @description Applied canonical uppercase batch key, or null. Filtering is exact and case-insensitive on the stored key.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
+            /**
+             * @description Applied scenario filter, or null.
+             * @enum {string|null}
+             */
+            scenario: "NORMAL" | "FORCED_FAILURE" | "RANDOM" | null;
+        };
+        AnalyticsOverviewSummaryDto: {
+            /** @example 42 */
+            totalRuns: number;
+            /** @example 30 */
+            completedRuns: number;
+            /** @example 25 */
+            passedRuns: number;
+            /** @example 5 */
+            failedRuns: number;
+            /** @example 1 */
+            runningRuns: number;
+            /** @example 2 */
+            cancelledRuns: number;
+            /** @example 1 */
+            interruptedRuns: number;
+            /** @example 1 */
+            errorRuns: number;
+            /**
+             * @description 100 × passedRuns / completedRuns, rounded half-up to two decimal places by PostgreSQL numeric. Null when completedRuns is zero.
+             * @example 83.33
+             */
+            passRatePercent: string | null;
+            /**
+             * @description Mean finishedAt-startedAt duration of COMPLETED runs with a finish time, rounded half-up to three decimal places. Null when no sample exists.
+             * @example 2500.000
+             */
+            averageDurationMs: string | null;
+        };
+        AnalyticsOverviewTrendDayDto: {
+            /**
+             * Format: date
+             * @description UTC calendar day (YYYY-MM-DD).
+             * @example 2026-10-01
+             */
+            date: string;
+            /** @example 4 */
+            totalRuns: number;
+            /** @example 3 */
+            completedRuns: number;
+            /** @example 2 */
+            passedRuns: number;
+            /** @example 1 */
+            failedRuns: number;
+            /** @example 0 */
+            runningRuns: number;
+            /** @example 1 */
+            cancelledRuns: number;
+            /** @example 0 */
+            interruptedRuns: number;
+            /** @example 0 */
+            errorRuns: number;
+            /**
+             * @description Day pass rate as a two-decimal half-up string, or null when the day has no COMPLETED run.
+             * @example 66.67
+             */
+            passRatePercent: string | null;
+        };
+        AnalyticsOverviewTopFailedStepDto: {
+            /** Format: uuid */
+            planId: string;
+            /** Format: uuid */
+            planVersionId: string;
+            /** Format: uuid */
+            logicalStepId: string;
+            /** @example Power rail verification */
+            planName: string;
+            /** @example Output Voltage */
+            stepName: string;
+            /** @example 3 */
+            versionNumber: number;
+            /** @example V */
+            unit: string;
+            /**
+             * @description COMPLETED steps in COMPLETED runs for this plan/version/logical step/unit group.
+             * @example 10
+             */
+            completedStepRuns: number;
+            /**
+             * @description COMPLETED steps whose recorded outcome is FAILED.
+             * @example 4
+             */
+            failedStepRuns: number;
+            /**
+             * @description 100 × failedStepRuns / completedStepRuns, rounded half-up to two decimal places. Null only when the denominator is zero.
+             * @example 40.00
+             */
+            failureRatePercent: string | null;
+        };
+        AnalyticsOverviewDto: {
+            /**
+             * Format: date-time
+             * @description Transaction snapshot timestamp. Summary, trend and top steps all come from the same repeatable-read snapshot.
+             */
+            asOf: string;
+            filters: components["schemas"]["AnalyticsOverviewFiltersDto"];
+            summary: components["schemas"]["AnalyticsOverviewSummaryDto"];
+            /** @description Every UTC day intersecting the range, including zero-count days. */
+            trend: components["schemas"]["AnalyticsOverviewTrendDayDto"][];
+            /** @description At most ten failing step groups ordered by failedStepRuns DESC, completedStepRuns DESC and permanent ids. */
+            topFailedSteps: components["schemas"]["AnalyticsOverviewTopFailedStepDto"][];
+        };
         ComparisonVersionDifferenceDto: {
             /**
              * @description True when both runs executed the same plan version.
@@ -960,6 +1477,18 @@ export interface components {
             /** @example 1 */
             versionNumber: number;
             profile: components["schemas"]["DeviceProfileDto"];
+            /**
+             * Format: uuid
+             * @description Device linked at start, or null for legacy and device-less runs.
+             */
+            deviceId: string | null;
+            /** @description Device values copied into this run at start, or null. The live device is never joined. */
+            deviceSnapshot: components["schemas"]["RunDeviceSnapshotDto"] | null;
+            /**
+             * @description Batch display value copied at start, or null.
+             * @example BATCH-2026-001
+             */
+            batchNumber: string | null;
             /**
              * @example NORMAL
              * @enum {string}
@@ -1330,6 +1859,10 @@ export interface operations {
     RunsController_list: {
         parameters: {
             query?: {
+                /** @description Only runs with this batch. Matches the uppercase canonical key; display case and surrounding whitespace do not matter. */
+                batchNumber?: string;
+                /** @description Only runs started with this device. Unknown ids return an empty page. */
+                deviceId?: string;
                 /** @description Inclusive lower bound for startedAt. UTC ISO-8601 date or date-time with an explicit timezone. */
                 from?: string;
                 /** @description Page size. Defaults to 20 and must not exceed 100. */
@@ -1340,6 +1873,10 @@ export interface operations {
                 page?: number;
                 /** @description Only runs of this plan. */
                 planId?: string;
+                /** @description Only runs of this published version. When planId is also supplied it must belong to that plan. */
+                planVersionId?: string;
+                /** @description Only runs using this simulator scenario. */
+                scenario?: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
                 /** @description Only runs in this lifecycle state. */
                 status?: "RUNNING" | "COMPLETED" | "CANCELLED" | "INTERRUPTED" | "ERROR";
                 /** @description Exclusive upper bound for startedAt. The range is [from, to). UTC ISO-8601 date or date-time with an explicit timezone. */
@@ -1673,6 +2210,372 @@ export interface operations {
             };
             /** @description The session is missing, expired or revoked. */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_list: {
+        parameters: {
+            query?: {
+                /** @description Only devices of this profile. An unknown id returns an empty page. */
+                deviceProfileId?: string;
+                /** @description Page size. Defaults to 20 and must not exceed 100. */
+                limit?: number;
+                /** @description 1-based page number. */
+                page?: number;
+                /** @description Case-insensitive prefix search over name and serial number. Wildcards are literal. */
+                q?: string;
+                /** @description Active devices only, archived devices only, or all devices. */
+                state?: "active" | "archived" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page ordered by name ASC, id ASC. Archived rows are excluded unless requested. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceListResponseDto"];
+                };
+            };
+            /** @description A filter, page or limit is malformed or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDeviceDto"];
+            };
+        };
+        responses: {
+            /** @description The new active device. The serial display case is preserved while uniqueness is case-insensitive inside the profile. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description A field is missing, invalid or unknown, or deviceProfileId does not reference an existing profile. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_SERIAL_CONFLICT when the canonical serial number already exists in the profile. No row was created. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The current device row. Archived devices remain readable. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDeviceDto"];
+            };
+        };
+        responses: {
+            /** @description The updated device. An unchanged payload returns the current row without incrementing the revision. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description expectedRevision or a changed field is invalid, deviceProfileId was supplied, or another unknown field was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_CONFLICT for a stale editRevision, or DEVICE_SERIAL_CONFLICT when another device owns the canonical serial number. Nothing was changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_archive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceRevisionDto"];
+            };
+        };
+        responses: {
+            /** @description The archived device. When the target state already holds and expectedRevision matches, the revision is unchanged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description expectedRevision is missing or invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_CONFLICT for a stale editRevision, even when the device is already archived. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    DevicesController_restore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Device id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceRevisionDto"];
+            };
+        };
+        responses: {
+            /** @description The active device. When it was already active and expectedRevision matches, the revision is unchanged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceDto"];
+                };
+            };
+            /** @description expectedRevision is missing or invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The device does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description DEVICE_CONFLICT for a stale editRevision, even when the device is already active. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2079,6 +2982,283 @@ export interface operations {
             };
             /** @description The version does not exist or is not published. */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    PlanVersionsController_copy: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Client-generated key scoped to the current user. Retrying the same request with this key returns the original target plan. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                /** @description Published source plan revision id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CopyPlanDto"];
+            };
+        };
+        responses: {
+            /** @description An earlier copy for the same user and Idempotency-Key was replayed. The original target plan and initial revision ids are returned even after that revision was published. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CopyPlanResponseDto"];
+                };
+            };
+            /** @description A new independent plan and its initial DRAFT revision with freshly generated step identities. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CopyPlanResponseDto"];
+                };
+            };
+            /** @description The Idempotency-Key header, name or body is missing, unknown or invalid. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user is not a Planner or the CSRF token is invalid. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The source version does not exist or is not published. Drafts are never copied. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description IDEMPOTENCY_CONFLICT when the key was already used for a different source version or name. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    ReportsController_getReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Run id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One consistent projection of the terminal run, its copied step rules, stored statistics and recorded samples. schemaVersion is 1. A RUNNING run is rejected with RUN_NOT_TERMINAL; COMPLETED, CANCELLED, INTERRUPTED and ERROR are readable, including partial and empty data. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunReportDto"];
+                };
+            };
+            /** @description The run id is not a UUID. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user does not have a report-reading role. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The run does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description RUN_NOT_TERMINAL when the run is still RUNNING. The response contains a safe status detail. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    ReportsController_exportRun: {
+        parameters: {
+            query: {
+                /** @description csv produces UTF-8 BOM, comma-delimited CRLF rows with RFC 4180 quoting; json produces the same schemaVersion=1 report projection. */
+                format: "csv" | "json";
+            };
+            header?: never;
+            path: {
+                /** @description Run id. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Attachment response with Cache-Control: no-store. The filename is derived only from the canonical run UUID. CSV rows contain one line per actually recorded measurement, ordered by step position and sample index; JSON preserves decimal strings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                    "application/json": components["schemas"]["RunReportDto"];
+                };
+            };
+            /** @description The run id is not a UUID, format is missing or not csv/json, or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The user does not have a report-reading role. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The run does not exist. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description RUN_NOT_TERMINAL when the run is still RUNNING. Terminal statuses are all exportable. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+        };
+    };
+    AnalyticsController_overview: {
+        parameters: {
+            query: {
+                /** @description Only runs with this batch. The comparison uses the canonical uppercase key, so display case does not matter. */
+                batchNumber?: string;
+                /** @description Only runs started with this device. Unknown ids return an empty overview. */
+                deviceId?: string;
+                /** @description Inclusive UTC lower bound for run.startedAt. Must include an explicit timezone. */
+                from: string;
+                /** @description Only runs of this plan. Unknown ids return an empty overview. */
+                planId?: string;
+                /** @description Only runs of this published version. When planId is also present it must belong to that plan; an unknown version returns an empty overview. */
+                planVersionId?: string;
+                /** @description Only runs with this simulator scenario. */
+                scenario?: "NORMAL" | "FORCED_FAILURE" | "RANDOM";
+                /** @description Exclusive UTC upper bound for run.startedAt. The range is [from, to) and may span at most 366 days. */
+                to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary totals, every UTC day intersecting [from, to), and at most ten failing step groups. Decimal KPI values are backend-rounded strings; null means no applicable sample. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsOverviewDto"];
+                };
+            };
+            /** @description from/to is missing or malformed, the range is empty or wider than 366 days, a filter is invalid, or an unknown query parameter was supplied. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorDto"];
+                };
+            };
+            /** @description The session is missing, expired or revoked. */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

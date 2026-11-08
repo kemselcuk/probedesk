@@ -1,3 +1,5 @@
+import { DevicePickerFacade } from '../devices/device-picker.facade';
+import { DevicePicker } from '../devices/device-picker';
 import { DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -6,11 +8,18 @@ import {
   Injector,
   afterNextRender,
   computed,
+  effect,
+  untracked,
   inject,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import {
+  AbstractControl,
+  NonNullableFormBuilder,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -36,7 +45,9 @@ import { RunsFacade } from './runs.facade';
 
 @Component({
   selector: 'app-start-run-page',
+  providers: [DevicePickerFacade],
   imports: [
+    DevicePicker,
     DecimalPipe,
     ErrorState,
     LoadingState,
@@ -65,12 +76,32 @@ export class StartRunPage {
   protected readonly versionId = this.route.snapshot.queryParamMap.get('versionId') ?? '';
   protected readonly missingVersionId = computed(() => this.versionId.trim().length === 0);
   protected readonly form = createRunStartForm(inject(NonNullableFormBuilder));
+  protected readonly metadataForm = inject(NonNullableFormBuilder).group({
+    deviceId: [
+      '',
+      Validators.pattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
+    ],
+    batchNumber: [
+      this.route.snapshot.queryParamMap.get('batchNumber') ?? '',
+      Validators.pattern(/^\s*[A-Za-z0-9._:/-]{1,100}\s*$|^\s*$/),
+    ],
+  });
+  private readonly requestedDeviceId = this.route.snapshot.queryParamMap.get('deviceId') ?? '';
+  private readonly preselection = inject(DevicePickerFacade);
+  protected readonly preselectionPending = signal(!!this.requestedDeviceId);
+  protected readonly preselectionNotice = signal('');
+  protected readonly deviceValid = signal(!this.metadataForm.controls.deviceId.value);
   protected readonly scenario = signal<RunScenario>('NORMAL');
   protected readonly formRevision = signal(0);
   protected readonly formatDuration = formatDuration;
   protected readonly isOperator = computed(() => this.auth.role() === 'OPERATOR');
 
   private readonly attempt = new RunStartAttempt();
+
+  protected readonly selectedProfileId = computed(
+    () =>
+      this.plans.plans().find((plan) => plan.id === this.plans.version()?.planId)?.profile.id ?? '',
+  );
 
   protected readonly totals = computed(() => {
     const version = this.plans.version();
@@ -93,6 +124,9 @@ export class StartRunPage {
       this.plans.versionStatus() === 'loaded' &&
       this.plans.version() !== null &&
       this.form.valid &&
+      this.metadataForm.valid &&
+      this.deviceValid() &&
+      !this.preselectionPending() &&
       !this.runs.startPending()
     );
   });
@@ -155,7 +189,42 @@ export class StartRunPage {
   });
 
   constructor() {
-    if (!this.isOperator()) this.form.disable({ emitEvent: false });
+    effect(() => {
+      const profile = this.selectedProfileId();
+      if (profile && this.requestedDeviceId) {
+        untracked(() => this.preselection.check(this.requestedDeviceId, profile));
+      }
+    });
+    effect(() => {
+      const device = this.preselection.device();
+      const checking = this.preselection.checking();
+      const error = this.preselection.error();
+      if (!this.preselectionPending() || checking || (!device && !error)) return;
+      untracked(() => {
+        this.preselectionPending.set(false);
+        if (device && !error) {
+          this.deviceValid.set(false);
+          this.metadataForm.controls.deviceId.setValue(device.id);
+        } else
+          this.preselectionNotice.set(
+            'The requested device was not preselected. ' +
+              (device?.archivedAt
+                ? 'It is archived.'
+                : device
+                  ? 'Its profile does not match this plan.'
+                  : (error ?? 'It could not be validated.')) +
+              ' Choose an active, compatible device or leave Device as No device.',
+          );
+      });
+    });
+    if (!this.isOperator()) {
+      this.form.disable({ emitEvent: false });
+      this.metadataForm.disable({ emitEvent: false });
+    }
+    this.metadataForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.formRevision.update((revision) => revision + 1);
+      this.clearServerErrors();
+    });
     this.runs.clearStartError();
 
     this.form.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -165,6 +234,7 @@ export class StartRunPage {
     });
 
     if (!this.missingVersionId()) {
+      this.plans.loadPlans();
       this.loadVersion();
     }
   }
@@ -190,7 +260,10 @@ export class StartRunPage {
       return;
     }
 
-    const request = buildStartRunRequest(version.id, this.form.getRawValue());
+    const request = buildStartRunRequest(version.id, {
+      ...this.form.getRawValue(),
+      ...this.metadataForm.getRawValue(),
+    });
     const idempotencyKey = this.attempt.keyFor(request);
 
     this.runs
@@ -280,6 +353,10 @@ export class StartRunPage {
 
   private controlForPath(path: string): AbstractControl | null {
     switch (path) {
+      case 'deviceId':
+        return this.metadataForm.controls.deviceId;
+      case 'batchNumber':
+        return this.metadataForm.controls.batchNumber;
       case 'scenario':
         return this.form.controls.scenario;
       case 'seed':
@@ -295,6 +372,7 @@ export class StartRunPage {
 
   private clearServerErrors(): void {
     const controls: readonly AbstractControl[] = [
+      ...Object.values(this.metadataForm.controls),
       this.form.controls.scenario,
       this.form.controls.seed,
       this.form.controls.failureStepId,

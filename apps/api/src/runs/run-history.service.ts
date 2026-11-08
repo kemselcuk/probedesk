@@ -14,6 +14,8 @@ import {
   DEFAULT_RUN_HISTORY_PAGE,
   type ListRunsQueryDto,
 } from './dto/list-runs-query.dto.js';
+import { toBatchNumberKey } from './run-metadata.js';
+import { readDeviceSnapshot } from './run-snapshot-read.js';
 
 /**
  * History reads are repeatable so `total` and the page of rows describe the
@@ -35,6 +37,9 @@ const HISTORY_SELECT = {
   planRevisionId: true,
   planNameSnapshot: true,
   versionNumberSnapshot: true,
+  deviceId: true,
+  deviceSnapshot: true,
+  batchNumber: true,
   scenario: true,
   seed: true,
   status: true,
@@ -75,6 +80,8 @@ export class RunHistoryService {
     const where = buildWhere(query);
 
     return this.prisma.$transaction(async (tx) => {
+      await assertPlanVersionBelongsToPlan(tx, query);
+
       const total = await tx.testRun.count({ where });
       const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
 
@@ -107,7 +114,19 @@ function buildWhere(query: ListRunsQueryDto): Prisma.TestRunWhereInput {
   const where: Prisma.TestRunWhereInput = {};
 
   if (query.planId !== undefined) {
-    where.planId = query.planId;
+    where.planId = query.planId.toLowerCase();
+  }
+  if (query.planVersionId !== undefined) {
+    where.planRevisionId = query.planVersionId.toLowerCase();
+  }
+  if (query.deviceId !== undefined) {
+    where.deviceId = query.deviceId.toLowerCase();
+  }
+  if (query.batchNumber !== undefined) {
+    where.batchNumberKey = toBatchNumberKey(query.batchNumber);
+  }
+  if (query.scenario !== undefined) {
+    where.scenario = query.scenario;
   }
   if (query.status !== undefined) {
     where.status = query.status;
@@ -127,6 +146,35 @@ function buildWhere(query: ListRunsQueryDto): Prisma.TestRunWhereInput {
   }
 
   return where;
+}
+
+/**
+ * A version filter must belong to the plan filter when both are present. An
+ * unknown version is not a mismatch: it simply matches no rows, so filter
+ * lookups never become resource 404s.
+ */
+async function assertPlanVersionBelongsToPlan(
+  tx: Prisma.TransactionClient,
+  query: ListRunsQueryDto,
+): Promise<void> {
+  if (query.planId === undefined || query.planVersionId === undefined) {
+    return;
+  }
+
+  const revision = await tx.planRevision.findUnique({
+    where: { id: query.planVersionId.toLowerCase() },
+    select: { planId: true },
+  });
+
+  if (revision !== null && revision.planId !== query.planId.toLowerCase()) {
+    throw new ValidationFailedException([
+      {
+        path: 'planVersionId',
+        code: 'INVALID_VALUE',
+        message: 'planVersionId must belong to planId',
+      },
+    ]);
+  }
 }
 
 /**
@@ -187,6 +235,9 @@ function toHistoryItem(run: HistoryRow): RunHistoryItemDto {
     planVersionId: run.planRevisionId,
     planName: run.planNameSnapshot,
     versionNumber: run.versionNumberSnapshot,
+    deviceId: run.deviceId,
+    deviceSnapshot: readDeviceSnapshot(run.deviceSnapshot),
+    batchNumber: run.batchNumber,
     scenario: run.scenario,
     seed: readSeed(run.seed),
     status: run.status,

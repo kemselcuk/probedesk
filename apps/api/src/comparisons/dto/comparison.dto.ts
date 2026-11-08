@@ -6,6 +6,7 @@ import {
   RunStatus,
 } from '../../prisma/generated/client.js';
 import {
+  RunDeviceSnapshotDto,
   RunRequestedByDto,
   RunSnapshotStepDto,
 } from '../../runs/dto/run-snapshot.dto.js';
@@ -227,6 +228,32 @@ export class ComparisonRunSummaryDto {
 
   @ApiProperty({ type: () => DeviceProfileDto })
   profile!: DeviceProfileDto;
+
+  @ApiProperty({
+    type: String,
+    format: 'uuid',
+    nullable: true,
+    description:
+      'Device linked at start, or null for legacy and device-less runs.',
+  })
+  deviceId!: string | null;
+
+  @ApiProperty({
+    type: () => RunDeviceSnapshotDto,
+    nullable: true,
+    description:
+      'Device values copied into this run at start, or null. The live device is never joined.',
+  })
+  deviceSnapshot!: RunDeviceSnapshotDto | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    maxLength: 100,
+    example: 'BATCH-2026-001',
+    description: 'Batch display value copied at start, or null.',
+  })
+  batchNumber!: string | null;
 
   @ApiProperty({ enum: RunScenario, example: RunScenario.NORMAL })
   scenario!: RunScenario;

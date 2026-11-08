@@ -25,10 +25,12 @@ import { PageHeader } from '../../shared/ui/page-header/page-header';
 import { trimmedMaxLength, trimmedRequired } from './plan-draft-form';
 import type { DeviceProfile } from './plans-api.types';
 import { PlansFacade } from './plans.facade';
+import { CopyPlanButton } from './copy-plan-button';
 
 @Component({
   selector: 'app-plans-list-page',
   imports: [
+    CopyPlanButton,
     EmptyState,
     ErrorState,
     LoadingState,
@@ -55,6 +57,7 @@ export class PlansListPage {
   private readonly injector = inject(Injector);
 
   protected readonly isPlanner = computed(() => this.auth.role() === 'PLANNER');
+  protected readonly deviceContext = signal('');
   protected readonly createOpen = signal(false);
   protected readonly createAttempted = signal(false);
 
@@ -94,6 +97,12 @@ export class PlansListPage {
     this.facade.loadPlans();
 
     this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      const deviceId = params.get('deviceId') ?? '';
+      this.deviceContext.set(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deviceId)
+          ? deviceId
+          : '',
+      );
       if (params.get('create') !== '1' || !this.isPlanner()) {
         return;
       }

@@ -81,13 +81,13 @@ describe('auth guards', () => {
     ).toBe('Sign in');
   });
 
-  it('normalizes the root return URL to the default plans screen', async () => {
+  it('normalizes the root return URL to the default overview screen', async () => {
     resolveSession(null);
 
     await RouterTestingHarness.create('/');
     const router = TestBed.inject(Router);
 
-    expect(router.url).toBe('/login?returnUrl=%2Fplans');
+    expect(router.url).toBe('/login?returnUrl=%2Foverview');
   });
 
   it('allows every role into the read-only screens', async () => {

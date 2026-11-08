@@ -107,9 +107,9 @@ async function login(
   await page.locator('#email').fill(user.email);
   await page.locator('#password').fill(user.password);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page).toHaveURL(/\/plans$/);
+  await expect(page).toHaveURL(/\/overview(?:\?.*)?$/);
   await expect(
-    page.getByRole('heading', { name: 'Test Plans', level: 1 }),
+    page.getByRole('heading', { name: 'Overview', level: 1 }),
   ).toBeVisible();
 
   // The signed-out /login probe intentionally receives 401 from /api/auth/me;
@@ -154,7 +154,9 @@ function comparisonStepCard(page: Page, name: string): Locator {
 }
 
 async function createPlan(page: Page): Promise<string> {
-  await page.getByRole('button', { name: 'New plan' }).click();
+  await page.locator('nav#primary-navigation').getByRole('link', { name: /Test Plans/ }).click();
+  await expect(page).toHaveURL(/\/plans$/);
+  await page.getByRole('button', { name: 'New plan', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'New plan' })).toBeVisible();
   await page.locator('#create-plan-name').fill(PLAN_NAME);
   await page.locator('#create-plan-profile').click();

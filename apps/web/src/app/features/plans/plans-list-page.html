@@ -23,6 +23,13 @@
   }
 </app-page-header>
 
+@if (deviceContext()) {
+  <p class="panel-status">
+    Choose a published version for the selected device.
+    <a [routerLink]="['/devices', deviceContext()]">Back to device</a>
+  </p>
+}
+
 @if (isPlanner() && createOpen()) {
   <mat-card
     class="create-panel"
@@ -178,6 +185,7 @@
                       <a
                         class="version-link"
                         [routerLink]="['/plans', plan.id, 'versions', version.id]"
+                        [queryParams]="deviceContext() ? { deviceId: deviceContext() } : {}"
                       >
                         Version {{ version.versionNumber }}
                       </a>
@@ -195,9 +203,20 @@
                       }
                     </td>
                     <td class="pd-cell-action">
-                      <a mat-button [routerLink]="['/plans', plan.id, 'edit']">
-                        {{ plan.draft ? 'Edit draft' : 'Open editor' }}
-                      </a>
+                      <div class="plan-actions">
+                        <a mat-button [routerLink]="['/plans', plan.id, 'edit']">
+                          {{ plan.draft ? 'Edit draft' : 'Open editor' }}
+                        </a>
+                        @if (plan.latestPublishedVersion; as version) {
+                          <app-copy-plan-button
+                            [versionId]="version.id"
+                            [compact]="true"
+                            [sourceLabel]="
+                              plan.name + ', published version ' + version.versionNumber
+                            "
+                          />
+                        }
+                      </div>
                     </td>
                   }
                 </tr>

@@ -1,6 +1,7 @@
 import type { Prisma } from '../prisma/generated/client.js';
 import type { TestRunGetPayload } from '../prisma/generated/models/TestRun.js';
 import {
+  type RunDeviceSnapshotDto,
   type RunMeasurementDto,
   type RunRequestedByDto,
   RunSnapshotDto,
@@ -11,7 +12,7 @@ import {
 /**
  * The immutable run read shape shared by the run snapshot and comparison
  * endpoints. Only copied run/step fields are selected; no query joins back to
- * the live plan.
+ * the live plan or live device.
  */
 export const RUN_SNAPSHOT_SELECT = {
   id: true,
@@ -20,6 +21,9 @@ export const RUN_SNAPSHOT_SELECT = {
   planNameSnapshot: true,
   versionNumberSnapshot: true,
   profileSnapshot: true,
+  deviceId: true,
+  deviceSnapshot: true,
+  batchNumber: true,
   scenario: true,
   seed: true,
   errorProbability: true,
@@ -87,6 +91,9 @@ export function toRunSnapshotDto(run: RunSnapshotRow): RunSnapshotDto {
     planName: run.planNameSnapshot,
     versionNumber: run.versionNumberSnapshot,
     profile: readProfileSnapshot(run.profileSnapshot),
+    deviceId: run.deviceId,
+    deviceSnapshot: readDeviceSnapshot(run.deviceSnapshot),
+    batchNumber: run.batchNumber,
     scenario: run.scenario,
     seed: readSeed(run.seed),
     errorProbability: run.errorProbability?.toFixed(6) ?? null,
@@ -189,6 +196,35 @@ export function readProfileSnapshot(value: Prisma.JsonValue): {
     name,
     description: typeof description === 'string' ? description : null,
   };
+}
+
+/**
+ * Reads the device values copied at start. A SQL NULL (legacy or device-less
+ * run) is an explicit null; a corrupt JSON object fails closed.
+ */
+export function readDeviceSnapshot(
+  value: Prisma.JsonValue | null,
+): RunDeviceSnapshotDto | null {
+  if (value === null) {
+    return null;
+  }
+
+  if (!isJsonObject(value)) {
+    throw new Error('The stored run device snapshot is not a JSON object.');
+  }
+
+  const { id, name, serialNumber, deviceProfileId } = value;
+
+  if (
+    typeof id !== 'string' ||
+    typeof name !== 'string' ||
+    typeof serialNumber !== 'string' ||
+    typeof deviceProfileId !== 'string'
+  ) {
+    throw new Error('The stored run device snapshot is incomplete.');
+  }
+
+  return { id, name, serialNumber, deviceProfileId };
 }
 
 /**

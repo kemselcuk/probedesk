@@ -3,6 +3,11 @@ import type { FieldError } from '../common/errors/field-error.js';
 import { ValidationFailedException } from '../common/errors/validation.exception.js';
 import { parseScaledDecimal } from '../plans/plan-decimal.js';
 import { RunScenario } from '../prisma/generated/client.js';
+import {
+  BATCH_NUMBER_MAX_LENGTH,
+  BATCH_NUMBER_PATTERN,
+  normalizeRunBatch,
+} from './run-metadata.js';
 import { MAX_RUN_SEED } from './run-domain.js';
 
 /**
@@ -19,6 +24,8 @@ export interface RunStartInput {
   seed: number;
   failureStepId?: string | null;
   errorProbability?: string | null;
+  deviceId?: string | null;
+  batchNumber?: string | null;
 }
 
 /**
@@ -31,6 +38,13 @@ export interface NormalizedRunStart {
   seed: number;
   failureStepId: string | null;
   errorProbability: string | null;
+  /**
+   * Optional so the historical no-metadata fixture shape remains assignable.
+   * Absent values are the same canonical state as null and hash as v1.
+   */
+  deviceId?: string | null;
+  batchNumber?: string | null;
+  batchNumberKey?: string | null;
 }
 
 /**
@@ -78,6 +92,8 @@ export function normalizeRunStart(input: RunStartInput): NormalizedRunStart {
     'failureStepId',
     issues,
   );
+  const deviceId = normalizeUuid(input.deviceId, 'deviceId', issues);
+  const batch = normalizeBatch(input.batchNumber, issues);
   const hasErrorProbability =
     input.errorProbability !== undefined && input.errorProbability !== null;
   let errorProbability: string | null = null;
@@ -194,23 +210,43 @@ export function normalizeRunStart(input: RunStartInput): NormalizedRunStart {
     seed: input.seed,
     failureStepId,
     errorProbability,
+    deviceId,
+    batchNumber: batch.batchNumber,
+    batchNumberKey: batch.batchNumberKey,
   };
 }
 
 /**
- * The stable digest of the normalized request. The explicit version marker and
- * fixed array order mean an algorithm change can be detected instead of
- * silently treating an existing key as a different request.
+ * The stable digest of the normalized request. Requests without device/batch
+ * metadata keep the exact v1 marker and array the historical implementation
+ * used. Metadata requests use a separate marker and only canonical values;
+ * current device names and serial numbers are never hash inputs.
  */
 export function hashRunStartRequest(request: NormalizedRunStart): string {
-  const canonical = JSON.stringify([
-    'probedesk-run-start-v1',
-    request.planVersionId,
-    request.scenario,
-    request.seed,
-    request.failureStepId,
-    request.errorProbability,
-  ]);
+  const deviceId = request.deviceId ?? null;
+  const batchNumberKey = request.batchNumberKey ?? null;
+  const hasMetadata = deviceId !== null || batchNumberKey !== null;
+  const canonical = JSON.stringify(
+    hasMetadata
+      ? [
+          'probedesk-run-start-v2',
+          request.planVersionId,
+          request.scenario,
+          request.seed,
+          request.failureStepId,
+          request.errorProbability,
+          deviceId,
+          batchNumberKey,
+        ]
+      : [
+          'probedesk-run-start-v1',
+          request.planVersionId,
+          request.scenario,
+          request.seed,
+          request.failureStepId,
+          request.errorProbability,
+        ],
+  );
 
   return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }
@@ -234,6 +270,47 @@ function normalizeUuid(
   }
 
   return value.toLowerCase();
+}
+
+/**
+ * Batch metadata is optional. Trimming happens before the ASCII/limit check,
+ * the display value keeps its case, and only the uppercase key is hashed.
+ */
+function normalizeBatch(
+  value: unknown,
+  issues: FieldError[],
+): { batchNumber: string | null; batchNumberKey: string | null } {
+  if (value === undefined || value === null) {
+    return { batchNumber: null, batchNumberKey: null };
+  }
+
+  if (typeof value !== 'string') {
+    issues.push({
+      path: 'batchNumber',
+      code: 'INVALID_TYPE',
+      message: 'batchNumber must be a string or null',
+    });
+    return { batchNumber: null, batchNumberKey: null };
+  }
+
+  const batch = normalizeRunBatch(value);
+  if (batch.batchNumber === null) {
+    return batch;
+  }
+
+  if (
+    batch.batchNumber.length > BATCH_NUMBER_MAX_LENGTH ||
+    !BATCH_NUMBER_PATTERN.test(batch.batchNumber)
+  ) {
+    issues.push({
+      path: 'batchNumber',
+      code: 'INVALID_VALUE',
+      message: `batchNumber must be 1 to ${BATCH_NUMBER_MAX_LENGTH} characters using ASCII letters, digits and ._:/- after trimming`,
+    });
+    return { batchNumber: null, batchNumberKey: null };
+  }
+
+  return batch;
 }
 
 const UUID_PATTERN =

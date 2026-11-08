@@ -2,6 +2,7 @@ import { parseScaledDecimal } from '../plans/plan-decimal.js';
 import {
   type RunSnapshotRow,
   type RunSnapshotStepRow,
+  readDeviceSnapshot,
   readProfileSnapshot,
   readSeed,
   readStoredStatistics,
@@ -123,6 +124,9 @@ function toRunSummary(run: RunSnapshotRow): ComparisonRunSummaryDto {
     planName: run.planNameSnapshot,
     versionNumber: run.versionNumberSnapshot,
     profile: readProfileSnapshot(run.profileSnapshot),
+    deviceId: run.deviceId,
+    deviceSnapshot: readDeviceSnapshot(run.deviceSnapshot),
+    batchNumber: run.batchNumber,
     scenario: run.scenario,
     seed: readSeed(run.seed),
     errorProbability: run.errorProbability?.toFixed(6) ?? null,

@@ -21,6 +21,6 @@ describe('sanitizeReturnUrl', () => {
     '/login',
     '/login?returnUrl=%2Fplans',
   ])('rejects an unsafe or looping destination: %s', (value) => {
-    expect(sanitizeReturnUrl(value)).toBe('/plans');
+    expect(sanitizeReturnUrl(value)).toBe('/overview');
   });
 });

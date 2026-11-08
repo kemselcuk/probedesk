@@ -1,7 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, TitleStrategy, provideRouter, withDisabledInitialNavigation } from '@angular/router';
+import {
+  Router,
+  TitleStrategy,
+  provideRouter,
+  withDisabledInitialNavigation,
+} from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../../app.routes';
@@ -175,6 +180,7 @@ describe('PlanVersionPage', () => {
     expect(root.querySelector('input')).toBeNull();
     expect(root.querySelector('textarea')).toBeNull();
     expect(root.querySelector('select')).toBeNull();
+    expect(root.querySelector('app-copy-plan-button')).toBeNull();
     expect(root.querySelector('#start-new-draft-button')).toBeNull();
     expect(root.textContent).not.toContain('Start new draft');
 
@@ -183,6 +189,40 @@ describe('PlanVersionPage', () => {
     expect(back?.textContent).toContain('Back to plans');
 
     expect(http.match(`/api/plans/${PLAN_ID}`)).toHaveLength(0);
+  });
+
+  it('reloads the published source when the router reuses the page', async () => {
+    const harness = await open('VIEWER');
+    const http = TestBed.inject(HttpTestingController);
+    flushVersionAndPublisher(http);
+    await harness.fixture.whenStable();
+    const nextId = '99999999-9999-4999-8999-999999999999';
+    await harness.navigateByUrl(`/plans/${PLAN_ID}/versions/${nextId}`);
+    http
+      .expectOne(`/api/plan-versions/${nextId}`)
+      .flush({ ...VERSION_DETAIL, id: nextId, name: 'Updated source', versionNumber: 3 });
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    expect(rootOf(harness).querySelector('h1')?.textContent).toContain('Updated source');
+    expect(rootOf(harness).textContent).toContain('Version 3');
+  });
+
+  it('keeps the selected device on links to other published versions', async () => {
+    const harness = await open('VIEWER');
+    const http = TestBed.inject(HttpTestingController);
+    flushVersionAndPublisher(http, [
+      ...VERSION_LIST,
+      { ...VERSION_LIST[0], id: '88888888-8888-4888-8888-888888888888', versionNumber: 1 },
+    ]);
+    await harness.fixture.whenStable();
+    const id = '99999999-9999-4999-8999-999999999999';
+    await harness.navigateByUrl(url() + '?deviceId=' + id);
+    harness.detectChanges();
+    const links = rootOf(harness).querySelectorAll<HTMLAnchorElement>(
+      'app-plan-version-page a[href*="/versions/"]',
+    );
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) expect(link.getAttribute('href')).toContain('deviceId=' + id);
   });
 
   it('offers an Operator a Start run link for this published version', async () => {
@@ -194,30 +234,28 @@ describe('PlanVersionPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
+    expect(root.querySelector('app-copy-plan-button')).toBeNull();
     const startRun = root.querySelector<HTMLAnchorElement>('#start-run-link');
     expect(startRun?.textContent).toContain('Start run');
     expect(startRun?.getAttribute('href')).toBe(`/runs/new?versionId=${VERSION_ID}`);
     expect(http.match(`/api/plans/${PLAN_ID}`)).toHaveLength(0);
   });
 
-  it.each(['PLANNER', 'VIEWER'] as const)(
-    'does not offer %s a Start run link',
-    async (role) => {
-      const harness = await open(role);
-      const root = rootOf(harness);
-      const http = TestBed.inject(HttpTestingController);
+  it.each(['PLANNER', 'VIEWER'] as const)('does not offer %s a Start run link', async (role) => {
+    const harness = await open(role);
+    const root = rootOf(harness);
+    const http = TestBed.inject(HttpTestingController);
 
-      flushVersionAndPublisher(http);
-      if (role === 'PLANNER') {
-        http.expectOne(`/api/plans/${PLAN_ID}`).flush(PLAN_WITHOUT_DRAFT);
-      }
-      await harness.fixture.whenStable();
-      harness.detectChanges();
+    flushVersionAndPublisher(http);
+    if (role === 'PLANNER') {
+      http.expectOne(`/api/plans/${PLAN_ID}`).flush(PLAN_WITHOUT_DRAFT);
+    }
+    await harness.fixture.whenStable();
+    harness.detectChanges();
 
-      expect(root.querySelector('#start-run-link')).toBeNull();
-      expect(root.textContent).not.toContain('Start run');
-    },
-  );
+    expect(root.querySelector('#start-run-link')).toBeNull();
+    expect(root.textContent).not.toContain('Start run');
+  });
 
   it('offers a Planner a new draft when no draft is open and navigates to the editor', async () => {
     const harness = await open('PLANNER');
@@ -229,6 +267,7 @@ describe('PlanVersionPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
+    expect(root.querySelectorAll('app-copy-plan-button')).toHaveLength(1);
     const start = root.querySelector<HTMLButtonElement>('#start-new-draft-button');
     expect(start?.disabled).toBe(false);
     expect(root.textContent).toContain('This version cannot be edited.');
@@ -302,9 +341,9 @@ describe('PlanVersionPage', () => {
     const draftLinks = Array.from(
       page.querySelectorAll<HTMLAnchorElement>(`a[href="/plans/${PLAN_ID}/edit"]`),
     );
-    expect(
-      draftLinks.some((link) => link.textContent?.includes('Continue editing draft')),
-    ).toBe(true);
+    expect(draftLinks.some((link) => link.textContent?.includes('Continue editing draft'))).toBe(
+      true,
+    );
   });
 
   it('shows not found and renders nothing when the version belongs to another plan', async () => {
