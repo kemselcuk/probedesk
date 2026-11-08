@@ -9,7 +9,7 @@ let registered = false;
  *
  * Controllers, scales, and the annotation/zoom plugins are registered exactly
  * once. Feature code must never call `Chart.register` itself; it constructs
- * charts through `ChartJsMeasurementChartFactory`, which calls this function.
+ * charts through feature chart factories, which call this function.
  */
 export function registerChartJs(): void {
   if (registered) {

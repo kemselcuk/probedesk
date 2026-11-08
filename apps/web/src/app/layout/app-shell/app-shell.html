@@ -27,7 +27,7 @@
       </button>
     }
 
-    <a class="product-name" routerLink="/plans">ProbeDesk</a>
+    <a class="product-name" routerLink="/overview">ProbeDesk</a>
     <span class="toolbar-spacer" aria-hidden="true"></span>
     <span class="user-session" aria-live="polite">
       @if (userEmail(); as email) {
@@ -62,6 +62,16 @@
               (click)="closeNavigationOnNavigate()"
             >
               @switch (item.icon) {
+                @case ('overview') {
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path
+                      d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.7"
+                    />
+                  </svg>
+                }
                 @case ('plans') {
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path

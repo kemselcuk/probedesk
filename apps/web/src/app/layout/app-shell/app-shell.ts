@@ -25,10 +25,11 @@ import { UnsavedChangesService } from '../../core/navigation/unsaved-changes.ser
 interface NavigationItem {
   readonly path: string;
   readonly label: string;
-  readonly icon: 'plans' | 'history' | 'compare' | 'devices';
+  readonly icon: 'plans' | 'history' | 'compare' | 'devices' | 'overview';
 }
 
 const NAVIGATION_ITEMS: readonly NavigationItem[] = [
+  { path: '/overview', label: 'Overview', icon: 'overview' },
   { path: '/plans', label: 'Test Plans', icon: 'plans' },
   { path: '/devices', label: 'Devices', icon: 'devices' },
   { path: '/runs', label: 'Run History', icon: 'history' },

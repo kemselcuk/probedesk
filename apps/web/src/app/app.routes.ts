@@ -21,7 +21,13 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'plans',
+        redirectTo: 'overview',
+      },
+      {
+        path: 'overview',
+        title: 'Overview',
+        loadComponent: () =>
+          import('./features/overview/overview-page').then((module) => module.OverviewPage),
       },
       {
         path: 'plans',

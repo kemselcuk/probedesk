@@ -1,3 +1,4 @@
+import { overviewFixture } from '../overview/testing/overview-fixtures';
 import { provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -281,7 +282,7 @@ describe('LoginPage', () => {
     expect(root.textContent).toContain('The password does not match.');
   });
 
-  it('rejects an external return URL and falls back to Test Plans', async () => {
+  it('rejects an external return URL and falls back to Overview', async () => {
     const harness = await openLogin('//evil.example/steal');
     const root = rootOf(harness);
     const http = TestBed.inject(HttpTestingController);
@@ -297,7 +298,9 @@ describe('LoginPage', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(TestBed.inject(Router).url).toBe('/plans');
+    const analytics=http.expectOne(request=>request.url==='/api/analytics/overview');
+    analytics.flush(overviewFixture({from:analytics.request.params.get('from')!,to:analytics.request.params.get('to')!},true));
+    expect(TestBed.inject(Router).url).toContain('/overview?');
   });
 
   it('toggles password visibility with an accessible control', async () => {
