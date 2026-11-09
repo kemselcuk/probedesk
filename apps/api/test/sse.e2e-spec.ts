@@ -35,7 +35,11 @@ import {
   type PublishedRunFixture,
 } from './support/run-helpers.js';
 import { ControlledRunScheduler } from './support/run-schedulers.js';
-import { openSse, type SseConnection, type SseFrame } from './support/sse-client.js';
+import {
+  openSse,
+  type SseConnection,
+  type SseFrame,
+} from './support/sse-client.js';
 
 interface ClientSession {
   cookie: string;
@@ -59,6 +63,20 @@ const STREAM_OPTIONS = {
   pollIntervalMs: 20,
   heartbeatIntervalMs: 60,
   batchSize: 4,
+  maxConnectionsPerUser: 5,
+  maxConnectionsTotal: 100,
+} as const;
+
+const LIMITED_STREAM_OPTIONS = {
+  ...STREAM_OPTIONS,
+  maxConnectionsPerUser: 1,
+  maxConnectionsTotal: 10,
+} as const;
+
+const TOTAL_LIMITED_STREAM_OPTIONS = {
+  ...STREAM_OPTIONS,
+  maxConnectionsPerUser: 5,
+  maxConnectionsTotal: 1,
 } as const;
 
 function runKey(): string {
@@ -256,7 +274,9 @@ describe('run event SSE stream (e2e)', () => {
         break;
       }
       if (Date.now() > deadline) {
-        throw new Error('Timed out driving the paused run to a terminal status.');
+        throw new Error(
+          'Timed out driving the paused run to a terminal status.',
+        );
       }
 
       if (scheduler.pendingCount > 0) {
@@ -432,7 +452,10 @@ describe('run event SSE stream (e2e)', () => {
     await connection.waitForClose();
 
     expect(connection.statusCode).toBe(200);
-    expectReplayMatches(connection, events.filter((event) => event.sequence > 3));
+    expectReplayMatches(
+      connection,
+      events.filter((event) => event.sequence > 3),
+    );
     expect(connection.frames.slice(0, 1)[0]?.id).toBe('4');
   });
 
@@ -539,7 +562,9 @@ describe('run event SSE stream (e2e)', () => {
       'the paused executor to claim the run',
     );
 
-    const connection = await openStream(started.runId, operator, { after: '0' });
+    const connection = await openStream(started.runId, operator, {
+      after: '0',
+    });
     await connection.waitForEventCount(1);
     expect(eventFrames(connection)[0]?.id).toBe('1');
 
@@ -566,7 +591,9 @@ describe('run event SSE stream (e2e)', () => {
       'the paused executor to claim the run',
     );
 
-    const connection = await openStream(started.runId, operator, { after: '0' });
+    const connection = await openStream(started.runId, operator, {
+      after: '0',
+    });
     await connection.waitForEventCount(1);
 
     const before = await prisma.runEvent.count({
@@ -578,9 +605,9 @@ describe('run event SSE stream (e2e)', () => {
     });
 
     expect(after).toBe(before);
-    expect(connection.comments.some((value) => value.includes('heartbeat'))).toBe(
-      true,
-    );
+    expect(
+      connection.comments.some((value) => value.includes('heartbeat')),
+    ).toBe(true);
     expect(eventFrames(connection)).toHaveLength(1);
     expect(connection.frames.some((frame) => frame.id === null)).toBe(true);
 
@@ -599,7 +626,9 @@ describe('run event SSE stream (e2e)', () => {
       'the paused executor to claim the run',
     );
 
-    const connection = await openStream(started.runId, operator, { after: '0' });
+    const connection = await openStream(started.runId, operator, {
+      after: '0',
+    });
     await connection.waitForEventCount(1);
     expect(runEvents.activeStreamCount).toBe(1);
 
@@ -676,6 +705,195 @@ describe('run event SSE stream (e2e)', () => {
 
     const status = await driveToTerminal(started.runId);
     expect(status).toBe(RunStatus.COMPLETED);
+  });
+
+  it('rejects a second stream for the same user when the per-user cap is reached', async () => {
+    const limitedApp = await createTestApplication(
+      {},
+      {
+        overrides: [
+          {
+            provide: RUN_EVENT_STREAM_OPTIONS,
+            useValue: LIMITED_STREAM_OPTIONS,
+          },
+        ],
+      },
+    );
+    const limitedConnections = new Set<SseConnection>();
+    let limitedRunEvents: RunEventsService | null = null;
+
+    try {
+      await limitedApp.listen(0, '127.0.0.1');
+      const address = limitedApp.getHttpServer().address() as AddressInfo;
+      const limitedBaseUrl = `http://127.0.0.1:${address.port}`;
+      const service = limitedApp.get(RunEventsService);
+      limitedRunEvents = service;
+
+      scheduler.setMode('paused');
+      const started = await startRun();
+      await waitFor(
+        () => executor.activeExecutionCount === 1,
+        'the paused executor to claim the run',
+      );
+
+      const first = await openSse(
+        `${limitedBaseUrl}/api/runs/${started.runId}/events?after=0`,
+        { cookie: operator.cookie },
+      );
+      limitedConnections.add(first);
+      await first.waitForEventCount(1);
+
+      expect(first.statusCode).toBe(200);
+      expect(first.headers['content-type']).toContain('text/event-stream');
+      expect(service.activeStreamCount).toBe(1);
+      expect(service.activeStreamCountForUser(operatorUser.id)).toBe(1);
+
+      const rejected = await request(limitedApp.getHttpServer())
+        .get(`/api/runs/${started.runId}/events?after=0`)
+        .set('Accept', 'text/event-stream')
+        .set('Cookie', operator.cookie)
+        .expect(429);
+
+      expect(rejected.headers['content-type']).toContain('application/json');
+      expect(rejected.headers['content-type']).not.toContain(
+        'text/event-stream',
+      );
+      expect(rejected.body).toMatchObject({
+        code: 'TOO_MANY_REQUESTS',
+        message:
+          'Too many active event streams. Close another stream and retry.',
+        requestId: expect.any(String),
+        details: { scope: 'user', limit: 1, activeStreams: 1 },
+      });
+      expect(service.activeStreamCount).toBe(1);
+
+      first.abort();
+      limitedConnections.delete(first);
+      await waitFor(
+        () => service.activeStreamCount === 0,
+        'the aborted stream to release its per-user capacity',
+      );
+      expect(service.activeStreamCountForUser(operatorUser.id)).toBe(0);
+
+      const reconnected = await openSse(
+        `${limitedBaseUrl}/api/runs/${started.runId}/events?after=0`,
+        { cookie: operator.cookie },
+      );
+      limitedConnections.add(reconnected);
+      await reconnected.waitForEventCount(1);
+
+      expect(reconnected.statusCode).toBe(200);
+      expect(reconnected.headers['content-type']).toContain(
+        'text/event-stream',
+      );
+
+      reconnected.abort();
+      limitedConnections.delete(reconnected);
+      await waitFor(
+        () => service.activeStreamCount === 0,
+        'the reconnected stream to close before cleanup',
+      );
+
+      const status = await driveToTerminal(started.runId);
+      expect(status).toBe(RunStatus.COMPLETED);
+    } finally {
+      for (const connection of limitedConnections) {
+        connection.abort();
+      }
+      limitedConnections.clear();
+
+      if (limitedRunEvents) {
+        const service = limitedRunEvents;
+        await waitFor(
+          () => service.activeStreamCount === 0,
+          'the limited app to release every stream before close',
+        );
+      }
+
+      await limitedApp.close();
+    }
+  });
+
+  it('rejects another user when the process-wide stream cap is reached', async () => {
+    const totalLimitedApp = await createTestApplication(
+      {},
+      {
+        overrides: [
+          {
+            provide: RUN_EVENT_STREAM_OPTIONS,
+            useValue: TOTAL_LIMITED_STREAM_OPTIONS,
+          },
+        ],
+      },
+    );
+    const totalLimitedConnections = new Set<SseConnection>();
+    let totalLimitedRunEvents: RunEventsService | null = null;
+
+    try {
+      await totalLimitedApp.listen(0, '127.0.0.1');
+      const address = totalLimitedApp.getHttpServer().address() as AddressInfo;
+      const totalLimitedBaseUrl = `http://127.0.0.1:${address.port}`;
+      const service = totalLimitedApp.get(RunEventsService);
+      totalLimitedRunEvents = service;
+
+      scheduler.setMode('paused');
+      const started = await startRun();
+      await waitFor(
+        () => executor.activeExecutionCount === 1,
+        'the paused executor to claim the run',
+      );
+
+      const first = await openSse(
+        `${totalLimitedBaseUrl}/api/runs/${started.runId}/events?after=0`,
+        { cookie: operator.cookie },
+      );
+      totalLimitedConnections.add(first);
+      await first.waitForEventCount(1);
+
+      expect(first.statusCode).toBe(200);
+      expect(service.activeStreamCount).toBe(1);
+
+      const rejected = await request(totalLimitedApp.getHttpServer())
+        .get(`/api/runs/${started.runId}/events?after=0`)
+        .set('Accept', 'text/event-stream')
+        .set('Cookie', planner.cookie)
+        .expect(429);
+
+      expect(rejected.headers['content-type']).toContain('application/json');
+      expect(rejected.body).toMatchObject({
+        code: 'TOO_MANY_REQUESTS',
+        message:
+          'Too many active event streams. Close another stream and retry.',
+        requestId: expect.any(String),
+        details: { scope: 'total', limit: 1, activeStreams: 1 },
+      });
+      expect(service.activeStreamCount).toBe(1);
+
+      first.abort();
+      totalLimitedConnections.delete(first);
+      await waitFor(
+        () => service.activeStreamCount === 0,
+        'the aborted stream to release the process-wide capacity',
+      );
+
+      const status = await driveToTerminal(started.runId);
+      expect(status).toBe(RunStatus.COMPLETED);
+    } finally {
+      for (const connection of totalLimitedConnections) {
+        connection.abort();
+      }
+      totalLimitedConnections.clear();
+
+      if (totalLimitedRunEvents) {
+        const service = totalLimitedRunEvents;
+        await waitFor(
+          () => service.activeStreamCount === 0,
+          'the total-limited app to release every stream before close',
+        );
+      }
+
+      await totalLimitedApp.close();
+    }
   });
 });
 
