@@ -22,7 +22,7 @@ Aşamalar sırayla kabul edilir; bir görev ayrıca kartındaki bağımlılıkla
 | 7     | Bütünleşik kalite ve CI               | 6            | Accepted         |
 | 8     | Yerel teslim ve kanıt                 | 6            | In Review        |
 
-İlk ürün paketi 62 görevdir; 10 UI ve 13 EX ek kartıyla güncel toplam **85 görev**. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
+İlk ürün paketi 62 görevdir; 10 UI, 13 EX ve 1 SEC ek kartıyla güncel toplam **86 görev**. Bütün görevler için ek altyapı maliyeti €0 hedefidir. Maliyet koşulları [mimaride](architecture.md#maliyet-ve-teslim-sinirlari) tanımlıdır.
 
 ## Aşama 0 — Ürün ve teknik sözleşmeler
 
@@ -190,3 +190,7 @@ UI-10: Grafana tablo referansına göre içerik genişliği, veri hizası ve pan
 Kullanıcı `feat/analytics-reporting-devices` branchinde uygulamayı başlattı. [Paket sözleşmesi](feature-pack-1-plan.md), [kartlar](tasks/README.md#özellik-paketi-1--2026-11-06). EX-01/EX-02/EX-03/EX-04/EX-06/EX-08/EX-10 Accepted; EX-05/EX-07/EX-09/EX-11 In Review; EX-12 In Progress (E2E ve edge testleri geçti; native zoom/OS print açık); EX-13 In Progress (upgrade/teslim kanıtı mevcut; son CI/merge hazırlanıyor). Sıra: sözleşme → şema → cihaz/run metadata ve plan copy → analytics/report → frontend entegrasyonu → gerçek E2E ve bağımsız inceleme/teslim. Ayrı dosya sahiplerinde bağımsız kartlar paralel; her worker tek kart. Kullanıcı 2026-11-08 tarihinde son kontroller sonrası PR/main merge yetkisini ayrıca verdi; ürün kabulü ayrı kalır.
 
 2026-11-08 EX-08 teknik kabul: ayrı review sonrası düşük test boşlukları kapatıldı. Worker dev5434 yazma ihlali ve cleanup sınırı [EX-08 kanıtında](evidence/feature-pack-1/ex-08.md) korunur; önce/sonra tam fingerprint yoktur, dev/delivery veri bütünlüğü kanıtlanmış sayılmaz.
+
+## Güvenlik sertleştirmesi — 2026-11-09
+
+[SEC-01 — Güvenlik sertleştirmesi: proxy hız sınırı, başlıklar, SSE ve bağımlılıklar](tasks/SEC-01.md) — Entegrasyon; **In Review**. `TRUST_PROXY` + nginx `X-Forwarded-For`, API/statik güvenlik başlıkları ve SPA CSP, SSE kullanıcı başına 5 / süreç toplamı 100, production'da kapalı Swagger, `zod`/`@nestjs/cli`/`concurrently` yükseltmeleri ve CI production audit adımı. Worker C unit/lint/typecheck/audit sonuçları ve lead’in tam API e2e (29 dosya / 283 test), `npm run verify`, Docker delivery header/proxy ve gerçek Chrome CSP kontrolleri [kanıtta](evidence/security-hardening.md) kayıtlı. Bağımsız teknik inceleme, görev kabulü ve ürün kabulü verilmedi.
