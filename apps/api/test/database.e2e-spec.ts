@@ -129,6 +129,62 @@ describe('PostgreSQL schema and migrations (e2e)', () => {
     expect(text).not.toContain('Sort');
   });
 
+  it('provides the reviewed analytics covering indexes and access paths', async () => {
+    const indexes = await prisma.$queryRaw<
+      Array<{ indexname: string; indexdef: string }>
+    >`
+      SELECT indexname, indexdef
+      FROM pg_indexes
+      WHERE schemaname = current_schema()
+        AND indexname IN (
+          'test_runs_startedAt_id_idx',
+          'run_steps_completed_analytics_idx'
+        )
+      ORDER BY indexname
+    `;
+
+    const historyIndex = indexes.find(
+      (index) => index.indexname === 'test_runs_startedAt_id_idx',
+    );
+    expect(historyIndex).toBeDefined();
+    // Key columns stay the same so history ordering keeps its access path;
+    // the INCLUDE columns make the analytics summary/trend index-only.
+    expect(historyIndex?.indexdef).toContain(
+      '("startedAt" DESC, id DESC) INCLUDE (status, outcome, "finishedAt")',
+    );
+
+    const stepIndex = indexes.find(
+      (index) => index.indexname === 'run_steps_completed_analytics_idx',
+    );
+    expect(stepIndex).toBeDefined();
+    expect(stepIndex?.indexdef).toContain(
+      '("runId", "logicalStepId", unit) INCLUDE (name, outcome)',
+    );
+    expect(stepIndex?.indexdef).toContain("WHERE (status = 'COMPLETED'");
+
+    // Capability, not cost-based selection: the tiny fixture cannot reproduce
+    // the 20,000-run measurement, and a freshly loaded table has no visibility
+    // map, so PostgreSQL may pick another startedAt index here. This only
+    // guards that the summary predicate keeps an index path and does not fall
+    // back to a sequential scan; the INCLUDE shape is asserted above.
+    const plan = await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SET LOCAL enable_seqscan = off');
+      return tx.$queryRawUnsafe<Array<Record<string, string>>>(
+        `EXPLAIN (COSTS OFF)
+         SELECT count(*)::int,
+                count(*) FILTER (WHERE status = 'COMPLETED')::int,
+                count(*) FILTER (WHERE status = 'COMPLETED' AND outcome = 'PASSED')::int
+         FROM "test_runs"
+         WHERE "startedAt" >= now() - interval '30 days'
+           AND "startedAt" < now() + interval '1 day'`,
+      );
+    });
+    const planText = plan.map((row) => Object.values(row)[0] ?? '').join('\n');
+
+    expect(planText).toContain('Index');
+    expect(planText).not.toContain('Seq Scan');
+  });
+
   it('persists a device profile across independent connections', async () => {
     const suffix = randomUUID();
     const code = `${codePrefix}${suffix}`;

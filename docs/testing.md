@@ -8,13 +8,14 @@ REQ-23–31.
 
 ## Test katmanları
 
-| Katman                 | Araç yaklaşımı                                   | Doğrulanacak davranış                                      | Durum ve kanıt                                                                                                                                   |
-| ---------------------- | ------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Backend birim          | Vitest; kontrollü saat/PRNG                      | kesin sayılar, değerlendirme, geçişler, üretim             | **Uygulandı.** Son koşu: 16 dosya / 118 test ([verify](evidence/phase-8-docs.md))                                                                |
-| Backend entegrasyon    | Vitest + Supertest + gerçek PostgreSQL           | transaction, FK/unique, yarış, auth, snapshot, SSE         | **Uygulandı.** Son koşu: 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                             |
-| Angular bileşen/servis | Vitest, TestBed, Material Harnesses              | form/sıralama, HTTP hatası, RxJS reducer ve lifecycle      | **Uygulandı.** Son koşu: 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                             |
-| Uçtan uca              | Playwright, gerçek Angular/API/PG, gerçek Chrome | ana demo, canvas, oturum, reconnect ve route davranışı     | **Uygulandı.** 2 senaryo geçti ([UI-08](evidence/ui-refresh/ui-08.md); önceki [P7-01](evidence/phase-7-e2e.md), [P7-06](evidence/phase-7-ci.md)) |
-| Teslim                 | Docker Compose temiz kurulum                     | migration, seed, kalıcılık, proxy/SSE ve doküman komutları | **Uygulandı.** Boş DB + `down`/`up` ([P8-03](evidence/phase-8-clean-install.md))                                                                 |
+| Katman                  | Araç yaklaşımı                                   | Doğrulanacak davranış                                      | Durum ve kanıt                                                                                                                                   |
+| ----------------------- | ------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backend birim           | Vitest; kontrollü saat/PRNG                      | kesin sayılar, değerlendirme, geçişler, üretim             | **Uygulandı.** Son koşu: 19 dosya / 147 test ([verify](evidence/phase-8-docs.md))                                                                |
+| Backend entegrasyon     | Vitest + Supertest + gerçek PostgreSQL           | transaction, FK/unique, yarış, auth, snapshot, SSE         | **Uygulandı.** Son koşu: 29 dosya / 284 test; indeks şekli ve erişim yolu dahil ([performans](evidence/performance-review.md))                   |
+| Angular bileşen/servis  | Vitest, TestBed, Material Harnesses              | form/sıralama, HTTP hatası, RxJS reducer ve lifecycle      | **Uygulandı.** Son koşu: 45 dosya / 496 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                             |
+| Uçtan uca               | Playwright, gerçek Angular/API/PG, gerçek Chrome | ana demo, canvas, oturum, reconnect ve route davranışı     | **Uygulandı.** 2 senaryo geçti ([UI-08](evidence/ui-refresh/ui-08.md); önceki [P7-01](evidence/phase-7-e2e.md), [P7-06](evidence/phase-7-ci.md)) |
+| Okuma gecikmesi (smoke) | `npm run perf:benchmark`; gerçek HTTP            | history, analytics, snapshot, report ve comparison p95     | **Uygulandı.** 20.000 run fixture; ayrıntı ve sınırlar ([performans](evidence/performance-review.md))                                            |
+| Teslim                  | Docker Compose temiz kurulum                     | migration, seed, kalıcılık, proxy/SSE ve doküman komutları | **Uygulandı.** Boş DB + `down`/`up` ([P8-03](evidence/phase-8-clean-install.md))                                                                 |
 
 Prisma mock'u, veritabanı kısıtı/yarış testinin yerine geçmez. Canvas mock'u, gerçek
 zoom/tooltip/tıklama kanıtı değildir. Testler uygulama kodunu tekrar etmek yerine dışarıdan görülen
@@ -23,7 +24,9 @@ koymaz.
 
 Kapsam dışı bırakılan doğrulamalar açıkça belirtilir: Safari/Firefox ve fiziksel mobil cihaz
 tarayıcı testi yapılmadı; responsive kontroller gerçek Chrome'da 1280 px ve 768 px yerleşimlerle
-sınırlıdır. Coverage yüzdesi, performans benchmark'ı veya kapasite ölçümü iddia edilmez.
+sınırlıdır. Coverage yüzdesi, yük/eşzamanlılık testi, kapasite ölçümü veya alan (RUM) verisi
+iddia edilmez. Yerel read-latency smoke ölçümü 2026-11-09'da yapıldı; yöntem, gerçek sayılar ve
+sınırlar [performans kanıtında](evidence/performance-review.md) kayıtlıdır.
 
 ## Test matrisi
 
@@ -99,7 +102,7 @@ oluşturup temizler; paylaşılan E2E veritabanı koruması ayrı veritabanı ad
 
 Aşağıdaki giriş noktaları kök `package.json` içinde tanımlıdır. "Doğrulandı" satırları gerçekten
 çalıştırılmış ve çıktısı kanıta bağlanmış komutlardır; kısmi/çalıştırılmamış olanlar açıkça
-işaretlidir. Son tam yerel doğrulama 2026-11-05 tarihinde bu çalışma ağacında yapıldı.
+işaretlidir. Son tam yerel doğrulama 2026-11-09 tarihinde bu çalışma ağacında yapıldı.
 
 | Komut                          | Durum                                           | Kanıt / not                                                                                                                                                         |
 | ------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -108,10 +111,11 @@ işaretlidir. Son tam yerel doğrulama 2026-11-05 tarihinde bu çalışma ağac�
 | `npm run lint`                 | Doğrulandı                                      | API 144, web 113, api-client 2 dosya; 0 uyarı, 0 hata ([verify](evidence/phase-8-docs.md))                                                                          |
 | `npm run typecheck`            | Doğrulandı                                      | API, web ve api-client temiz ([verify](evidence/phase-8-docs.md))                                                                                                   |
 | `npm run build`                | Doğrulandı                                      | API `nest build`; web production build başarılı ([verify](evidence/phase-8-docs.md))                                                                                |
-| `npm run test:api:unit`        | Doğrulandı                                      | 16 dosya / 118 test ([verify](evidence/phase-8-docs.md))                                                                                                            |
-| `npm run test:web`             | Doğrulandı                                      | 36 dosya / 385 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                                                                         |
-| `npm run test:api:integration` | Doğrulandı                                      | Gerçek `probedesk_test`; 22 dosya / 200 test ([UI-08](evidence/ui-refresh/ui-08.md))                                                                                |
+| `npm run test:api:unit`        | Doğrulandı                                      | 19 dosya / 147 test ([performans](evidence/performance-review.md))                                                                                                  |
+| `npm run test:web`             | Doğrulandı                                      | 45 dosya / 496 test ([performans](evidence/performance-review.md))                                                                                                  |
+| `npm run test:api:integration` | Doğrulandı                                      | Gerçek `probedesk_test`; 29 dosya / 284 test ([performans](evidence/performance-review.md))                                                                         |
 | `npm run test:e2e`             | Doğrulandı                                      | Gerçek Chrome/API/PG; 2 senaryo ([UI-08](evidence/ui-refresh/ui-08.md))                                                                                             |
+| `npm run perf:benchmark`       | Doğrulandı                                      | Çalışan API'ye karşı p50/p95; smoke bütçesi aşılırsa çıkış 1 ([performans](evidence/performance-review.md))                                                         |
 | `npm run openapi:check`        | Doğrulandı                                      | `OpenAPI contract is current` ([verify](evidence/phase-8-docs.md))                                                                                                  |
 | `npm run db:migrate`           | Doğrulandı                                      | Development DB'de kök komut ([Phase 2](evidence/phase-2-plans-api.md)); delivery migration logu ([P8-01](evidence/phase-8-compose.md))                              |
 | `npm run demo:seed`            | Doğrulandı                                      | İki kez çalıştırıldı; ikinci kez 0 yeni kayıt ([P8-02](evidence/phase-8-seed.md))                                                                                   |

@@ -21,6 +21,7 @@
     "test:api:integration": "npm run test:e2e --workspace apps/api",
     "test:web": "npm run test --workspace apps/web",
     "test:e2e": "playwright test",
+    "perf:benchmark": "node scripts/perf-benchmark.mjs",
     "openapi:emit": "npm run db:generate --workspace apps/api && npm run openapi:emit --workspace apps/api",
     "openapi:check": "node scripts/openapi-check.mjs",
     "db:migrate": "npm run db:migrate --workspace apps/api",

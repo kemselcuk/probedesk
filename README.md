@@ -196,9 +196,9 @@ More detail: [architecture](docs/architecture.md), [data model](docs/data-model.
 
 ## Quality checks
 
-The current verification run on 2026-11-04 produced: API unit `16` files / `118` tests, web
-`36` files / `370` tests, successful API and web production builds, and a current OpenAPI contract
-and generated client.
+The current verification run on 2026-11-09 produced: API unit `19` files / `147` tests, web
+`45` files / `496` tests, API integration `29` files / `284` tests, successful API and web
+production builds, and a current OpenAPI contract and generated client.
 
 ```bash
 npm run verify                 # lint, typecheck, API unit, web tests, builds, OpenAPI check
@@ -210,7 +210,15 @@ Integration tests use the isolated PostgreSQL container from `compose.test.yaml`
 ```bash
 docker compose -f compose.test.yaml up -d
 npm run db:migrate:test --workspace apps/api
-npm run test:api:integration   # 22 files / 197 tests in the recorded run
+npm run test:api:integration   # 29 files / 284 tests in the recorded run
+```
+
+The read-latency smoke benchmark logs in with a demo account against a running API, measures the
+read endpoints the UI waits on, and exits non-zero when a reviewed p95 budget is exceeded. It is a
+regression guard, not a capacity or SLA claim:
+
+```bash
+npm run perf:benchmark         # PROBEDESK_BENCH_URL overrides http://127.0.0.1:8080/api
 ```
 
 Playwright runs the main demo and comparison scenarios against the real Angular app, API,
@@ -224,6 +232,7 @@ npm run test:e2e               # 2 scenarios in the recorded run
 Recorded evidence:
 
 - [Full `verify` and integration output](docs/evidence/phase-8-docs.md)
+- [Read-path performance review and benchmark](docs/evidence/performance-review.md)
 - [Main demo E2E](docs/evidence/phase-7-e2e.md), [CI pipeline](docs/evidence/phase-7-ci.md)
 - [Clean compose install and persistence](docs/evidence/phase-8-clean-install.md)
 

@@ -28,17 +28,17 @@ kurulur. Öğretici dersler ve mülakat soru listeleri teslim kapsamına dahil d
 
 ## Mevcut durum ve doğrulanan gerçekler
 
-| Aşama | Durum | Not |
-|---|---|---|
-| P0 — ürün ve teknik sözleşmeler | In Review | Belgeler kullanımda; ürün kabulü değildir |
-| P1 — iskelet, giriş, ilk CI | Accepted | Teknik inceleme tamamlandı |
-| P2 — plan editörü ve sürümler | Accepted | v1/v2, publish ve immutable sürüm |
-| P3 — simülasyon ve yürütme | Accepted | NORMAL/FORCED_FAILURE/RANDOM, snapshot, cancel/recovery |
-| P4 — canlı durum ve SSE | Accepted | replay/cursor/reconnect ve oturum yaşam döngüsü |
-| P5 — geçmiş ve grafikler | Accepted | History, Details, tolerans grafikleri |
-| P6 — karşılaştırma | Accepted | Sürüm/kimlik/birim/örnekleme farkları |
-| P7 — bütünleşik kalite | Accepted | P7-01–P7-06; gerçek E2E ve CI koşusu kayıtlı |
-| P8 — yerel teslim | In Review | P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 kullanıcı kabulü bekliyor |
+| Aşama                           | Durum     | Not                                                                      |
+| ------------------------------- | --------- | ------------------------------------------------------------------------ |
+| P0 — ürün ve teknik sözleşmeler | In Review | Belgeler kullanımda; ürün kabulü değildir                                |
+| P1 — iskelet, giriş, ilk CI     | Accepted  | Teknik inceleme tamamlandı                                               |
+| P2 — plan editörü ve sürümler   | Accepted  | v1/v2, publish ve immutable sürüm                                        |
+| P3 — simülasyon ve yürütme      | Accepted  | NORMAL/FORCED_FAILURE/RANDOM, snapshot, cancel/recovery                  |
+| P4 — canlı durum ve SSE         | Accepted  | replay/cursor/reconnect ve oturum yaşam döngüsü                          |
+| P5 — geçmiş ve grafikler        | Accepted  | History, Details, tolerans grafikleri                                    |
+| P6 — karşılaştırma              | Accepted  | Sürüm/kimlik/birim/örnekleme farkları                                    |
+| P7 — bütünleşik kalite          | Accepted  | P7-01–P7-06; gerçek E2E ve CI koşusu kayıtlı                             |
+| P8 — yerel teslim               | In Review | P8-01–P8-04 Accepted; P8-05 kapsam dışı; P8-06 kullanıcı kabulü bekliyor |
 
 Doğrulanan başlıca çıktılar:
 
@@ -54,6 +54,9 @@ Doğrulanan başlıca çıktılar:
   önceki kayıtlar [CI kanıtı](evidence/phase-7-ci.md#gerçek-github-actions-koşusu-2026-11-04)).
 - Delivery, aynı origin nginx proxy'si üzerinden deep link, SSE ve oturum yenilemeyi doğruladı
   ([Compose kanıtı](evidence/phase-8-compose.md)).
+- Okuma uçları 20.000 run'lık sentetik hacimde ölçüldü; analytics covering indeksleri default
+  30 günlük dashboard p50'sini 18,7 → 13,5 ms'ye indirdi
+  ([performans incelemesi](evidence/performance-review.md); sınırlar aynı kayıtta).
 
 Açık işler:
 

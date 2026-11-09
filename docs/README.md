@@ -3,7 +3,7 @@
 Bu belge paketi, onaylanan ürün yaklaşımını, uygulama sözleşmelerini ve gerçek doğrulama
 kanıtlarını repository içinde saklar. Uygulama artık yalnızca bir iskelet değildir: plan/sürüm
 yönetimi, deterministik simülasyon, canlı SSE akışı, geçmiş/grafikler, run karşılaştırması ve
-yerel Docker Compose teslimi çalışır durumdadır. Son güncelleme: **2026-11-06**.
+yerel Docker Compose teslimi çalışır durumdadır. Son güncelleme: **2026-11-09**.
 
 ## Okuma sırası
 

@@ -43,6 +43,10 @@ gerçekten üretildiğinde eklenir.
   güvenlik başlıkları/CSP, SSE kapasitesi, production Swagger kapatma, bağımlılık yükseltmeleri
   ve CI production audit adımı; Worker C komutları, lead `verify`/e2e ve canlı delivery/browser
   kontrolleri.
+- [Performans incelemesi](performance-review.md): 20.000 run fixture'ında okuma uçları ölçüldü;
+  analytics top-failed ve summary/trend için covering indeksler eklendi (30 gün p50
+  18,7 → 13,5 ms), `npm run perf:benchmark` smoke harness'ı ve alınmayan denemelerin ledger'ı
+  kaydedildi.
 
 ## Kayıt biçimi
 

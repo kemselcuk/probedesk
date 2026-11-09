@@ -17,4 +17,5 @@ export const EXPECTED_MIGRATIONS: readonly string[] = [
   '20261103210000_run_history_index',
   '20261106120000_devices_and_copy_requests',
   '20261107120000_analytics_query_indexes',
+  '20261109120000_analytics_covering_indexes',
 ];

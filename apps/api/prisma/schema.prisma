@@ -325,6 +325,9 @@ model RunStep {
   measurements Measurement[]
 
   // (id, runId) lets Measurement prove that its runId matches the owning step.
+  // The analytics top-failed aggregate also uses the migration-only partial
+  // covering index "run_steps_completed_analytics_idx" (Prisma cannot express
+  // INCLUDE or the WHERE status = 'COMPLETED' predicate).
   @@unique([runId, position])
   @@unique([runId, logicalStepId])
   @@unique([id, runId])
