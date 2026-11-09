@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "ProbeDesk — versioned measurement plans, deterministic simulator, run comparison",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "packageManager": "npm@11.6.2",
   "engines": {
     "node": ">=22.22.3"

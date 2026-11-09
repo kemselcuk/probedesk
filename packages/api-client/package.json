@@ -2,6 +2,7 @@
   "name": "@probedesk/api-client",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Generated OpenAPI types for the ProbeDesk API",
   "exports": {

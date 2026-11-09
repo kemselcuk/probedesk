@@ -278,8 +278,9 @@ compose.test.yaml        Standalone isolated integration-test database
 - **Evidence is commit-scoped.** The release candidate `v0.1.0-rc.3` is commit `0d76dcf`; its
   six-job CI run is [41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810)
   (all green). Documentation-only follow-ups keep their own commit history.
-- **No coverage or performance claims.** Test counts and durations are reproduced from real
-  reports; no coverage percentage, benchmark, or capacity figure is claimed.
+- **No coverage or capacity claims.** Test counts are reproduced from real reports. A local
+  read-latency smoke benchmark exists (`npm run perf:benchmark`); it is a regression guard, not a
+  load test, capacity figure, or SLA.
 - **Zero additional infrastructure cost.** All delivered tooling is local/open source and CI uses
   the free standard runner; no paid service is enabled.
 
@@ -292,6 +293,10 @@ compose.test.yaml        Standalone isolated integration-test database
 - [Testing contract](docs/testing.md) — test matrix, verified commands, CI reality.
 - [Final acceptance checklist](docs/acceptance.md) — still awaiting user acceptance.
 - [Evidence index](docs/evidence/README.md) — real screenshots, test output, CI, delivery records.
+
+## License
+
+[MIT](LICENSE) © 2026 Kemal Selçuk.
 
 The application and user-facing messages are in English. The implementation and planning
 documents are in Turkish; identifiers and protocol names remain English.
