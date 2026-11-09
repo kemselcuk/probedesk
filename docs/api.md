@@ -138,6 +138,8 @@ Replay RunEvent tablosundan cursor sonrası sırayla okunur. Canlı takip de ayn
 
 Heartbeat SSE comment olarak 15 saniyede bir gönderilir ve domain sequence tüketmez. Bağlantı kapanınca DB takip döngüsü/timer kapanır. Bu cleanup test yürütücüsünü iptal etmez. Oturum expiry/revocation en geç sonraki yetki heartbeat kontrolünde akışı kapatır; frontend hata üzerine /auth/me ile oturumunu doğrular.
 
+Eşzamanlı akış sayısı kullanıcı başına 5, süreç genelinde 100 ile sınırlıdır. Sınır aşılırsa akış başlamadan 429 `TOO_MANY_REQUESTS` döner; kapanan bir akış kapasitesini serbest bırakır.
+
 Terminal olayı alan frontend EventSource'u kapatır. Terminal snapshot için yeni akış açılmaz. Terminal run'da replay edilecek olay kalmadıysa 204 ile yeniden bağlantı durdurulabilir; backlog varsa önce eksik terminal olayına kadar aktarılır.
 
 ## OpenAPI ve istemci

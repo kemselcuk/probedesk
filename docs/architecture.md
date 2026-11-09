@@ -109,7 +109,7 @@ Kaynaklar: [Node LTS](https://nodejs.org/en/about/previous-releases), [Angular u
 - Login JSON kabul eder, origin kontrolü uygular ve oturum kimliğini döndürmez.
 - Kimlik doğrulanmış mutasyonlarda session'a bağlı CSRF token doğrulanır; Angular'ın XSRF cookie/header düzeniyle eşleştirilir.
 - Logout oturumu sunucuda iptal eder ve cookie'yi temizler. Aktif SSE bağlantıları oturum kontrolünde kapanır; frontend kendi logout'unda hemen kapatır.
-- Login denemelerine tek süreç kapsamına uygun hız sınırı uygulanır; yanlış kullanıcı/parola mesajları hesap keşfine izin verecek şekilde ayrıştırılmaz.
+- Login denemelerine tek süreç kapsamına uygun hız sınırı uygulanır; yanlış kullanıcı/parola mesajları hesap keşfine izin verecek şekilde ayrıştırılmaz. Hız sınırı istemci adresine göre anahtarlanır. API, ters proxy arkasında istemci adresini yalnızca `TRUST_PROXY=true` iken `X-Forwarded-For` üzerinden alır; bu ayar yalnızca delivery compose topolojisinde açıktır. nginx gelen `X-Forwarded-For` başlığını doğrudan bağlanan istemci adresiyle (`$remote_addr`) ezer, böylece istemci başlığa sahte adresler ekleyerek hız sınırını atlatamaz.
 - Rol guard'ları bütün ilgili HTTP uçlarında uygulanır. UI guard'ı güvenlik sınırı sayılmaz.
 - Loglar cookie, parola, CSRF token veya oturum anahtarı içermez.
 - State değiştiren istekler ve snapshot query'leri DTO/parametre doğrulamasından geçer; sunucu alanlarının istemciden yazılması engellenir.

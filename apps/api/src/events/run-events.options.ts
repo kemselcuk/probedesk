@@ -12,6 +12,10 @@ export interface RunEventStreamOptions {
   readonly heartbeatIntervalMs: number;
   /** Maximum rows read by one follow-up query. */
   readonly batchSize: number;
+  /** Maximum concurrently open event streams one authenticated user may hold. */
+  readonly maxConnectionsPerUser: number;
+  /** Maximum concurrently open event streams across the whole process. */
+  readonly maxConnectionsTotal: number;
 }
 
 /** Injection token so integration tests can use short intervals. */
@@ -22,4 +26,6 @@ export const DEFAULT_RUN_EVENT_STREAM_OPTIONS: RunEventStreamOptions =
     pollIntervalMs: 200,
     heartbeatIntervalMs: 15_000,
     batchSize: 500,
+    maxConnectionsPerUser: 5,
+    maxConnectionsTotal: 100,
   });

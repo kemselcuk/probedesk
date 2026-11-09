@@ -811,6 +811,16 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "The per-user or per-process active stream limit is reached. No stream was opened.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorDto"
+                }
+              }
+            }
           }
         },
         "security": [

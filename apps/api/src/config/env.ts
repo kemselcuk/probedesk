@@ -20,7 +20,7 @@ export function loadDotEnv(): void {
 
 const booleanStringSchema = z
   .enum(['true', 'false'], {
-    error: 'SESSION_COOKIE_SECURE must be "true" or "false".',
+    error: 'must be "true" or "false".',
   })
   .default('false')
   .transform((value) => value === 'true');
@@ -66,6 +66,7 @@ export const environmentSchema = z
           'DATABASE_URL must be a valid postgres:// or postgresql:// connection URL with a database name.',
       }),
     SESSION_COOKIE_SECURE: booleanStringSchema,
+    TRUST_PROXY: booleanStringSchema,
   })
   .superRefine((value, context) => {
     // The session cookie must never travel over plain HTTP in production. A
@@ -85,6 +86,7 @@ export const environmentSchema = z
     port: value.PORT,
     databaseUrl: value.DATABASE_URL,
     sessionCookieSecure: value.SESSION_COOKIE_SECURE,
+    trustProxy: value.TRUST_PROXY,
   }));
 
 export type AppConfig = Readonly<z.infer<typeof environmentSchema>>;

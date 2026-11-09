@@ -134,7 +134,10 @@ paylaşılan geliştirme veritabanında çalıştırılmadı.
 İş akışı [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) altı iş içerir: `api_quality`,
 `api_integration`, `web_quality`, `contract`, `e2e` ve `ci_required`. `ci_required` beş işin
 sonucunu `success` ile karşılaştırır; `continue-on-error`, `|| true` veya koşulsuz başarılı adım
-yoktur. Başarısız E2E/kalite işleri artifact üretir; retention 7 gündür.
+yoktur. Başarısız E2E/kalite işleri artifact üretir; retention 7 gündür. `api_quality` ayrıca
+kurulumdan sonra `npx --yes npm@11.6.2 audit --omit=dev --audit-level=high` adımını çalıştırır;
+adım 2026-11-09'da yerelde aynı komutla doğrulandı ve 0 bulgu verdi
+([SEC-01 kanıtı](evidence/security-hardening.md)). Bu doğrulama yeni CI koşusu değildir.
 
 **Gerçek koşu (2026-11-04):** sürüm adayı commit `0d76dcf`, tag `v0.1.0-rc.3`, `main` push,
 [run 41918727810](https://github.com/kemselcuk/probedesk/actions/runs/41918727810) — API quality,

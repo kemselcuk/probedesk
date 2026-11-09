@@ -23,12 +23,16 @@ import {
 } from './run-events.options.js';
 
 export interface StartRunEventStreamInput {
+  readonly userId: string;
   readonly sessionToken: string;
   readonly sessionExpiresAt: Date;
   readonly request: Request;
   readonly response: Response;
   readonly requestId: string;
 }
+
+const TOO_MANY_STREAMS_MESSAGE =
+  'Too many active event streams. Close another stream and retry.';
 
 /**
  * Durable SSE delivery over the committed RunEvent table.
@@ -42,6 +46,10 @@ export interface StartRunEventStreamInput {
 export class RunEventsService implements OnModuleDestroy {
   private readonly logger = new Logger(RunEventsService.name);
   private readonly connections = new Set<RunEventConnection>();
+  private readonly connectionsByUser = new Map<
+    string,
+    Set<RunEventConnection>
+  >();
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -53,6 +61,11 @@ export class RunEventsService implements OnModuleDestroy {
   /** Number of open SSE responses; used by teardown integration tests. */
   get activeStreamCount(): number {
     return this.connections.size;
+  }
+
+  /** Number of open SSE responses owned by one user; used by tests. */
+  activeStreamCountForUser(userId: string): number {
+    return this.connectionsByUser.get(userId)?.size ?? 0;
   }
 
   /**
@@ -98,10 +111,16 @@ export class RunEventsService implements OnModuleDestroy {
     };
   }
 
+  /**
+   * Opens one SSE response. Capacity is checked before any SSE header is
+   * written, so a rejected connection uses the shared JSON error contract.
+   */
   start(
     prepared: PreparedRunEventStream,
     input: StartRunEventStreamInput,
   ): void {
+    this.assertStreamCapacity(input.userId);
+
     const connection = new RunEventConnection(
       {
         prepared,
@@ -117,13 +136,73 @@ export class RunEventsService implements OnModuleDestroy {
         options: this.options,
         logger: this.logger,
         onClosed: (closed) => {
-          this.connections.delete(closed);
+          this.unregister(closed, input.userId);
         },
       },
     );
 
-    this.connections.add(connection);
+    this.register(connection, input.userId);
     connection.start();
+  }
+
+  private assertStreamCapacity(userId: string): void {
+    const activeForUser = this.activeStreamCountForUser(userId);
+
+    if (activeForUser >= this.options.maxConnectionsPerUser) {
+      throw new ApiException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        'TOO_MANY_REQUESTS',
+        TOO_MANY_STREAMS_MESSAGE,
+        {
+          details: {
+            scope: 'user',
+            limit: this.options.maxConnectionsPerUser,
+            activeStreams: activeForUser,
+          },
+        },
+      );
+    }
+
+    if (this.connections.size >= this.options.maxConnectionsTotal) {
+      throw new ApiException(
+        HttpStatus.TOO_MANY_REQUESTS,
+        'TOO_MANY_REQUESTS',
+        TOO_MANY_STREAMS_MESSAGE,
+        {
+          details: {
+            scope: 'total',
+            limit: this.options.maxConnectionsTotal,
+            activeStreams: this.connections.size,
+          },
+        },
+      );
+    }
+  }
+
+  private register(connection: RunEventConnection, userId: string): void {
+    this.connections.add(connection);
+
+    const userConnections = this.connectionsByUser.get(userId);
+    if (userConnections) {
+      userConnections.add(connection);
+    } else {
+      this.connectionsByUser.set(userId, new Set([connection]));
+    }
+  }
+
+  /** Removes a closed stream from the total and per-user registries. */
+  private unregister(connection: RunEventConnection, userId: string): void {
+    this.connections.delete(connection);
+
+    const userConnections = this.connectionsByUser.get(userId);
+    if (!userConnections) {
+      return;
+    }
+
+    userConnections.delete(connection);
+    if (userConnections.size === 0) {
+      this.connectionsByUser.delete(userId);
+    }
   }
 
   /**
@@ -135,5 +214,6 @@ export class RunEventsService implements OnModuleDestroy {
       connection.dispose();
     }
     this.connections.clear();
+    this.connectionsByUser.clear();
   }
 }

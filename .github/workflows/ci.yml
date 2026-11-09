@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: npx --yes npm@11.6.2 ci --no-audit --no-fund
 
+      - name: Audit production dependencies
+        run: npx --yes npm@11.6.2 audit --omit=dev --audit-level=high
+
       - name: Lint API
         run: npx --yes npm@11.6.2 run lint --workspace apps/api
 

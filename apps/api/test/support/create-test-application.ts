@@ -56,10 +56,10 @@ export async function createTestApplication(
   const app = moduleFixture.createNestApplication(
     options.logger ? { logger: options.logger } : { logger: false },
   );
-  configureApp(app);
+  configureApp(app, { trustProxy: config.trustProxy });
 
   if (options.swagger) {
-    setupSwagger(app);
+    setupSwagger(app, config);
   }
 
   await app.init();

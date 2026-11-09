@@ -162,3 +162,13 @@ Kullanıcı özellik paketi 1’in (dört özellik) uygulanmasını yetkilendird
 | [EX-11 — Download ve yazdırılabilir rapor frontend](EX-11.md)   | Lead                   | In Review   |
 | [EX-12 — Paket gerçek E2E ve veritabanı izolasyonu](EX-12.md)   | D                      | In Progress |
 | [EX-13 — Bağımsız review ve teslim paketi](EX-13.md)            | Review delegate + Lead | In Progress |
+
+## Güvenlik sertleştirmesi
+
+Kullanıcı talebiyle eklenen tek kart; toplam kart sayısı **86** olur. Uygulama çıktısı ve lead
+doğrulamaları (tam API e2e 29/283, `npm run verify`, Docker delivery header/proxy ve gerçek Chrome
+CSP smoke) tamamlandı; bağımsız inceleme ve kabul verilmedi.
+
+| Görev                                                                                            | Sahiplik    | Durum     |
+| ------------------------------------------------------------------------------------------------ | ----------- | --------- |
+| [SEC-01 — Güvenlik sertleştirmesi: proxy hız sınırı, başlıklar, SSE ve bağımlılıklar](SEC-01.md) | Entegrasyon | In Review |

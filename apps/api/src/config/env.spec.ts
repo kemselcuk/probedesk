@@ -6,6 +6,7 @@ const validEnvironment = {
   DATABASE_URL:
     'postgresql://probedesk:probedesk@127.0.0.1:5432/probedesk?schema=public',
   SESSION_COOKIE_SECURE: 'false',
+  TRUST_PROXY: 'false',
 } satisfies Record<string, string>;
 
 describe('loadEnv', () => {
@@ -17,6 +18,7 @@ describe('loadEnv', () => {
       port: 3100,
       databaseUrl: validEnvironment.DATABASE_URL,
       sessionCookieSecure: false,
+      trustProxy: false,
     });
     expect(Object.isFrozen(config)).toBe(true);
   });
@@ -29,6 +31,7 @@ describe('loadEnv', () => {
     expect(config.nodeEnv).toBe('development');
     expect(config.port).toBe(3000);
     expect(config.sessionCookieSecure).toBe(false);
+    expect(config.trustProxy).toBe(false);
   });
 
   it('interprets SESSION_COOKIE_SECURE as a boolean', () => {
@@ -38,6 +41,21 @@ describe('loadEnv', () => {
         SESSION_COOKIE_SECURE: 'true',
       }).sessionCookieSecure,
     ).toBe(true);
+  });
+
+  it('interprets TRUST_PROXY as a boolean', () => {
+    const config = loadEnv({
+      DATABASE_URL: validEnvironment.DATABASE_URL,
+      TRUST_PROXY: 'true',
+    });
+
+    expect(config.trustProxy).toBe(true);
+  });
+
+  it('rejects an invalid TRUST_PROXY value', () => {
+    expect(() =>
+      loadEnv({ ...validEnvironment, TRUST_PROXY: 'yes' }),
+    ).toThrowError(/TRUST_PROXY/);
   });
 
   it('rejects a missing DATABASE_URL with a clear English message', () => {

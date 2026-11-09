@@ -19,11 +19,11 @@ async function bootstrap(): Promise<void> {
     loadEnv(process.env);
 
     const app = await NestFactory.create(AppModule);
-    configureApp(app);
-    setupSwagger(app);
+    const config = app.get<AppConfig>(APP_CONFIG);
+    configureApp(app, { trustProxy: config.trustProxy });
+    setupSwagger(app, config);
     app.enableShutdownHooks();
 
-    const config = app.get<AppConfig>(APP_CONFIG);
     await app.listen(config.port);
 
     Logger.log(

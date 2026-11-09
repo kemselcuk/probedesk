@@ -39,6 +39,10 @@ gerçekten üretildiğinde eklenir.
   yerel teslim, demo verisi, kalıcılık, doküman doğrulaması ve RC paketi.
 - [Genel kod incelemesi düzeltmeleri](general-review-fixes.md): auth oturum yarışları, CSRF
   kurtarma, UUID kanonikleştirme, Start→Live navigasyonu ve nginx özel port yönlendirmesi.
+- [Güvenlik sertleştirmesi](security-hardening.md): proxy arkasında login throttle ayrışması,
+  güvenlik başlıkları/CSP, SSE kapasitesi, production Swagger kapatma, bağımlılık yükseltmeleri
+  ve CI production audit adımı; Worker C komutları, lead `verify`/e2e ve canlı delivery/browser
+  kontrolleri.
 
 ## Kayıt biçimi
 

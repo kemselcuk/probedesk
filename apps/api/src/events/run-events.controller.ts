@@ -21,6 +21,7 @@ import {
   ApiQuery,
   ApiSecurity,
   ApiTags,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -120,6 +121,11 @@ export class RunEventsController {
     description: 'The run does not exist.',
     type: ApiErrorDto,
   })
+  @ApiTooManyRequestsResponse({
+    description:
+      'The per-user or per-process active stream limit is reached. No stream was opened.',
+    type: ApiErrorDto,
+  })
   async stream(
     @CurrentAuth() auth: AuthContext,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -151,6 +157,7 @@ export class RunEventsController {
     }
 
     this.runEventsService.start(prepared, {
+      userId: auth.user.id,
       sessionToken,
       sessionExpiresAt: auth.expiresAt,
       request,

@@ -51,6 +51,23 @@ describe('common API behaviour (e2e)', () => {
     expect(response.body.received.steps[0].measurement.value).toBe(0.5);
   });
 
+  it('sets base security headers and hides the framework banner', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/test-validation')
+      .send({ name: 'Main supply', sampleCount: 3, steps: [] })
+      .expect(201);
+
+    expect(response.headers['x-content-type-options']).toBe('nosniff');
+    expect(response.headers['x-frame-options']).toBe('DENY');
+    expect(response.headers['referrer-policy']).toBe(
+      'strict-origin-when-cross-origin',
+    );
+    expect(response.headers['permissions-policy']).toBe(
+      'camera=(), microphone=(), geolocation=()',
+    );
+    expect(response.headers['x-powered-by']).toBeUndefined();
+  });
+
   it('rejects invalid and nested values with field paths', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/test-validation')

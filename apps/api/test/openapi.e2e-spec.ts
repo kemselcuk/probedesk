@@ -344,4 +344,25 @@ describe('OpenAPI document (e2e)', () => {
 
     expect(committed).toEqual(generated);
   });
+
+  it('does not serve Swagger UI when NODE_ENV is production', async () => {
+    // The unreachable database URL keeps the production app from contacting
+    // PostgreSQL, matching the setup of the suite's swagger-enabled app.
+    const productionApp = await createTestApplication(
+      {
+        nodeEnv: 'production',
+        databaseUrl:
+          'postgresql://probedesk:probedesk@127.0.0.1:59999/probedesk_test?schema=public',
+      },
+      { swagger: true },
+    );
+
+    try {
+      await request(productionApp.getHttpServer())
+        .get('/api/docs')
+        .expect(404);
+    } finally {
+      await productionApp.close();
+    }
+  });
 });
