@@ -85,6 +85,9 @@ Gerçekten çalıştırılanlar (2026-11-09):
 - Ara koşu notu: bir tam e2e koşusunda `database.e2e-spec.ts` batch-index plan testi bir kez
   düştü; tek başına ve sonraki tam koşu (283/283) geçti. Bu, cost-based plan testinin mevcut
   flakiness'i; ürün değişikliği değil. Kanıtta korunur.
+- PR CI ilk koşusunda Playwright feature-pack overview response body'sini SPA navigasyonu sonrası
+  okuduğu için düştü; test `page.request` ile düzeltildi ve tam Playwright paketi yerelde
+  **10/10** geçti. `CI required` aynı kök nedene bağlıydı.
 
 ## Okunacak sözleşmeler
 

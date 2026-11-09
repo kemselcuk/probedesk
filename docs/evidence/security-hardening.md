@@ -226,6 +226,14 @@ Bir tam e2e koşusunda `database.e2e-spec.ts` içindeki batch-index plan testi b
 koşuda geçti; sonuç **29 dosya / 283 test**. Bu, cost-based PostgreSQL plan testinin mevcut
 flakiness’i; ürün kodu veya SEC-01 değişikliğiyle ilişkilendirilmedi.
 
+### PR CI notu (2026-11-09)
+
+PR #4 ilk CI koşusunda Playwright `tests/e2e/feature-pack-1.spec.ts` testi, overview response
+body’sini SPA filtre navigasyonundan sonra okumaya çalıştığı için
+`Network.getResponseBody: No data found` hatasıyla düştü. Test, aynı overview URL’sini
+`page.request` ile yeniden okuyacak şekilde düzeltildi; tam Playwright paketi yerelde **10/10**
+geçti. `CI required` yalnızca bu işin sonucunu topladığı için aynı kök nedene bağlıydı.
+
 ## Sınırlamalar
 
 - Yerel Docker ana makinesinden yayınlanan portta istemciler Docker gateway adresini

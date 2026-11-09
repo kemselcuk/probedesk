@@ -750,7 +750,17 @@ test("planner copies and publishes a plan, operator runs it, viewer reports and 
   await viewerPage.getByRole("button", { name: "Apply filters" }).click();
   const overviewResponse = await overviewResponsePromise;
   expect(overviewResponse.ok()).toBe(true);
-  const overview = (await overviewResponse.json()) as OverviewResponse;
+  // The filter submit performs an in-app navigation. Reading the original
+  // browser response body after that navigation can race with the SPA's
+  // request lifecycle and Playwright may report that the body is no longer
+  // available. Re-read the exact same projection through the context's API
+  // client, which shares the authenticated cookies but is not tied to a page
+  // navigation.
+  const overviewApiResponse = await viewerPage.request.get(
+    overviewResponse.url(),
+  );
+  expect(overviewApiResponse.ok()).toBe(true);
+  const overview = (await overviewApiResponse.json()) as OverviewResponse;
   expect(overview.filters.planId).toBe(copyPlanId);
   expect(overview.filters.planVersionId).toBe(copyVersionId);
   expect(overview.filters.deviceId).toBe(deviceId);
