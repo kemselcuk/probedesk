@@ -26,6 +26,10 @@ x-api-environment: &api-environment
   # 127.0.0.1:<host-port>, which is not reachable from inside the container.
   DATABASE_URL: "${PROBEDESK_DATABASE_URL:-postgresql://probedesk:probedesk@postgres:5432/probedesk?schema=public}"
   SESSION_COOKIE_SECURE: "false"
+  # nginx is the only entry point and overwrites X-Forwarded-For with the
+  # direct client address, so the login throttle can key on the real client.
+  # Trust this header only in this delivery topology.
+  TRUST_PROXY: "true"
 
 services:
   postgres:

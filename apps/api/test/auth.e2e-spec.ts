@@ -583,6 +583,48 @@ describe('authentication and authorization (e2e)', () => {
     }
   });
 
+  it('isolates login throttling per client address when trust proxy is enabled', async () => {
+    const user = await createTestUser(prisma, { role: Role.VIEWER });
+    let trustedProxyApp: INestApplication | undefined;
+
+    try {
+      trustedProxyApp = await createTestApplication({ trustProxy: true });
+
+      for (let attempt = 0; attempt < 50; attempt += 1) {
+        await request(trustedProxyApp.getHttpServer())
+          .post('/api/auth/login')
+          .set('X-Forwarded-For', '198.51.100.10')
+          .send({ email: uniqueAuthEmail(), password: 'wrong-password' })
+          .expect(401);
+      }
+
+      // Another client is not affected by the first client's failures.
+      await request(trustedProxyApp.getHttpServer())
+        .post('/api/auth/login')
+        .set('X-Forwarded-For', '198.51.100.11')
+        .send({ email: user.email, password: user.password })
+        .expect(200);
+
+      // The blocked client stays blocked, even with valid credentials.
+      const blocked = await request(trustedProxyApp.getHttpServer())
+        .post('/api/auth/login')
+        .set('X-Forwarded-For', '198.51.100.10')
+        .send({ email: user.email, password: user.password })
+        .expect(429);
+
+      expect(blocked.body).toMatchObject({
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Too many login attempts. Try again later.',
+      });
+    } finally {
+      if (trustedProxyApp) {
+        await trustedProxyApp.close();
+      }
+      await prisma.session.deleteMany({ where: { userId: user.id } });
+      await prisma.user.delete({ where: { id: user.id } });
+    }
+  });
+
   it('rejects unknown login fields and keeps login JSON-only and same-origin', async () => {
     const user = await createTestUser(prisma, { role: Role.PLANNER });
 

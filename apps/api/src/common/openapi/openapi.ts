@@ -8,6 +8,7 @@ import {
   CSRF_HEADER_DISPLAY_NAME,
   SESSION_COOKIE_NAME,
 } from '../../auth/auth.constants.js';
+import type { AppConfig } from '../../config/env.js';
 
 export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = new DocumentBuilder()
@@ -98,9 +99,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * Serves the interactive docs and the machine-readable document. The JSON URL
- * matches the file produced by `npm run openapi:emit`.
+ * matches the file produced by `npm run openapi:emit`. Swagger UI is a
+ * development tool: production deployments keep it off the public surface.
  */
-export function setupSwagger(app: INestApplication): void {
+export function setupSwagger(app: INestApplication, config: AppConfig): void {
+  if (config.nodeEnv === 'production') {
+    return;
+  }
+
   SwaggerModule.setup('api/docs', app, createOpenApiDocument(app), {
     jsonDocumentUrl: 'api/docs-json',
     customSiteTitle: 'ProbeDesk API',
